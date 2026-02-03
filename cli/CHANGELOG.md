@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2](https://github.com/einord/agent-office/compare/agent-office-v0.1.1...agent-office-v0.1.2) (2026-02-03)
+
+
+### Features
+
+* add nodemon configuration and update CLI scripts for improved development experience ([9d124b0](https://github.com/einord/agent-office/commit/9d124b01f8fd1fbd6f393cd38dfcc563cc51f3e3))
+* integrate blessed UI for enhanced session monitoring and update dependencies ([83e2433](https://github.com/einord/agent-office/commit/83e24331b9da283b67a2e682b50ae0218a00d812))
+
 ## [0.1.1](https://github.com/einord/agent-office/compare/agent-office-v0.1.0...agent-office-v0.1.1) (2026-02-03)
 
 
