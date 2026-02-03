@@ -6,11 +6,14 @@ enum AgentState { WORKING, IDLE, LEAVING }
 @export var random_range: Vector2 = Vector2(200, 200)  # Område för slumpmässiga positioner
 @export var idle_wait_min: float = 5.0  # Minimum wait time in idle state (seconds)
 @export var idle_wait_max: float = 10.0  # Maximum wait time in idle state (seconds)
+@export var exit_wait_time: float = 2.0  # Time to wait at exit before despawning (seconds)
 @onready var navigation_agent: NavigationAgent2D = get_node("NavigationAgent2D")
 var movement_delta: float
 var current_state: AgentState = AgentState.IDLE
 var _idle_timer: float = 0.0
 var _is_idle_waiting: bool = false
+var _exit_timer: float = 0.0
+var _is_exit_waiting: bool = false
 
 func _ready() -> void:
 	navigation_agent.velocity_computed.connect(Callable(_on_velocity_computed))
@@ -40,9 +43,13 @@ func _enter_state(state: AgentState) -> void:
 
 ## Called when exiting a state. Can be used for cleanup.
 func _exit_state(state: AgentState) -> void:
-	if state == AgentState.IDLE:
-		_idle_timer = 0.0
-		_is_idle_waiting = false
+	match state:
+		AgentState.IDLE:
+			_idle_timer = 0.0
+			_is_idle_waiting = false
+		AgentState.LEAVING:
+			_exit_timer = 0.0
+			_is_exit_waiting = false
 
 ## Sets target to a random work station from the "work_station" group.
 func _set_work_target() -> void:
@@ -111,16 +118,6 @@ func _set_random_target() -> void:
 	var closest_valid = NavigationServer2D.map_get_closest_point(map_rid, fallback_target)
 	set_movement_target(closest_valid)
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed:
-		match event.keycode:
-			KEY_1:
-				change_state(AgentState.WORKING)
-			KEY_2:
-				change_state(AgentState.IDLE)
-			KEY_3:
-				change_state(AgentState.LEAVING)
-
 func _physics_process(delta):
 	# Do not query when the map has never synchronized and is empty.
 	var map_id = navigation_agent.get_navigation_map()
@@ -146,7 +143,14 @@ func _physics_process(delta):
 						_set_idle_target()
 				return
 			AgentState.LEAVING:
-				# Stay at exit - do nothing
+				# Wait at exit, then despawn
+				if not _is_exit_waiting:
+					_is_exit_waiting = true
+					_exit_timer = exit_wait_time
+				else:
+					_exit_timer -= delta
+					if _exit_timer <= 0.0:
+						queue_free()
 				return
 		return
 
