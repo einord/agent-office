@@ -15,6 +15,8 @@ var _is_idle_waiting: bool = false
 var _exit_timer: float = 0.0
 var _is_exit_waiting: bool = false
 var external_id: String = ""
+var display_name: String = ""
+var user_name: String = ""
 
 func _ready() -> void:
 	navigation_agent.velocity_computed.connect(Callable(_on_velocity_computed))

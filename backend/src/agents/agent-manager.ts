@@ -57,6 +57,7 @@ export function removeAgentChangeListener(callback: AgentChangeCallback): void {
  * @param displayName - Name to display for the agent
  * @param activity - Initial activity
  * @param ownerKey - API key of the owner
+ * @param ownerDisplayName - Display name of the owner
  * @param variantIndex - Optional sprite variant index (random if not provided)
  * @returns The created agent, or null if an agent with that ID already exists
  */
@@ -65,6 +66,7 @@ export function createAgent(
   displayName: string,
   activity: AgentActivity,
   ownerKey: string,
+  ownerDisplayName: string,
   variantIndex?: number
 ): Agent | null {
   if (agents.has(id)) {
@@ -80,6 +82,7 @@ export function createAgent(
     activity,
     state: mapActivityToState(activity),
     ownerKey,
+    ownerDisplayName,
     createdAt: now,
     updatedAt: now,
   };
@@ -115,18 +118,17 @@ export function updateAgentActivity(
     return null;
   }
 
+  const oldState = agent.state;
   const newState = mapActivityToState(activity);
-  const stateChanged = agent.state !== newState;
 
   agent.activity = activity;
   agent.state = newState;
   agent.updatedAt = Date.now();
 
-  console.log(`[AgentManager] Updated agent: ${id} -> activity: ${activity}, state: ${newState}`);
+  console.log(`[AgentManager] Updated agent: ${id} -> activity: ${activity}, state: ${newState} (was: ${oldState})`);
 
-  if (stateChanged) {
-    notifyListeners('update', agent);
-  }
+  // Always notify listeners so Godot can update the agent
+  notifyListeners('update', agent);
 
   return agent;
 }

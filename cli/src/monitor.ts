@@ -8,23 +8,46 @@ import { getAllSessions, readConversationTail, calculateTokenUsage } from './dat
 import { getLatestActivity, isSessionActive } from './data/activity-tracker.js';
 import { getSessionColor } from './ui/renderer.js';
 import { BlessedUI } from './ui/blessed-ui.js';
+import { ServerClient, type ServerClientConfig } from './sync/server-client.js';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 const PROJECTS_DIR = join(CLAUDE_DIR, 'projects');
 
 /**
- * Main monitor class that tracks Claude sessions
+ * Configuration options for the monitor.
+ */
+export interface MonitorConfig {
+  /** Server URL for backend sync */
+  serverUrl: string;
+  /** API key for backend authentication */
+  apiKey: string;
+}
+
+/**
+ * Main monitor class that tracks Claude sessions and optionally syncs to a backend server.
  */
 export class ClaudeMonitor {
   private sessions: Map<string, TrackedSession> = new Map();
+  private previousSessions: Map<string, TrackedSession> = new Map();
   private watcher: chokidar.FSWatcher | null = null;
   private updateTimer: NodeJS.Timeout | null = null;
   private renderTimer: NodeJS.Timeout | null = null;
   private isRunning = false;
   private ui: BlessedUI | null = null;
+  private serverClient: ServerClient | null = null;
 
   /**
-   * Starts the monitor
+   * Creates a new ClaudeMonitor instance.
+   * @param syncConfig - Optional configuration for server synchronization
+   */
+  constructor(syncConfig?: MonitorConfig) {
+    if (syncConfig) {
+      this.serverClient = new ServerClient(syncConfig);
+    }
+  }
+
+  /**
+   * Starts the monitor.
    */
   async start(): Promise<void> {
     this.isRunning = true;
@@ -36,12 +59,22 @@ export class ClaudeMonitor {
     await this.refresh();
     this.render();
 
+    // Initial sync if server client is configured
+    if (this.serverClient) {
+      await this.syncToServer();
+    }
+
     // Set up file watching
     this.setupWatcher();
 
     // Periodic refresh as fallback if file watching misses changes
     this.updateTimer = setInterval(() => {
-      this.refresh().then(() => this.render());
+      this.refresh().then(() => {
+        this.render();
+        if (this.serverClient) {
+          this.syncToServer();
+        }
+      });
     }, 60_000);
 
     // Frequent render updates for "time ago" display
@@ -51,7 +84,7 @@ export class ClaudeMonitor {
   }
 
   /**
-   * Stops the monitor
+   * Stops the monitor.
    */
   stop(): void {
     this.isRunning = false;
@@ -80,7 +113,7 @@ export class ClaudeMonitor {
   }
 
   /**
-   * Sets up file watching for real-time updates
+   * Sets up file watching for real-time updates.
    */
   private setupWatcher(): void {
     const watchPaths = [
@@ -100,16 +133,53 @@ export class ClaudeMonitor {
     this.watcher.on('change', async (path) => {
       await this.refresh();
       this.render();
+      if (this.serverClient) {
+        await this.syncToServer();
+      }
     });
 
     this.watcher.on('add', async (path) => {
       await this.refresh();
       this.render();
+      if (this.serverClient) {
+        await this.syncToServer();
+      }
     });
   }
 
   /**
-   * Refreshes session data
+   * Synchronizes sessions to the backend server.
+   * Detects new, updated, and removed sessions and syncs accordingly.
+   */
+  private async syncToServer(): Promise<void> {
+    if (!this.serverClient) return;
+
+    try {
+      // Get visible sessions (same filter as render)
+      const DONE_TIMEOUT_MS = 5 * 60 * 1000;
+      const visibleSessions = new Map<string, TrackedSession>();
+
+      for (const [id, session] of this.sessions) {
+        if (session.activity.type === 'done') {
+          const age = Date.now() - session.lastUpdate.getTime();
+          if (age < DONE_TIMEOUT_MS) {
+            visibleSessions.set(id, session);
+          }
+        } else {
+          visibleSessions.set(id, session);
+        }
+      }
+
+      // Sync all sessions
+      await this.serverClient.syncAll(visibleSessions);
+    } catch (error) {
+      // Log but don't crash - sync failures shouldn't stop the monitor
+      console.error('[Monitor] Sync error:', error instanceof Error ? error.message : error);
+    }
+  }
+
+  /**
+   * Refreshes session data.
    */
   async refresh(): Promise<void> {
     try {
@@ -120,6 +190,9 @@ export class ClaudeMonitor {
 
       // Get all sessions
       const allSessions = await getAllSessions();
+
+      // Store previous sessions for comparison
+      this.previousSessions = new Map(this.sessions);
 
       // Build tracked sessions
       const newSessions = new Map<string, TrackedSession>();
@@ -143,7 +216,7 @@ export class ClaudeMonitor {
   }
 
   /**
-   * Builds a tracked session from session info
+   * Builds a tracked session from session info.
    */
   private async buildTrackedSession(
     sessionId: string,
@@ -193,7 +266,7 @@ export class ClaudeMonitor {
   }
 
   /**
-   * Renders the current state to the terminal
+   * Renders the current state to the terminal.
    */
   private render(): void {
     if (!this.isRunning || !this.ui) return;

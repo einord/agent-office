@@ -60,6 +60,11 @@ router.post('/agents', authMiddleware, (req: AuthenticatedRequest, res: Response
     return;
   }
 
+  if (!body.displayName || typeof body.displayName !== 'string') {
+    res.status(400).json({ error: 'displayName is required and must be a string' });
+    return;
+  }
+
   if (!body.activity || typeof body.activity !== 'string') {
     res.status(400).json({ error: 'activity is required and must be a string' });
     return;
@@ -80,9 +85,10 @@ router.post('/agents', authMiddleware, (req: AuthenticatedRequest, res: Response
 
   const agent = createAgent(
     body.id,
-    user.displayName,
+    body.displayName,
     body.activity,
     user.key,
+    user.displayName,
     body.variantIndex
   );
 
@@ -97,6 +103,7 @@ router.post('/agents', authMiddleware, (req: AuthenticatedRequest, res: Response
     variantIndex: agent.variantIndex,
     activity: agent.activity,
     state: agent.state,
+    userName: agent.ownerDisplayName,
   };
 
   res.status(201).json(response);
@@ -150,6 +157,7 @@ router.put('/agents/:id', authMiddleware, (req: AuthenticatedRequest, res: Respo
     variantIndex: agent.variantIndex,
     activity: agent.activity,
     state: agent.state,
+    userName: agent.ownerDisplayName,
   };
 
   res.status(200).json(response);
@@ -200,6 +208,7 @@ router.get('/agents', authMiddleware, (req: AuthenticatedRequest, res: Response)
     variantIndex: agent.variantIndex,
     activity: agent.activity,
     state: agent.state,
+    userName: agent.ownerDisplayName,
   }));
 
   res.status(200).json(response);
@@ -232,6 +241,7 @@ router.get('/agents/:id', authMiddleware, (req: AuthenticatedRequest, res: Respo
     variantIndex: agent.variantIndex,
     activity: agent.activity,
     state: agent.state,
+    userName: agent.ownerDisplayName,
   };
 
   res.status(200).json(response);

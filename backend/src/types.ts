@@ -36,6 +36,7 @@ export interface WebSocketMessage<T extends string, P> {
 export interface SpawnAgentPayload {
   id: string;
   displayName: string;
+  userName: string;
   variantIndex: number;
   state: AgentState;
 }

@@ -15,15 +15,48 @@ var _socket: WebSocketPeer = WebSocketPeer.new()
 var _ws_connected: bool = false
 const WS_URL: String = "ws://localhost:3101"
 
+# Status label for connection state
+var _status_label: Label
+
 func _ready() -> void:
 	# Clear all existing agents at startup
 	for child in _agents_container.get_children():
 		child.queue_free()
 
+	# Create status label
+	_create_status_label()
+
 	# Connect to WebSocket server
 	var err = _socket.connect_to_url(WS_URL)
 	if err != OK:
 		push_error("WebSocket connection failed: " + str(err))
+	_update_status_label()
+
+## Creates a status label at the bottom of the screen.
+func _create_status_label() -> void:
+	_status_label = Label.new()
+	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+
+	# Position at bottom-left with some padding
+	_status_label.position = Vector2(4, 180)
+
+	# Small font size
+	_status_label.add_theme_font_size_override("font_size", 8)
+
+	add_child(_status_label)
+
+## Updates the status label based on connection state.
+func _update_status_label() -> void:
+	if _status_label == null:
+		return
+
+	if _ws_connected:
+		_status_label.text = "Connected"
+		_status_label.add_theme_color_override("font_color", Color(0.4, 0.8, 0.4))  # Green
+	else:
+		_status_label.text = "Disconnected"
+		_status_label.add_theme_color_override("font_color", Color(0.8, 0.4, 0.4))  # Red
 
 func _process(_delta: float) -> void:
 	_poll_websocket()
@@ -38,6 +71,7 @@ func _poll_websocket() -> void:
 			if not _ws_connected:
 				_ws_connected = true
 				print("WebSocket connected to ", WS_URL)
+				_update_status_label()
 
 			# Process all available messages
 			while _socket.get_available_packet_count() > 0:
@@ -54,6 +88,7 @@ func _poll_websocket() -> void:
 				var code = _socket.get_close_code()
 				var reason = _socket.get_close_reason()
 				print("WebSocket closed. Code: ", code, " Reason: ", reason)
+				_update_status_label()
 				# Attempt to reconnect after a short delay
 				await get_tree().create_timer(2.0).timeout
 				var err = _socket.connect_to_url(WS_URL)
@@ -90,6 +125,7 @@ func _handle_ws_message(message_str: String) -> void:
 func _handle_spawn_agent(payload: Dictionary) -> void:
 	var agent_id = payload.get("id", "")
 	var display_name = payload.get("displayName", "")
+	var user_name = payload.get("userName", "")
 	var variant_index = payload.get("variantIndex", 0)
 	var state_str = payload.get("state", "IDLE")
 
@@ -104,7 +140,7 @@ func _handle_spawn_agent(payload: Dictionary) -> void:
 		return
 
 	# Spawn the agent
-	var agent = _spawn_agent_with_params(agent_id, display_name, variant_index, state_str)
+	var agent = _spawn_agent_with_params(agent_id, display_name, user_name, variant_index, state_str)
 	if agent != null:
 		_send_ack("spawn_agent", agent_id, true)
 	else:
@@ -125,7 +161,17 @@ func _handle_update_agent(payload: Dictionary) -> void:
 		push_warning("update_agent: Agent instance invalid for id: " + agent_id)
 		return
 
-	var new_state = _parse_state(state_str)
+	# Use the agent's own enum to avoid preload issues
+	var new_state = agent.AgentState.IDLE
+	match state_str:
+		"WORKING":
+			new_state = agent.AgentState.WORKING
+		"IDLE":
+			new_state = agent.AgentState.IDLE
+		"LEAVING":
+			new_state = agent.AgentState.LEAVING
+
+	print("update_agent: ", agent_id, " -> ", state_str, " (", new_state, ")")
 	agent.change_state(new_state)
 
 ## Handles the remove_agent command from the backend.
@@ -139,18 +185,6 @@ func _handle_remove_agent(payload: Dictionary) -> void:
 	var agent = _agents_by_id[agent_id]
 	if is_instance_valid(agent):
 		agent.change_state(agent.AgentState.LEAVING)
-
-## Parses a state string to AgentState enum.
-func _parse_state(state_str: String) -> int:
-	match state_str:
-		"WORKING":
-			return preload("res://scenes/agent.gd").AgentState.WORKING
-		"IDLE":
-			return preload("res://scenes/agent.gd").AgentState.IDLE
-		"LEAVING":
-			return preload("res://scenes/agent.gd").AgentState.LEAVING
-		_:
-			return preload("res://scenes/agent.gd").AgentState.IDLE
 
 ## Sends an acknowledgment message to the backend.
 func _send_ack(command: String, agent_id: String, success: bool) -> void:
@@ -191,7 +225,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_send_agent_to_exit()
 
 ## Spawns a new agent with specified parameters from WebSocket command.
-func _spawn_agent_with_params(agent_id: String, display_name: String, variant_index: int, state_str: String) -> Node:
+func _spawn_agent_with_params(agent_id: String, display_name: String, user_name: String, variant_index: int, state_str: String) -> Node:
 	if agent_scene == null:
 		push_error("Agent scene not assigned!")
 		return null
@@ -205,8 +239,10 @@ func _spawn_agent_with_params(agent_id: String, display_name: String, variant_in
 	# Instance and add agent
 	var agent = agent_scene.instantiate()
 
-	# Set external ID
+	# Set external ID and names
 	agent.external_id = agent_id
+	agent.display_name = display_name
+	agent.user_name = user_name
 
 	# Assign sprite variant by index
 	if agent_variants.size() > 0 and variant_index >= 0 and variant_index < agent_variants.size():
@@ -224,8 +260,15 @@ func _spawn_agent_with_params(agent_id: String, display_name: String, variant_in
 	# Connect to agent's removal signal
 	agent.tree_exiting.connect(_on_agent_removed.bind(agent))
 
-	# Set initial state after agent is ready
-	var initial_state = _parse_state(state_str)
+	# Set initial state after agent is ready (use agent's own enum)
+	var initial_state = agent.AgentState.IDLE
+	match state_str:
+		"WORKING":
+			initial_state = agent.AgentState.WORKING
+		"IDLE":
+			initial_state = agent.AgentState.IDLE
+		"LEAVING":
+			initial_state = agent.AgentState.LEAVING
 	# Use call_deferred to ensure agent is fully ready
 	agent.call_deferred("change_state", initial_state)
 

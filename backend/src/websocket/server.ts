@@ -41,6 +41,7 @@ function sendSpawnAgent(agent: Agent): boolean {
   const payload: SpawnAgentPayload = {
     id: agent.id,
     displayName: agent.displayName,
+    userName: agent.ownerDisplayName,
     variantIndex: agent.variantIndex,
     state: agent.state,
   };

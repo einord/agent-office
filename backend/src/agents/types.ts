@@ -6,7 +6,7 @@ import type { AgentState, AgentActivity } from '../types.js';
 export interface Agent {
   /** Unique identifier for the agent */
   id: string;
-  /** Display name shown in the UI */
+  /** Display name for the agent (per-agent, not owner name) */
   displayName: string;
   /** Index of the sprite variant to use (0-based) */
   variantIndex: number;
@@ -16,6 +16,8 @@ export interface Agent {
   state: AgentState;
   /** Owner user's API key */
   ownerKey: string;
+  /** Owner user's display name */
+  ownerDisplayName: string;
   /** Timestamp when the agent was created */
   createdAt: number;
   /** Timestamp when the agent was last updated */
@@ -28,6 +30,8 @@ export interface Agent {
 export interface CreateAgentRequest {
   /** Unique identifier for the agent */
   id: string;
+  /** Display name for the agent */
+  displayName: string;
   /** Initial activity for the agent */
   activity: AgentActivity;
   /** Optional variant index (random if not provided) */
@@ -56,6 +60,8 @@ export interface AgentResponse {
   activity: AgentActivity;
   /** The agent's current state */
   state: AgentState;
+  /** The owner's display name */
+  userName: string;
 }
 
 /**
