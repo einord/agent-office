@@ -1,0 +1,9 @@
+{
+  "name": "agent-office",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter claude-agent-monitor dev",
+    "build": "pnpm --filter claude-agent-monitor build",
+    "start": "pnpm --filter claude-agent-monitor start"
+  }
+}
