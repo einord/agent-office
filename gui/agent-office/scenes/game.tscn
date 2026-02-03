@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://b88kgwuugd6if"]
+
+[ext_resource type="PackedScene" uid="uid://bkuqnhixoabdn" path="res://scenes/tilemap.tscn" id="1_uwrxv"]
+[ext_resource type="PackedScene" uid="uid://cf4tl06wgnrrq" path="res://scenes/agent.tscn" id="2_yqjtg"]
+
+[node name="Game" type="Node2D" unique_id=1157974618]
+
+[node name="Tilemap" parent="." unique_id=984404399 instance=ExtResource("1_uwrxv")]
+
+[node name="Agents" type="Node" parent="." unique_id=299558792]
+
+[node name="Agent" parent="Agents" unique_id=1212106709 instance=ExtResource("2_yqjtg")]
+position = Vector2(45, 50)

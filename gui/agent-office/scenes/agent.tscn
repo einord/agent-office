@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://cf4tl06wgnrrq"]
+
+[ext_resource type="Texture2D" uid="uid://csn3uduealrwr" path="res://assets/sprites/template.png" id="1_b2pv0"]
+[ext_resource type="Script" uid="uid://f01bugove64e" path="res://scenes/agent.gd" id="2_umeaf"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_umeaf"]
+atlas = ExtResource("1_b2pv0")
+region = Rect2(0, 0, 8, 8)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_yc63n"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_umeaf")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[node name="Agent" type="AnimatedSprite2D" unique_id=1212106709]
+y_sort_enabled = true
+texture_filter = 1
+sprite_frames = SubResource("SpriteFrames_yc63n")
+offset = Vector2(0, -4)
+script = ExtResource("2_umeaf")
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="." unique_id=1827040352]
