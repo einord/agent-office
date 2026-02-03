@@ -31,6 +31,9 @@ offset = Vector2(0, -4)
 script = ExtResource("2_umeaf")
 
 [node name="NavigationAgent2D" type="NavigationAgent2D" parent="." unique_id=1827040352]
+path_desired_distance = 1.0
+target_desired_distance = 1.0
+path_max_distance = 24.0
 
 [node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=1946297155]
 motion_mode = 1

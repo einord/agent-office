@@ -1,6 +1,6 @@
 extends AnimatedSprite2D
 
-@export var movement_speed: float = 50.0
+@export var movement_speed: float = 25.0
 @export var random_range: Vector2 = Vector2(200, 200)  # Område för slumpmässiga positioner
 @onready var navigation_agent: NavigationAgent2D = get_node("NavigationAgent2D")
 var movement_delta: float
@@ -15,11 +15,31 @@ func set_movement_target(movement_target: Vector2):
 	navigation_agent.set_target_position(movement_target)
 
 func _set_random_target() -> void:
-	var random_position = Vector2(
+	var map_rid = navigation_agent.get_navigation_map()
+
+	# Try to find a valid target within navigation mesh
+	for _attempt in range(10):
+		var random_position = Vector2(
+			randf_range(-random_range.x / 2, random_range.x / 2),
+			randf_range(-random_range.y / 2, random_range.y / 2)
+		)
+		var target = global_position + random_position
+
+		# Get the closest point on navigation mesh
+		var closest_point = NavigationServer2D.map_get_closest_point(map_rid, target)
+
+		# Check if target is actually on the navigation mesh (close to closest point)
+		if target.distance_to(closest_point) < 5.0:
+			set_movement_target(target)
+			return
+
+	# Fallback: use closest valid point on navigation mesh
+	var fallback_target = global_position + Vector2(
 		randf_range(-random_range.x / 2, random_range.x / 2),
 		randf_range(-random_range.y / 2, random_range.y / 2)
 	)
-	set_movement_target(global_position + random_position)
+	var closest_valid = NavigationServer2D.map_get_closest_point(map_rid, fallback_target)
+	set_movement_target(closest_valid)
 
 func _physics_process(delta):
 	# Do not query when the map has never synchronized and is empty.
@@ -35,6 +55,18 @@ func _physics_process(delta):
 
 	movement_delta = movement_speed * delta
 	var next_path_position: Vector2 = navigation_agent.get_next_path_position()
+
+	# DEBUG: Print path info every 60 frames
+	if Engine.get_physics_frames() % 60 == 0:
+		print("--- Navigation Debug ---")
+		print("Current pos: ", global_position)
+		print("Next path pos: ", next_path_position)
+		print("Final target: ", navigation_agent.get_target_position())
+		print("Is target reachable: ", navigation_agent.is_target_reachable())
+		print("Distance to target: ", navigation_agent.distance_to_target())
+		print("Path points: ", navigation_agent.get_current_navigation_path())
+		print("------------------------")
+
 	var new_velocity: Vector2 = global_position.direction_to(next_path_position) * movement_speed
 	if navigation_agent.avoidance_enabled:
 		navigation_agent.set_velocity(new_velocity)
