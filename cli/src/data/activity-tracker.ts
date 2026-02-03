@@ -4,7 +4,10 @@ import { TOOL_ACTIVITY_MAP } from '../types.js';
 /** Timeout in ms after which an inactive session is considered "done" */
 const ACTIVITY_TIMEOUT_MS = 30_000; // 30 seconds
 
-/** Tools that wait for user input - should never show as "done" */
+/** Max timeout for "waiting for input" sessions - after this, consider abandoned */
+const WAITING_INPUT_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+
+/** Tools that wait for user input */
 const USER_INPUT_TOOLS = new Set([
   'AskUserQuestion',
   'EnterPlanMode',
@@ -50,7 +53,7 @@ export function getLatestActivity(messages: ConversationMessage[], lastModified?
       // Check if this message has tool_use
       const toolUseBlock = content.find((block: { type: string }) => block.type === 'tool_use');
       if (toolUseBlock && toolUseBlock.name) {
-        // Tools that wait for user input should always show as waiting, never "done"
+        // Tools that wait for user input
         if (USER_INPUT_TOOLS.has(toolUseBlock.name)) {
           // But first check if there's a user response after this message
           const msgIndex = i;
@@ -64,6 +67,11 @@ export function getLatestActivity(messages: ConversationMessage[], lastModified?
               return { type: 'done' };
             }
             return { type: 'thinking' };
+          }
+
+          // If waiting too long, consider the session abandoned
+          if (timeSinceModified > WAITING_INPUT_TIMEOUT_MS) {
+            return { type: 'done' };
           }
 
           return {
