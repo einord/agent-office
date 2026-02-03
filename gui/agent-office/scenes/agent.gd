@@ -4,9 +4,13 @@ enum AgentState { WORKING, IDLE, LEAVING }
 
 @export var movement_speed: float = 25.0
 @export var random_range: Vector2 = Vector2(200, 200)  # Område för slumpmässiga positioner
+@export var idle_wait_min: float = 5.0  # Minimum wait time in idle state (seconds)
+@export var idle_wait_max: float = 10.0  # Maximum wait time in idle state (seconds)
 @onready var navigation_agent: NavigationAgent2D = get_node("NavigationAgent2D")
 var movement_delta: float
 var current_state: AgentState = AgentState.IDLE
+var _idle_timer: float = 0.0
+var _is_idle_waiting: bool = false
 
 func _ready() -> void:
 	navigation_agent.velocity_computed.connect(Callable(_on_velocity_computed))
@@ -35,9 +39,10 @@ func _enter_state(state: AgentState) -> void:
 			_set_exit_target()
 
 ## Called when exiting a state. Can be used for cleanup.
-func _exit_state(_state: AgentState) -> void:
-	# Currently no cleanup needed when exiting states
-	pass
+func _exit_state(state: AgentState) -> void:
+	if state == AgentState.IDLE:
+		_idle_timer = 0.0
+		_is_idle_waiting = false
 
 ## Sets target to a random work station from the "work_station" group.
 func _set_work_target() -> void:
@@ -130,8 +135,16 @@ func _physics_process(delta):
 				# Stay at work station - do nothing
 				return
 			AgentState.IDLE:
-				# Wander to a new point near break area
-				_set_idle_target()
+				# Wait for a random duration before wandering to a new point
+				if not _is_idle_waiting:
+					_is_idle_waiting = true
+					_idle_timer = randf_range(idle_wait_min, idle_wait_max)
+				else:
+					_idle_timer -= delta
+					if _idle_timer <= 0.0:
+						_is_idle_waiting = false
+						_set_idle_target()
+				return
 			AgentState.LEAVING:
 				# Stay at exit - do nothing
 				return
