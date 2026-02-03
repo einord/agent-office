@@ -24,6 +24,10 @@ func _ready() -> void:
 func set_movement_target(movement_target: Vector2):
 	navigation_agent.set_target_position(movement_target)
 
+## Sets the sprite frames for this agent. Call this right after instantiation.
+func set_sprite_variant(frames: SpriteFrames) -> void:
+	sprite_frames = frames
+
 ## Changes the agent's state and triggers exit/enter callbacks.
 func change_state(new_state: AgentState) -> void:
 	if current_state != new_state:

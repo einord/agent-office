@@ -3,6 +3,9 @@ extends Node2D
 ## Preloaded agent scene for spawning new agents.
 @export var agent_scene: PackedScene
 
+## Available sprite variants for agents.
+@export var agent_variants: Array[SpriteFrames] = []
+
 @onready var _agents_container: Node2D = $Tilemap/Agents
 var _agent_queue: Array = []  # FIFO queue of agents
 
@@ -35,6 +38,12 @@ func _spawn_agent() -> void:
 
 	# Instance and add agent
 	var agent = agent_scene.instantiate()
+
+	# Assign random sprite variant
+	if agent_variants.size() > 0:
+		var random_variant = agent_variants[randi() % agent_variants.size()]
+		agent.set_sprite_variant(random_variant)
+
 	agent.position = spawn_position
 	_agents_container.add_child(agent)
 	_agent_queue.append(agent)
