@@ -106,3 +106,43 @@ jobs:
         with:
           tag_name: ${{ needs.release-please.outputs.tag_name }}
           files: dist-bin/${{ matrix.artifact }}
+
+  build-backend:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build backend
+        run: pnpm --filter agent-office-backend build
+
+      - name: Create release package
+        run: |
+          cd backend
+          mkdir -p ../dist-backend/agent-office-backend
+          cp -r dist ../dist-backend/agent-office-backend/
+          cp package.json ../dist-backend/agent-office-backend/
+          cp config.json ../dist-backend/agent-office-backend/config.example.json
+          cd ../dist-backend
+          tar -czvf agent-office-backend.tar.gz agent-office-backend
+
+      - name: Upload backend to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.release-please.outputs.tag_name }}
+          files: dist-backend/agent-office-backend.tar.gz

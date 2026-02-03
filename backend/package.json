@@ -1,6 +1,6 @@
 {
   "name": "agent-office-backend",
-  "version": "1.0.0",
+  "version": "0.1.4",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
