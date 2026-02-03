@@ -38,6 +38,9 @@ export class ClaudeMonitor {
       this.refresh().then(() => this.render());
     }, 60_000);
 
+    // Re-render on terminal resize
+    process.stdout.on('resize', () => this.render());
+
     // Handle exit
     process.on('SIGINT', () => this.stop());
     process.on('SIGTERM', () => this.stop());
@@ -183,7 +186,18 @@ export class ClaudeMonitor {
     if (!this.isRunning) return;
 
     const sessionsArray = Array.from(this.sessions.values());
-    const output = renderMonitor(sessionsArray);
+
+    // Filter out done sessions older than 5 minutes
+    const DONE_TIMEOUT_MS = 5 * 60 * 1000;
+    const visibleSessions = sessionsArray.filter(session => {
+      if (session.activity.type === 'done') {
+        const age = Date.now() - session.lastUpdate.getTime();
+        return age < DONE_TIMEOUT_MS;
+      }
+      return true;
+    });
+
+    const output = renderMonitor(visibleSessions);
     process.stdout.write(output);
   }
 }

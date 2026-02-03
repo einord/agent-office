@@ -21,6 +21,25 @@ export function getLatestActivity(messages: ConversationMessage[], lastModified?
   const timeSinceModified = lastModified ? Date.now() - lastModified : 0;
   const isStale = timeSinceModified > ACTIVITY_TIMEOUT_MS;
 
+  // First, check if the very last message is a user response (not tool_result)
+  // This means user has answered a question and Claude should be processing
+  if (messages.length > 0) {
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.type === 'user' && lastMsg.message?.role === 'user') {
+      const content = lastMsg.message?.content;
+      if (Array.isArray(content)) {
+        const hasToolResult = content.some((block: { type: string }) => block.type === 'tool_result');
+        // User sent a message that's not a tool_result - they answered a question
+        if (!hasToolResult) {
+          if (isStale) {
+            return { type: 'done' };
+          }
+          return { type: 'thinking' };
+        }
+      }
+    }
+  }
+
   // Process messages in reverse order to find the most recent activity
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
@@ -33,6 +52,20 @@ export function getLatestActivity(messages: ConversationMessage[], lastModified?
       if (toolUseBlock && toolUseBlock.name) {
         // Tools that wait for user input should always show as waiting, never "done"
         if (USER_INPUT_TOOLS.has(toolUseBlock.name)) {
+          // But first check if there's a user response after this message
+          const msgIndex = i;
+          const hasUserResponseAfter = messages.slice(msgIndex + 1).some(m =>
+            m.type === 'user' && m.message?.role === 'user'
+          );
+
+          if (hasUserResponseAfter) {
+            // User already responded, Claude should be processing
+            if (isStale) {
+              return { type: 'done' };
+            }
+            return { type: 'thinking' };
+          }
+
           return {
             type: 'waiting_input',
             toolName: toolUseBlock.name,

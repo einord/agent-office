@@ -1,7 +1,30 @@
-import chalk, { ChalkInstance } from 'chalk';
+import chalk from 'chalk';
 import type { TrackedSession, ActivityDisplay, SessionColor } from '../types.js';
 import { ACTIVITY_DISPLAY, SESSION_COLORS } from '../types.js';
-import { renderContextLine } from './progress-bar.js';
+import { renderProgressBar, formatTokens } from './progress-bar.js';
+import { generateName } from './name-generator.js';
+
+/**
+ * Gets terminal width with fallback
+ * @returns Terminal width in columns
+ */
+function getTerminalWidth(): number {
+  return process.stdout.columns || 80;
+}
+
+/**
+ * Formats time since a date as human-readable string
+ * @param date The date to format
+ * @returns Formatted string like "2m ago", "30s ago"
+ */
+function formatTimeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ago`;
+}
 
 /**
  * Gets a consistent color for a session based on its ID
@@ -37,9 +60,9 @@ function getColorFn(color: SessionColor): (s: string) => string {
  * @returns Header string
  */
 export function renderHeader(): string {
+  const width = getTerminalWidth();
   const title = chalk.bold('Claude Agent Monitor');
   const hint = chalk.gray('[Ctrl+C to exit]');
-  const width = 70;
   const padding = ' '.repeat(Math.max(0, width - title.length - hint.length - 10));
 
   return `${title}${padding}${hint}\n` + chalk.gray('─'.repeat(width)) + '\n';
@@ -55,11 +78,40 @@ export function renderFooter(sessions: TrackedSession[]): string {
   const totalAgents = sessions.length;
   const now = new Date().toLocaleTimeString();
 
-  const width = 70;
+  const width = getTerminalWidth();
   const line = chalk.gray('─'.repeat(width));
   const stats = chalk.gray(`Active: ${activeSessions} sessions (${totalAgents} agents) | Updated: ${now}`);
 
   return `\n${line}\n${stats}`;
+}
+
+/**
+ * Renders a context line with dynamic progress bar width
+ * @param used Tokens used
+ * @param max Maximum tokens
+ * @param availableWidth Available width for the entire line
+ * @returns Formatted context line
+ */
+function renderDynamicContextLine(used: number, max: number, availableWidth: number): string {
+  const percentage = Math.min(100, Math.round((used / max) * 100));
+  const usedStr = formatTokens(used);
+  const maxStr = formatTokens(max);
+
+  // Calculate fixed parts: "Context: " + " XX% (XXX/XXX tokens)"
+  const prefix = 'Context: ';
+  const suffix = ` ${percentage}% (${usedStr}/${maxStr} tokens)`;
+
+  // Calculate bar width: available - prefix - suffix - some padding
+  const barWidth = Math.max(10, availableWidth - prefix.length - suffix.length - 2);
+
+  const bar = renderProgressBar(percentage, barWidth);
+
+  let statusIcon = '';
+  if (percentage >= 100) {
+    statusIcon = chalk.red(' ⚠️');
+  }
+
+  return `${prefix}${bar}${suffix}${statusIcon}`;
 }
 
 /**
@@ -72,20 +124,28 @@ export function renderSession(session: TrackedSession, indent: number = 0): stri
   const prefix = '   '.repeat(indent);
   const colorFn = getColorFn(session.color as SessionColor);
   const lines: string[] = [];
+  const termWidth = getTerminalWidth();
+  const availableWidth = termWidth - (indent * 3) - 3; // Account for prefix and indent
+
+  // Generate readable name from session ID
+  const displayName = generateName(session.sessionId);
+
+  // Time since last update
+  const timeAgo = chalk.gray(`(${formatTimeAgo(session.lastUpdate)})`);
 
   // Session header
   const statusIcon = session.activity.type === 'waiting_input' ? '🟡' : '🟢';
   const branchInfo = session.gitBranch ? chalk.gray(` (${session.gitBranch})`) : '';
 
   if (session.isSidechain) {
-    lines.push(`${prefix}└─ 🤖 ${chalk.bold('Agent')}: ${colorFn(session.slug)}`);
+    lines.push(`${prefix}└─ 🤖 ${chalk.bold('Agent')}: ${colorFn(displayName)} ${timeAgo}`);
   } else {
-    lines.push(`${prefix}${statusIcon} ${colorFn(chalk.bold(session.slug))}${branchInfo}`);
-    lines.push(`${prefix}   📁 ${chalk.gray(shortenPath(session.projectPath))}`);
+    lines.push(`${prefix}${statusIcon} ${colorFn(chalk.bold(displayName))}${branchInfo} ${timeAgo}`);
+    lines.push(`${prefix}   ${chalk.gray(shortenPath(session.projectPath))}`);
   }
 
-  // Context usage
-  const contextLine = renderContextLine(session.tokens.used, session.tokens.max);
+  // Context usage with dynamic width
+  const contextLine = renderDynamicContextLine(session.tokens.used, session.tokens.max, availableWidth);
   lines.push(`${prefix}   ${contextLine}`);
 
   // Current activity
