@@ -13,6 +13,38 @@ function getTerminalWidth(): number {
 }
 
 /**
+ * Strips ANSI escape codes from a string
+ * @param str String with potential ANSI codes
+ * @returns Clean string without ANSI codes
+ */
+function stripAnsi(str: string): string {
+  // eslint-disable-next-line no-control-regex
+  return str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
+}
+
+/**
+ * Calculates visible length of a string (excluding ANSI codes, accounting for emojis)
+ * @param str String to measure
+ * @returns Visible column width
+ */
+function visibleLength(str: string): number {
+  const clean = stripAnsi(str);
+  // Simple emoji detection - emojis typically take 2 columns
+  // This regex matches common emoji patterns
+  let length = 0;
+  for (const char of clean) {
+    const code = char.codePointAt(0) || 0;
+    // Most emojis are in these ranges
+    if (code > 0x1F000 || (code >= 0x2600 && code <= 0x27BF)) {
+      length += 2;
+    } else {
+      length += 1;
+    }
+  }
+  return length;
+}
+
+/**
  * Formats time since a date as human-readable string
  * @param date The date to format
  * @returns Formatted string like "2m ago", "30s ago"
@@ -63,7 +95,9 @@ export function renderHeader(): string {
   const width = getTerminalWidth();
   const title = chalk.bold('Claude Agent Monitor');
   const hint = chalk.gray('[Ctrl+C to exit]');
-  const padding = ' '.repeat(Math.max(0, width - title.length - hint.length - 10));
+  const titleLen = visibleLength(title);
+  const hintLen = visibleLength(hint);
+  const padding = ' '.repeat(Math.max(0, width - titleLen - hintLen));
 
   return `${title}${padding}${hint}\n` + chalk.gray('─'.repeat(width)) + '\n';
 }
@@ -125,7 +159,8 @@ export function renderSession(session: TrackedSession, indent: number = 0): stri
   const colorFn = getColorFn(session.color as SessionColor);
   const lines: string[] = [];
   const termWidth = getTerminalWidth();
-  const availableWidth = termWidth - (indent * 3) - 3; // Account for prefix and indent
+  // Account for: indent prefix + "   " before context line
+  const availableWidth = termWidth - (indent * 3) - 3 - 2; // Extra buffer for safety
 
   // Generate readable name from session ID
   const displayName = generateName(session.sessionId);

@@ -6,7 +6,8 @@ import { MAX_CONTEXT_TOKENS } from './types.js';
 import { scanClaudeProcesses, getOpenSessionFiles, matchProcessesToSessions } from './data/process-scanner.js';
 import { getAllSessions, readConversationTail, calculateTokenUsage } from './data/session-reader.js';
 import { getLatestActivity, isSessionActive } from './data/activity-tracker.js';
-import { renderMonitor, getSessionColor } from './ui/renderer.js';
+import { getSessionColor } from './ui/renderer.js';
+import { BlessedUI } from './ui/blessed-ui.js';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 const PROJECTS_DIR = join(CLAUDE_DIR, 'projects');
@@ -19,12 +20,16 @@ export class ClaudeMonitor {
   private watcher: chokidar.FSWatcher | null = null;
   private updateTimer: NodeJS.Timeout | null = null;
   private isRunning = false;
+  private ui: BlessedUI | null = null;
 
   /**
    * Starts the monitor
    */
   async start(): Promise<void> {
     this.isRunning = true;
+
+    // Initialize blessed UI
+    this.ui = new BlessedUI();
 
     // Initial scan
     await this.refresh();
@@ -37,13 +42,6 @@ export class ClaudeMonitor {
     this.updateTimer = setInterval(() => {
       this.refresh().then(() => this.render());
     }, 60_000);
-
-    // Re-render on terminal resize
-    process.stdout.on('resize', () => this.render());
-
-    // Handle exit
-    process.on('SIGINT', () => this.stop());
-    process.on('SIGTERM', () => this.stop());
   }
 
   /**
@@ -62,7 +60,11 @@ export class ClaudeMonitor {
       this.updateTimer = null;
     }
 
-    console.log('\n\nMonitor stopped.');
+    if (this.ui) {
+      this.ui.destroy();
+      this.ui = null;
+    }
+
     process.exit(0);
   }
 
@@ -183,7 +185,7 @@ export class ClaudeMonitor {
    * Renders the current state to the terminal
    */
   private render(): void {
-    if (!this.isRunning) return;
+    if (!this.isRunning || !this.ui) return;
 
     const sessionsArray = Array.from(this.sessions.values());
 
@@ -197,7 +199,6 @@ export class ClaudeMonitor {
       return true;
     });
 
-    const output = renderMonitor(visibleSessions);
-    process.stdout.write(output);
+    this.ui.update(visibleSessions);
   }
 }

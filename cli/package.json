@@ -39,12 +39,14 @@
     "outputPath": "bin"
   },
   "dependencies": {
+    "blessed": "^0.1.81",
     "chalk": "^5.3.0",
     "chokidar": "^3.6.0"
   },
   "devDependencies": {
-    "typescript": "^5.3.0",
+    "@types/blessed": "^0.1.27",
     "@types/node": "^20.0.0",
-    "tsx": "^4.0.0"
+    "tsx": "^4.0.0",
+    "typescript": "^5.3.0"
   }
 }
