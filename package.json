@@ -2,7 +2,7 @@
   "name": "agent-office",
   "private": true,
   "scripts": {
-    "dev": "pnpm --filter agent-office dev",
+    "dev": "cd cli && pnpm dev",
     "build": "pnpm --filter agent-office build",
     "start": "pnpm --filter agent-office start"
   }

@@ -42,8 +42,6 @@ export class BlessedUI {
       smartCSR: true,
       title: 'Agent Office Monitor',
       fullUnicode: true,
-      terminal: 'xterm-256color',
-      warnings: false,
     });
 
     // Header
@@ -65,7 +63,7 @@ export class BlessedUI {
       width: 'shrink',
       height: 1,
       tags: true,
-      content: '{gray-fg}[q to exit]{/gray-fg}',
+      content: '{245-fg}[q to exit]{/245-fg}',
     });
 
     // Header line
@@ -75,7 +73,7 @@ export class BlessedUI {
       left: 0,
       width: '100%',
       height: 1,
-      style: { fg: 'gray' },
+      style: { fg: 245 },
     });
     this.updateHeaderLine();
 
@@ -89,7 +87,7 @@ export class BlessedUI {
       scrollable: true,
       alwaysScroll: true,
       scrollbar: {
-        style: { bg: 'gray' },
+        style: { bg: 245 },
       },
     });
 
@@ -100,7 +98,7 @@ export class BlessedUI {
       left: 0,
       width: '100%',
       height: 1,
-      style: { fg: 'gray' },
+      style: { fg: 245 },
     });
     this.updateFooterLine();
 
@@ -112,11 +110,15 @@ export class BlessedUI {
       width: '100%',
       height: 1,
       tags: true,
-      style: { fg: 'gray' },
+      style: { fg: 245 },
     });
 
+    // Enable input handling explicitly
+    this.screen.enableKeys();
+    this.screen.enableInput();
+
     // Key bindings
-    this.screen.key(['q', 'C-c'], () => {
+    this.screen.key(['q', 'C-c', 'escape'], () => {
       this.destroy();
       process.exit(0);
     });
@@ -158,7 +160,7 @@ export class BlessedUI {
         width: '100%-4',
         height: 3,
         tags: true,
-        content: '{gray-fg}No active Claude sessions found.\nStart a Claude session to see it here.{/gray-fg}',
+        content: '{245-fg}No active Claude sessions found.\nStart a Claude session to see it here.{/245-fg}',
       });
       this.sessionBoxes.set('empty', emptyBox);
     } else {
@@ -172,7 +174,7 @@ export class BlessedUI {
     // Update footer
     const now = new Date().toLocaleTimeString();
     this.footer.setContent(
-      `{gray-fg}Active: ${topLevelSessions.length} sessions | Updated: ${now}{/gray-fg}`
+      `{245-fg}Active: ${topLevelSessions.length} sessions | Updated: ${now}{/245-fg}`
     );
 
     this.screen.render();
@@ -182,7 +184,7 @@ export class BlessedUI {
     const name = generateName(session.sessionId);
     const timeAgo = formatTimeAgo(session.lastUpdate);
     const statusIcon = session.activity.type === 'waiting_input' ? '{yellow-fg}●{/yellow-fg}' : '{green-fg}●{/green-fg}';
-    const branchInfo = session.gitBranch ? ` {gray-fg}(${session.gitBranch}){/gray-fg}` : '';
+    const branchInfo = session.gitBranch ? ` {245-fg}(${session.gitBranch}){/245-fg}` : '';
     const activityDisplay = ACTIVITY_DISPLAY[session.activity.type];
 
     // Shorten path
@@ -209,7 +211,7 @@ export class BlessedUI {
       width: '100%',
       height: 1,
       tags: true,
-      content: `${statusIcon} {bold}{cyan-fg}${name}{/cyan-fg}{/bold}${branchInfo} {gray-fg}(${timeAgo}){/gray-fg}`,
+      content: `${statusIcon} {bold}{cyan-fg}${name}{/cyan-fg}{/bold}${branchInfo} {245-fg}(${timeAgo}){/245-fg}`,
     });
 
     // Line 2: Path
@@ -220,7 +222,7 @@ export class BlessedUI {
       width: '100%',
       height: 1,
       tags: true,
-      content: `{gray-fg}${path}{/gray-fg}`,
+      content: `{245-fg}${path}{/245-fg}`,
     });
 
     // Line 3: Progress bar
@@ -232,7 +234,7 @@ export class BlessedUI {
     const emptyWidth = barWidth - filledWidth;
     const barColor = getBarColor(percentage);
 
-    const barContent = `Context: {${barColor}-fg}${'█'.repeat(filledWidth)}{/${barColor}-fg}{gray-fg}${'░'.repeat(emptyWidth)}{/gray-fg} ${percentage}% (${usedStr}/${maxStr})`;
+    const barContent = `Context: {${barColor}-fg}${'█'.repeat(filledWidth)}{/${barColor}-fg}{245-fg}${'░'.repeat(emptyWidth)}{/245-fg} ${percentage}% (${usedStr}/${maxStr})`;
 
     blessed.box({
       parent: sessionBox,
@@ -250,7 +252,7 @@ export class BlessedUI {
       const detail = session.activity.detail.startsWith(home)
         ? '~' + session.activity.detail.slice(home.length)
         : session.activity.detail;
-      activityContent += ` {gray-fg}(${detail}){/gray-fg}`;
+      activityContent += ` {245-fg}(${detail}){/245-fg}`;
     }
 
     blessed.box({
