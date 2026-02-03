@@ -46,27 +46,13 @@ func _physics_process(delta):
 	var map_id = navigation_agent.get_navigation_map()
 	var iteration = NavigationServer2D.map_get_iteration_id(map_id)
 	if iteration == 0:
-		print("Navigation map not ready, iteration: ", iteration)
 		return
 	if navigation_agent.is_navigation_finished():
 		_set_random_target()
-		print("Navigation finished, set new target: ", navigation_agent.get_target_position())
 		return
 
 	movement_delta = movement_speed * delta
 	var next_path_position: Vector2 = navigation_agent.get_next_path_position()
-
-	# DEBUG: Print path info every 60 frames
-	if Engine.get_physics_frames() % 60 == 0:
-		print("--- Navigation Debug ---")
-		print("Current pos: ", global_position)
-		print("Next path pos: ", next_path_position)
-		print("Final target: ", navigation_agent.get_target_position())
-		print("Is target reachable: ", navigation_agent.is_target_reachable())
-		print("Distance to target: ", navigation_agent.distance_to_target())
-		print("Path points: ", navigation_agent.get_current_navigation_path())
-		print("------------------------")
-
 	var new_velocity: Vector2 = global_position.direction_to(next_path_position) * movement_speed
 	if navigation_agent.avoidance_enabled:
 		navigation_agent.set_velocity(new_velocity)
