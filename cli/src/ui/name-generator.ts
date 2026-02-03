@@ -13,7 +13,7 @@ const VOWELS = ['a', 'e', 'i', 'o', 'u', 'ai', 'au', 'ea', 'ei', 'io', 'ou'];
 const CODAS = [
   '', 'b', 'd', 'f', 'g', 'k', 'l', 'll', 'm', 'n',
   'nd', 'ng', 'nk', 'nt', 'p', 'r', 'rd', 'rk', 'rm', 'rn',
-  's', 'sh', 'sk', 'st', 't', 'th', 'x', 'z'
+  's', 'sh', 'sk', 'st', 't', 'th', 'x', 'z',
 ];
 
 /**
@@ -38,7 +38,7 @@ export function generateName(sessionId: string): string {
   const hash = hashString(sessionId);
 
   // Use different parts of the hash for each component
-  const syllableCount = 2 + (hash % 2); // 2-3 syllables
+  const syllableCount = 0 + (hash % 4); // 1-2 syllables
 
   let name = '';
   let h = hash;
