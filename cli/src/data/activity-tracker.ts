@@ -1,12 +1,26 @@
 import type { ConversationMessage, ActivityInfo, ActivityType, ToolUse } from '../types.js';
 import { TOOL_ACTIVITY_MAP } from '../types.js';
 
+/** Timeout in ms after which an inactive session is considered "done" */
+const ACTIVITY_TIMEOUT_MS = 30_000; // 30 seconds
+
+/** Tools that wait for user input - should never show as "done" */
+const USER_INPUT_TOOLS = new Set([
+  'AskUserQuestion',
+  'EnterPlanMode',
+  'ExitPlanMode',
+]);
+
 /**
  * Extracts the latest activity from conversation messages
  * @param messages Recent conversation messages
+ * @param lastModified Optional timestamp of last file modification
  * @returns Current activity info
  */
-export function getLatestActivity(messages: ConversationMessage[]): ActivityInfo {
+export function getLatestActivity(messages: ConversationMessage[], lastModified?: number): ActivityInfo {
+  const timeSinceModified = lastModified ? Date.now() - lastModified : 0;
+  const isStale = timeSinceModified > ACTIVITY_TIMEOUT_MS;
+
   // Process messages in reverse order to find the most recent activity
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
@@ -14,29 +28,73 @@ export function getLatestActivity(messages: ConversationMessage[]): ActivityInfo
     // Check for tool use in message content
     const content = msg.message?.content;
     if (Array.isArray(content)) {
-      for (const block of content) {
-        if (block.type === 'tool_use' && block.name) {
-          const activity = TOOL_ACTIVITY_MAP[block.name];
-          if (activity) {
-            return {
-              ...activity,
-              detail: extractToolDetail(block.name, block.input),
-            };
-          }
-          // Unknown tool, show as thinking
+      // Check if this message has tool_use
+      const toolUseBlock = content.find((block: { type: string }) => block.type === 'tool_use');
+      if (toolUseBlock && toolUseBlock.name) {
+        // Tools that wait for user input should always show as waiting, never "done"
+        if (USER_INPUT_TOOLS.has(toolUseBlock.name)) {
           return {
-            type: 'thinking',
-            toolName: block.name,
+            type: 'waiting_input',
+            toolName: toolUseBlock.name,
+            detail: extractToolDetail(toolUseBlock.name, toolUseBlock.input),
           };
+        }
+
+        // If stale and has tool_use, it might be waiting for result or done
+        if (isStale) {
+          return { type: 'done' };
+        }
+
+        const activity = TOOL_ACTIVITY_MAP[toolUseBlock.name];
+        if (activity) {
+          return {
+            ...activity,
+            detail: extractToolDetail(toolUseBlock.name, toolUseBlock.input),
+          };
+        }
+        // Unknown tool, show as thinking
+        return {
+          type: 'thinking',
+          toolName: toolUseBlock.name,
+        };
+      }
+
+      // Check if it's an assistant message with only text (no tool_use) - likely done
+      if (msg.message?.role === 'assistant' && msg.type === 'assistant') {
+        const hasText = content.some((block: { type: string }) => block.type === 'text');
+        const hasToolUse = content.some((block: { type: string }) => block.type === 'tool_use');
+
+        if (hasText && !hasToolUse) {
+          // Assistant responded with text only - session is done or waiting for user
+          if (isStale) {
+            return { type: 'done' };
+          }
+          // Recently finished, still show as done
+          return { type: 'done' };
+        }
+
+        if (hasText) {
+          // Has text but also tool_use - still thinking
+          if (isStale) {
+            return { type: 'done' };
+          }
+          return { type: 'thinking' };
         }
       }
     }
 
-    // Check if it's a thinking message (assistant with text content)
-    if (msg.message?.role === 'assistant' && msg.type === 'assistant') {
-      const hasText = content?.some((block: { type: string }) => block.type === 'text');
-      if (hasText) {
-        return { type: 'thinking' };
+    // Check for tool_result (user message with tool results)
+    if (msg.type === 'user' && msg.message?.role === 'user') {
+      const content = msg.message?.content;
+      if (Array.isArray(content)) {
+        const hasToolResult = content.some((block: { type: string }) => block.type === 'tool_result');
+        if (hasToolResult) {
+          // Tool result received, Claude should be processing
+          if (isStale) {
+            return { type: 'done' };
+          }
+          return { type: 'thinking' };
+        }
       }
     }
   }
@@ -60,9 +118,7 @@ function extractToolDetail(toolName: string, input?: Record<string, unknown>): s
     case 'Write':
       return input.file_path as string;
     case 'Bash':
-      const cmd = input.command as string;
-      // Truncate long commands
-      return cmd?.length > 50 ? cmd.slice(0, 47) + '...' : cmd;
+      return undefined;
     case 'Glob':
       return input.pattern as string;
     case 'Grep':
@@ -73,6 +129,14 @@ function extractToolDetail(toolName: string, input?: Record<string, unknown>): s
       return input.url as string;
     case 'WebSearch':
       return input.query as string;
+    case 'AskUserQuestion':
+      // Extract first question if available
+      const questions = input.questions as Array<{ question?: string }> | undefined;
+      if (questions && questions.length > 0 && questions[0].question) {
+        const q = questions[0].question;
+        return q.length > 50 ? q.slice(0, 47) + '...' : q;
+      }
+      return undefined;
     default:
       return undefined;
   }

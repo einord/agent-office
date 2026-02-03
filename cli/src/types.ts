@@ -69,6 +69,7 @@ export type ActivityType =
   | 'searching'
   | 'waiting_input'
   | 'thinking'
+  | 'done'
   | 'idle';
 
 /**
@@ -137,6 +138,7 @@ export const ACTIVITY_DISPLAY: Record<ActivityType, ActivityDisplay> = {
   searching: { icon: '🔍', label: 'Searching' },
   waiting_input: { icon: '❓', label: 'Waiting for input' },
   thinking: { icon: '🤔', label: 'Thinking' },
+  done: { icon: '✅', label: 'Done' },
   idle: { icon: '💤', label: 'Idle' },
 };
 

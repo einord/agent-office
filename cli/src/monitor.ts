@@ -33,10 +33,10 @@ export class ClaudeMonitor {
     // Set up file watching
     this.setupWatcher();
 
-    // Periodic refresh for process info
+    // Periodic refresh as fallback if file watching misses changes
     this.updateTimer = setInterval(() => {
       this.refresh().then(() => this.render());
-    }, 5000);
+    }, 60_000);
 
     // Handle exit
     process.on('SIGINT', () => this.stop());
@@ -148,8 +148,8 @@ export class ClaudeMonitor {
       const usage = calculateTokenUsage(messages);
       const totalTokens = usage.input_tokens + usage.output_tokens;
 
-      // Get activity
-      const activity = getLatestActivity(messages);
+      // Get activity (pass lastModified for timeout detection)
+      const activity = getLatestActivity(messages, lastModified);
 
       // Get PID if known
       const pid = sessionToPid.get(sessionInfo.filePath);
