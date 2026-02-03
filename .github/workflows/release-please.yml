@@ -87,7 +87,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "pnpm"
 
       - name: Install dependencies
@@ -99,7 +99,7 @@ jobs:
       - name: Build binary
         run: |
           cd cli
-          npx pkg . --target node20-${{ matrix.target }} --output ../dist-bin/${{ matrix.artifact }}
+          npx @yao-pkg/pkg . --target node22-${{ matrix.target }} --output ../dist-bin/${{ matrix.artifact }}
 
       - name: Upload binary to release
         uses: softprops/action-gh-release@v2
