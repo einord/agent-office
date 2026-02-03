@@ -29,8 +29,8 @@ func _physics_process(delta):
 		print("Navigation map not ready, iteration: ", iteration)
 		return
 	if navigation_agent.is_navigation_finished():
-		print("Navigation finished, setting new target")
 		_set_random_target()
+		print("Navigation finished, set new target: ", navigation_agent.get_target_position())
 		return
 
 	movement_delta = movement_speed * delta

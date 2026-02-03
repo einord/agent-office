@@ -7,7 +7,8 @@
 
 [node name="Tilemap" parent="." unique_id=984404399 instance=ExtResource("1_uwrxv")]
 
-[node name="Agents" type="Node" parent="." unique_id=299558792]
+[node name="Agents" type="Node2D" parent="." unique_id=98210221]
+z_as_relative = false
 
 [node name="Agent" parent="Agents" unique_id=1212106709 instance=ExtResource("2_yqjtg")]
-position = Vector2(45, 50)
+position = Vector2(72, 41)

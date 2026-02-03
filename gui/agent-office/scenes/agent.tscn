@@ -18,7 +18,12 @@ animations = [{
 "speed": 5.0
 }]
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_umeaf"]
+size = Vector2(4, 1)
+
 [node name="Agent" type="AnimatedSprite2D" unique_id=1212106709]
+z_index = 2
+z_as_relative = false
 y_sort_enabled = true
 texture_filter = 1
 sprite_frames = SubResource("SpriteFrames_yc63n")
@@ -26,3 +31,10 @@ offset = Vector2(0, -4)
 script = ExtResource("2_umeaf")
 
 [node name="NavigationAgent2D" type="NavigationAgent2D" parent="." unique_id=1827040352]
+
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=1946297155]
+motion_mode = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1720712816]
+position = Vector2(0, -0.5)
+shape = SubResource("RectangleShape2D_umeaf")
