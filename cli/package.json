@@ -8,9 +8,9 @@
     "agent-office": "dist/index.js"
   },
   "scripts": {
-    "dev": "tsc && TERM=xterm-256color node dist/index.js",
+    "dev": "tsc && TERM=xterm-256color node dist/index.js || true",
     "build": "tsc",
-    "start": "TERM=xterm-256color node dist/index.js"
+    "start": "TERM=xterm-256color node dist/index.js || true"
   },
   "files": [
     "dist/**/*"

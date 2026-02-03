@@ -8,13 +8,179 @@ extends Node2D
 
 @onready var _agents_container: Node2D = $Tilemap/Agents
 var _agent_queue: Array = []  # FIFO queue of agents
+var _agents_by_id: Dictionary = {}  # Maps external ID to agent instance
+
+# WebSocket client for backend communication
+var _socket: WebSocketPeer = WebSocketPeer.new()
+var _ws_connected: bool = false
+const WS_URL: String = "ws://localhost:3101"
 
 func _ready() -> void:
 	# Clear all existing agents at startup
 	for child in _agents_container.get_children():
 		child.queue_free()
 
-## Handles keyboard input for spawning and removing agents.
+	# Connect to WebSocket server
+	var err = _socket.connect_to_url(WS_URL)
+	if err != OK:
+		push_error("WebSocket connection failed: " + str(err))
+
+func _process(_delta: float) -> void:
+	_poll_websocket()
+
+## Polls the WebSocket for new messages and handles connection state.
+func _poll_websocket() -> void:
+	_socket.poll()
+	var state = _socket.get_ready_state()
+
+	match state:
+		WebSocketPeer.STATE_OPEN:
+			if not _ws_connected:
+				_ws_connected = true
+				print("WebSocket connected to ", WS_URL)
+
+			# Process all available messages
+			while _socket.get_available_packet_count() > 0:
+				var packet = _socket.get_packet()
+				var message_str = packet.get_string_from_utf8()
+				_handle_ws_message(message_str)
+
+		WebSocketPeer.STATE_CLOSING:
+			pass
+
+		WebSocketPeer.STATE_CLOSED:
+			if _ws_connected:
+				_ws_connected = false
+				var code = _socket.get_close_code()
+				var reason = _socket.get_close_reason()
+				print("WebSocket closed. Code: ", code, " Reason: ", reason)
+				# Attempt to reconnect after a short delay
+				await get_tree().create_timer(2.0).timeout
+				var err = _socket.connect_to_url(WS_URL)
+				if err != OK:
+					push_error("WebSocket reconnection failed: " + str(err))
+
+## Handles incoming WebSocket messages from the backend.
+func _handle_ws_message(message_str: String) -> void:
+	var json = JSON.new()
+	var parse_result = json.parse(message_str)
+	if parse_result != OK:
+		push_error("Failed to parse WebSocket message: " + message_str)
+		return
+
+	var data = json.get_data()
+	if not data.has("type"):
+		push_error("WebSocket message missing 'type': " + message_str)
+		return
+
+	var msg_type = data["type"]
+	var payload = data.get("payload", {})
+
+	match msg_type:
+		"spawn_agent":
+			_handle_spawn_agent(payload)
+		"update_agent":
+			_handle_update_agent(payload)
+		"remove_agent":
+			_handle_remove_agent(payload)
+		_:
+			push_warning("Unknown WebSocket message type: " + msg_type)
+
+## Handles the spawn_agent command from the backend.
+func _handle_spawn_agent(payload: Dictionary) -> void:
+	var agent_id = payload.get("id", "")
+	var display_name = payload.get("displayName", "")
+	var variant_index = payload.get("variantIndex", 0)
+	var state_str = payload.get("state", "IDLE")
+
+	if agent_id == "":
+		push_error("spawn_agent missing 'id'")
+		_send_ack("spawn_agent", agent_id, false)
+		return
+
+	if _agents_by_id.has(agent_id):
+		push_warning("Agent with id already exists: " + agent_id)
+		_send_ack("spawn_agent", agent_id, false)
+		return
+
+	# Spawn the agent
+	var agent = _spawn_agent_with_params(agent_id, display_name, variant_index, state_str)
+	if agent != null:
+		_send_ack("spawn_agent", agent_id, true)
+	else:
+		_send_ack("spawn_agent", agent_id, false)
+
+## Handles the update_agent command from the backend.
+func _handle_update_agent(payload: Dictionary) -> void:
+	var agent_id = payload.get("id", "")
+	var state_str = payload.get("state", "")
+
+	if agent_id == "" or not _agents_by_id.has(agent_id):
+		push_warning("update_agent: Agent not found with id: " + agent_id)
+		return
+
+	var agent = _agents_by_id[agent_id]
+	if not is_instance_valid(agent):
+		_agents_by_id.erase(agent_id)
+		push_warning("update_agent: Agent instance invalid for id: " + agent_id)
+		return
+
+	var new_state = _parse_state(state_str)
+	agent.change_state(new_state)
+
+## Handles the remove_agent command from the backend.
+func _handle_remove_agent(payload: Dictionary) -> void:
+	var agent_id = payload.get("id", "")
+
+	if agent_id == "" or not _agents_by_id.has(agent_id):
+		push_warning("remove_agent: Agent not found with id: " + agent_id)
+		return
+
+	var agent = _agents_by_id[agent_id]
+	if is_instance_valid(agent):
+		agent.change_state(agent.AgentState.LEAVING)
+
+## Parses a state string to AgentState enum.
+func _parse_state(state_str: String) -> int:
+	match state_str:
+		"WORKING":
+			return preload("res://scenes/agent.gd").AgentState.WORKING
+		"IDLE":
+			return preload("res://scenes/agent.gd").AgentState.IDLE
+		"LEAVING":
+			return preload("res://scenes/agent.gd").AgentState.LEAVING
+		_:
+			return preload("res://scenes/agent.gd").AgentState.IDLE
+
+## Sends an acknowledgment message to the backend.
+func _send_ack(command: String, agent_id: String, success: bool) -> void:
+	var message = {
+		"type": "ack",
+		"payload": {
+			"command": command,
+			"id": agent_id,
+			"success": success
+		}
+	}
+	_send_ws_message(message)
+
+## Sends an agent_removed message to the backend.
+func _send_agent_removed(agent_id: String) -> void:
+	var message = {
+		"type": "agent_removed",
+		"payload": {
+			"id": agent_id
+		}
+	}
+	_send_ws_message(message)
+
+## Sends a JSON message over WebSocket.
+func _send_ws_message(data: Dictionary) -> void:
+	if _socket.get_ready_state() == WebSocketPeer.STATE_OPEN:
+		var json_str = JSON.stringify(data)
+		_socket.send_text(json_str)
+
+## Handles keyboard input for spawning and removing agents (for local testing).
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		# Check for + key (unicode 43) or numpad add, or = key (US keyboard)
@@ -24,7 +190,48 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.unicode == 45 or event.keycode == KEY_KP_SUBTRACT or event.keycode == KEY_MINUS:
 			_send_agent_to_exit()
 
-## Spawns a new agent at the exit location and adds it to the queue.
+## Spawns a new agent with specified parameters from WebSocket command.
+func _spawn_agent_with_params(agent_id: String, display_name: String, variant_index: int, state_str: String) -> Node:
+	if agent_scene == null:
+		push_error("Agent scene not assigned!")
+		return null
+
+	# Get spawn position from exit
+	var exits = get_tree().get_nodes_in_group("exit")
+	var spawn_position = Vector2(175, 45)  # Default fallback
+	if exits.size() > 0:
+		spawn_position = exits[0].global_position
+
+	# Instance and add agent
+	var agent = agent_scene.instantiate()
+
+	# Set external ID
+	agent.external_id = agent_id
+
+	# Assign sprite variant by index
+	if agent_variants.size() > 0 and variant_index >= 0 and variant_index < agent_variants.size():
+		agent.set_sprite_variant(agent_variants[variant_index])
+	elif agent_variants.size() > 0:
+		# Fallback to random if index is out of bounds
+		var random_variant = agent_variants[randi() % agent_variants.size()]
+		agent.set_sprite_variant(random_variant)
+
+	agent.position = spawn_position
+	_agents_container.add_child(agent)
+	_agent_queue.append(agent)
+	_agents_by_id[agent_id] = agent
+
+	# Connect to agent's removal signal
+	agent.tree_exiting.connect(_on_agent_removed.bind(agent))
+
+	# Set initial state after agent is ready
+	var initial_state = _parse_state(state_str)
+	# Use call_deferred to ensure agent is fully ready
+	agent.call_deferred("change_state", initial_state)
+
+	return agent
+
+## Spawns a new agent at the exit location for local testing (keyboard input).
 func _spawn_agent() -> void:
 	if agent_scene == null:
 		push_error("Agent scene not assigned!")
@@ -62,3 +269,8 @@ func _send_agent_to_exit() -> void:
 ## Called when an agent is removed from the scene.
 func _on_agent_removed(agent: Node) -> void:
 	_agent_queue.erase(agent)
+
+	# If agent has an external ID, notify backend and clean up mapping
+	if agent.external_id != "":
+		_send_agent_removed(agent.external_id)
+		_agents_by_id.erase(agent.external_id)

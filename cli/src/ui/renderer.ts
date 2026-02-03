@@ -93,7 +93,7 @@ function getColorFn(color: SessionColor): (s: string) => string {
  */
 export function renderHeader(): string {
   const width = getTerminalWidth();
-  const title = chalk.bold('Claude Agent Monitor');
+  const title = chalk.bold('Agent Office Monitor');
   const hint = chalk.gray('[Ctrl+C to exit]');
   const titleLen = visibleLength(title);
   const hintLen = visibleLength(hint);

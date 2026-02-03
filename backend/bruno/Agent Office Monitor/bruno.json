@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Agent Office Monitor",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

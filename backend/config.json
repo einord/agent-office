@@ -1,0 +1,11 @@
+{
+  "users": [
+    { "key": "abc123", "displayName": "Alice" },
+    { "key": "def456", "displayName": "Bob" }
+  ],
+  "server": {
+    "httpPort": 3100,
+    "wsPort": 3101
+  },
+  "tokenExpirySeconds": 86400
+}

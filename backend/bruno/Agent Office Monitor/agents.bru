@@ -1,0 +1,27 @@
+meta {
+  name: agents
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:3100/agents
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "id": "test-1",
+    "activity": "working"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

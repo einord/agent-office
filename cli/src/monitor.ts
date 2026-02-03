@@ -19,6 +19,7 @@ export class ClaudeMonitor {
   private sessions: Map<string, TrackedSession> = new Map();
   private watcher: chokidar.FSWatcher | null = null;
   private updateTimer: NodeJS.Timeout | null = null;
+  private renderTimer: NodeJS.Timeout | null = null;
   private isRunning = false;
   private ui: BlessedUI | null = null;
 
@@ -42,6 +43,11 @@ export class ClaudeMonitor {
     this.updateTimer = setInterval(() => {
       this.refresh().then(() => this.render());
     }, 60_000);
+
+    // Frequent render updates for "time ago" display
+    this.renderTimer = setInterval(() => {
+      this.render();
+    }, 5_000);
   }
 
   /**
@@ -58,6 +64,11 @@ export class ClaudeMonitor {
     if (this.updateTimer) {
       clearInterval(this.updateTimer);
       this.updateTimer = null;
+    }
+
+    if (this.renderTimer) {
+      clearInterval(this.renderTimer);
+      this.renderTimer = null;
     }
 
     if (this.ui) {

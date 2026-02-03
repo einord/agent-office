@@ -1,0 +1,22 @@
+meta {
+  name: auth
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:3100/auth
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "apiKey": "abc123"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
