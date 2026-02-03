@@ -8,9 +8,8 @@ y_sort_enabled = true
 
 [node name="Tilemap" parent="." unique_id=984404399 instance=ExtResource("1_uwrxv")]
 
-[node name="Agents" type="Node2D" parent="." unique_id=98210221]
-z_as_relative = false
+[node name="Agents" type="Node2D" parent="Tilemap" unique_id=255486486]
 y_sort_enabled = true
 
-[node name="Agent" parent="Agents" unique_id=1212106709 instance=ExtResource("2_yqjtg")]
-position = Vector2(71, 52)
+[node name="Agent" parent="Tilemap/Agents" unique_id=1212106709 instance=ExtResource("2_yqjtg")]
+position = Vector2(64, 59)
