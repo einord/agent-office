@@ -13,7 +13,7 @@ Agent Office is a multi-component system that monitors Claude Code sessions in r
 - **Token Usage Tracking** - Monitor token consumption with visual progress bars
 - **Server Synchronization** - Optionally sync agent state to a backend for multi-client coordination
 - **WebSocket Support** - Real-time communication with visualization clients (e.g., Godot)
-- **Beautiful Terminal UI** - Clean, informative display using the blessed library
+- **Docker Support** - Pre-built Docker images available from GitHub Container Registry
 
 ## Architecture
 
@@ -102,6 +102,74 @@ pnpm start -- --server-url http://localhost:3100 --api-key your-api-key
 export AGENT_OFFICE_SERVER_URL=http://localhost:3100
 export AGENT_OFFICE_API_KEY=your-api-key
 pnpm start
+```
+
+## Docker
+
+Agent Office is available as pre-built Docker images from GitHub Container Registry.
+
+**Architecture**: The backend runs on a central server, while CLI clients run on developer machines and report to the backend.
+
+### Backend Server Setup
+
+On your central server:
+
+1. Create a `config.json` file:
+   ```json
+   {
+     "users": [{ "key": "your-api-key-here", "displayName": "Your Name" }],
+     "server": { "httpPort": 3100, "wsPort": 3101 }
+   }
+   ```
+
+2. Start with Docker Compose:
+   ```bash
+   docker-compose up -d
+   ```
+
+   Or run directly:
+   ```bash
+   docker run -d \
+     -p 3100:3100 -p 3101:3101 \
+     -v ./config.json:/app/config.json:ro \
+     --name agent-office-backend \
+     ghcr.io/einord/agent-office/backend:latest
+   ```
+
+### CLI Client Setup
+
+On each developer machine that runs Claude Code:
+
+```bash
+docker run -d \
+  -v ~/.claude:/root/.claude:ro \
+  -e AGENT_OFFICE_SERVER_URL=http://your-server:3100 \
+  -e AGENT_OFFICE_API_KEY=your-api-key \
+  --name agent-office-cli \
+  --restart unless-stopped \
+  ghcr.io/einord/agent-office/cli:latest
+```
+
+Replace `your-server` with the hostname or IP of your backend server.
+
+### Using Pre-built Images
+
+```bash
+# CLI monitor (for developer machines)
+docker pull ghcr.io/einord/agent-office/cli:latest
+
+# Backend server (for central server)
+docker pull ghcr.io/einord/agent-office/backend:latest
+```
+
+### Building Images Locally
+
+```bash
+# Build Backend
+docker build -t agent-office-backend -f backend/Dockerfile .
+
+# Build CLI
+docker build -t agent-office-cli -f cli/Dockerfile .
 ```
 
 ## Configuration
@@ -244,7 +312,7 @@ The backend communicates with visualization clients via WebSocket on port 3101.
 - **Language:** TypeScript (ES2022)
 - **Runtime:** Node.js
 - **Package Manager:** pnpm (workspaces)
-- **CLI UI:** blessed
+- **CLI UI:** chalk (console logging)
 - **Backend:** Express + WebSocket (ws)
 - **Build:** TypeScript Compiler (tsc)
 

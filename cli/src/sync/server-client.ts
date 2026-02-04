@@ -131,7 +131,12 @@ export class ServerClient {
       console.log(`[ServerClient] Authenticated as ${data.displayName}`);
       return true;
     } catch (error) {
-      console.error('[ServerClient] Authentication error:', error instanceof Error ? error.message : error);
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('fetch failed') || message.includes('ECONNREFUSED')) {
+        console.error(`[ServerClient] Cannot connect to server at ${this.config.serverUrl} - is the backend running?`);
+      } else {
+        console.error(`[ServerClient] Authentication error: ${message}`);
+      }
       return false;
     }
   }
@@ -181,7 +186,12 @@ export class ServerClient {
 
       return (await response.json()) as T;
     } catch (error) {
-      console.error('[ServerClient] Request error:', error instanceof Error ? error.message : error);
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('fetch failed') || message.includes('ECONNREFUSED')) {
+        console.error(`[ServerClient] Connection lost to ${this.config.serverUrl}`);
+      } else {
+        console.error(`[ServerClient] Request error: ${message}`);
+      }
       return null;
     }
   }

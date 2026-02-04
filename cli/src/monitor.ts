@@ -7,7 +7,7 @@ import { scanClaudeProcesses, getOpenSessionFiles, matchProcessesToSessions } fr
 import { getAllSessions, readConversationTail, calculateTokenUsage } from './data/session-reader.js';
 import { getLatestActivity, isSessionActive } from './data/activity-tracker.js';
 import { getSessionColor } from './ui/renderer.js';
-import { BlessedUI } from './ui/blessed-ui.js';
+import { LogRenderer } from './ui/log-renderer.js';
 import { ServerClient, type ServerClientConfig } from './sync/server-client.js';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
@@ -31,9 +31,8 @@ export class ClaudeMonitor {
   private previousSessions: Map<string, TrackedSession> = new Map();
   private watcher: chokidar.FSWatcher | null = null;
   private updateTimer: NodeJS.Timeout | null = null;
-  private renderTimer: NodeJS.Timeout | null = null;
   private isRunning = false;
-  private ui: BlessedUI | null = null;
+  private ui: LogRenderer | null = null;
   private serverClient: ServerClient | null = null;
 
   /**
@@ -52,8 +51,8 @@ export class ClaudeMonitor {
   async start(): Promise<void> {
     this.isRunning = true;
 
-    // Initialize blessed UI
-    this.ui = new BlessedUI();
+    // Initialize log-based UI
+    this.ui = new LogRenderer();
 
     // Initial scan
     await this.refresh();
@@ -76,11 +75,6 @@ export class ClaudeMonitor {
         }
       });
     }, 60_000);
-
-    // Frequent render updates for "time ago" display
-    this.renderTimer = setInterval(() => {
-      this.render();
-    }, 5_000);
   }
 
   /**
@@ -97,11 +91,6 @@ export class ClaudeMonitor {
     if (this.updateTimer) {
       clearInterval(this.updateTimer);
       this.updateTimer = null;
-    }
-
-    if (this.renderTimer) {
-      clearInterval(this.renderTimer);
-      this.renderTimer = null;
     }
 
     if (this.ui) {

@@ -1,0 +1,17 @@
+# CLI client - runs on developer machines
+# Reports to a central Agent Office backend server
+
+name: agent-office-client
+services:
+  cli:
+    container_name: agent-office-cli
+    image: ghcr.io/einord/agent-office/cli:latest
+    build:
+      context: ..
+      dockerfile: cli/Dockerfile
+    volumes:
+      - ~/.claude:/root/.claude:ro
+    environment:
+      - AGENT_OFFICE_SERVER_URL=${AGENT_OFFICE_SERVER_URL}
+      - AGENT_OFFICE_API_KEY=${AGENT_OFFICE_API_KEY}
+    restart: unless-stopped
