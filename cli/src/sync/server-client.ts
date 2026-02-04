@@ -1,4 +1,5 @@
 import type { TrackedSession, ActivityType } from '../types.js';
+import { generateName } from '../ui/name-generator.js';
 
 /**
  * Configuration for the server client.
@@ -224,7 +225,7 @@ export class ServerClient {
       method: 'POST',
       body: JSON.stringify({
         id: session.sessionId,
-        displayName: session.slug,
+        displayName: generateName(session.sessionId),
         activity,
       }),
     });
