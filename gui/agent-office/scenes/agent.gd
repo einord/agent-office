@@ -183,8 +183,11 @@ func _update_label_position() -> void:
 	var container_size = viewport_container.size
 	var scale_factor = container_size / game_size
 
+	# Get the viewport container's position in screen space (accounts for AspectRatioContainer offset)
+	var container_offset = viewport_container.global_position
+
 	# Convert agent position to screen position
-	var screen_pos = global_position * scale_factor
+	var screen_pos = global_position * scale_factor + container_offset
 
 	# Offset label above the agent sprite
 	var label_offset = Vector2(0, -12) * scale_factor
