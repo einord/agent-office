@@ -2,9 +2,34 @@ import { readFile, readdir, stat } from 'fs/promises';
 import { join, basename, dirname } from 'path';
 import { homedir } from 'os';
 import type { SessionIndex, ConversationMessage, TokenUsage } from '../types.js';
+import { getIncrementalReader } from './incremental-reader.js';
 
-const CLAUDE_DIR = join(homedir(), '.claude');
-const PROJECTS_DIR = join(CLAUDE_DIR, 'projects');
+/** Default claude directory path */
+let claudeDir = join(homedir(), '.claude');
+
+/**
+ * Sets the claude directory path for all session operations.
+ * @param dir The directory path to use
+ */
+export function setClaudeDir(dir: string): void {
+  claudeDir = dir;
+}
+
+/**
+ * Gets the current claude directory path.
+ * @returns The claude directory path
+ */
+export function getClaudeDir(): string {
+  return claudeDir;
+}
+
+/**
+ * Gets the projects directory path.
+ * @returns The projects directory path
+ */
+function getProjectsDir(): string {
+  return join(claudeDir, 'projects');
+}
 
 /**
  * Gets all project directories in ~/.claude/projects
@@ -12,10 +37,11 @@ const PROJECTS_DIR = join(CLAUDE_DIR, 'projects');
  */
 export async function getProjectDirs(): Promise<string[]> {
   try {
-    const entries = await readdir(PROJECTS_DIR, { withFileTypes: true });
+    const projectsDir = getProjectsDir();
+    const entries = await readdir(projectsDir, { withFileTypes: true });
     return entries
       .filter(entry => entry.isDirectory())
-      .map(entry => join(PROJECTS_DIR, entry.name));
+      .map(entry => join(projectsDir, entry.name));
   } catch (error) {
     return [];
   }
@@ -112,9 +138,10 @@ export async function findConversationFiles(projectDir: string): Promise<string[
 }
 
 /**
- * Reads the last N lines from a .jsonl file
+ * Reads the last N lines from a .jsonl file using incremental reading.
+ * On subsequent calls, only reads new content appended since the last read.
  * @param filePath Path to .jsonl file
- * @param maxLines Maximum number of lines to read from the end
+ * @param maxLines Maximum number of lines to return
  * @returns Array of parsed conversation messages
  */
 export async function readConversationTail(
@@ -122,23 +149,27 @@ export async function readConversationTail(
   maxLines: number = 50
 ): Promise<ConversationMessage[]> {
   try {
-    const content = await readFile(filePath, 'utf-8');
-    const lines = content.trim().split('\n').filter(line => line.length > 0);
+    const reader = getIncrementalReader();
+    return await reader.getRecentMessages(filePath, maxLines);
+  } catch (error) {
+    return [];
+  }
+}
 
-    // Take last N lines
-    const tailLines = lines.slice(-maxLines);
-
-    const messages: ConversationMessage[] = [];
-    for (const line of tailLines) {
-      try {
-        const parsed = JSON.parse(line);
-        messages.push(parsed);
-      } catch {
-        // Skip invalid JSON lines
-      }
-    }
-
-    return messages;
+/**
+ * Forces a full re-read of a conversation file (bypasses incremental cache).
+ * Use this for initial reads or when you suspect the cache is stale.
+ * @param filePath Path to .jsonl file
+ * @param maxLines Maximum number of lines to read from the end
+ * @returns Array of parsed conversation messages
+ */
+export async function readConversationFull(
+  filePath: string,
+  maxLines: number = 100
+): Promise<ConversationMessage[]> {
+  try {
+    const reader = getIncrementalReader();
+    return await reader.fullRead(filePath, maxLines);
   } catch (error) {
     return [];
   }

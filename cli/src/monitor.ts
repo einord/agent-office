@@ -4,14 +4,21 @@ import { homedir } from 'os';
 import type { TrackedSession, SessionIndex, TokenUsage } from './types.js';
 import { MAX_CONTEXT_TOKENS } from './types.js';
 import { scanClaudeProcesses, getOpenSessionFiles, matchProcessesToSessions } from './data/process-scanner.js';
-import { getAllSessions, readConversationTail, calculateTokenUsage } from './data/session-reader.js';
-import { getLatestActivity, isSessionActive } from './data/activity-tracker.js';
+import { getAllSessions, readConversationTail, calculateTokenUsage, setClaudeDir, getClaudeDir } from './data/session-reader.js';
+import { getLatestActivity, isSessionActive, detectSidechain } from './data/activity-tracker.js';
 import { getSessionColor } from './ui/renderer.js';
 import { LogRenderer } from './ui/log-renderer.js';
 import { ServerClient, type ServerClientConfig } from './sync/server-client.js';
+import { resetIncrementalReader } from './data/incremental-reader.js';
 
-const CLAUDE_DIR = join(homedir(), '.claude');
-const PROJECTS_DIR = join(CLAUDE_DIR, 'projects');
+/** Session reaping interval in milliseconds (30 seconds) */
+const REAP_INTERVAL_MS = 30_000;
+
+/** Session time-to-live in milliseconds (2 minutes after last update) */
+const SESSION_TTL_MS = 2 * 60 * 1000;
+
+/** Timeout for "done" sessions before removing from display (5 minutes) */
+const DONE_TIMEOUT_MS = 5 * 60 * 1000;
 
 /**
  * Configuration options for the monitor.
@@ -21,6 +28,8 @@ export interface MonitorConfig {
   serverUrl: string;
   /** API key for backend authentication */
   apiKey: string;
+  /** Optional custom claude directory path (defaults to ~/.claude) */
+  claudeDir?: string;
 }
 
 /**
@@ -31,16 +40,26 @@ export class ClaudeMonitor {
   private previousSessions: Map<string, TrackedSession> = new Map();
   private watcher: chokidar.FSWatcher | null = null;
   private updateTimer: NodeJS.Timeout | null = null;
+  private reapTimer: NodeJS.Timeout | null = null;
   private isRunning = false;
   private ui: LogRenderer | null = null;
   private serverClient: ServerClient | null = null;
+  private claudeDir: string;
 
   /**
    * Creates a new ClaudeMonitor instance.
-   * @param syncConfig - Optional configuration for server synchronization
+   * @param syncConfig - Optional configuration for server synchronization and claude directory
    */
   constructor(syncConfig?: MonitorConfig) {
-    if (syncConfig) {
+    // Set claude directory (use config, env var, or default)
+    this.claudeDir = syncConfig?.claudeDir
+      || process.env.CLAUDE_CONFIG_DIR
+      || join(homedir(), '.claude');
+
+    // Update session reader to use the configured directory
+    setClaudeDir(this.claudeDir);
+
+    if (syncConfig?.serverUrl && syncConfig?.apiKey) {
       this.serverClient = new ServerClient(syncConfig);
     }
   }
@@ -77,6 +96,11 @@ export class ClaudeMonitor {
         }
       });
     }, 60_000);
+
+    // Active session reaping - removes stale sessions periodically
+    this.reapTimer = setInterval(() => {
+      this.reapStaleSessions();
+    }, REAP_INTERVAL_MS);
   }
 
   /**
@@ -95,10 +119,18 @@ export class ClaudeMonitor {
       this.updateTimer = null;
     }
 
+    if (this.reapTimer) {
+      clearInterval(this.reapTimer);
+      this.reapTimer = null;
+    }
+
     if (this.ui) {
       this.ui.destroy();
       this.ui = null;
     }
+
+    // Clear incremental reader cache
+    resetIncrementalReader();
 
     process.exit(0);
   }
@@ -107,9 +139,10 @@ export class ClaudeMonitor {
    * Sets up file watching for real-time updates.
    */
   private setupWatcher(): void {
+    const projectsDir = join(this.claudeDir, 'projects');
     const watchPaths = [
-      join(PROJECTS_DIR, '*', 'sessions-index.json'),
-      join(PROJECTS_DIR, '*', '*.jsonl'),
+      join(projectsDir, '*', 'sessions-index.json'),
+      join(projectsDir, '*', '*.jsonl'),
     ];
 
     this.watcher = chokidar.watch(watchPaths, {
@@ -147,7 +180,6 @@ export class ClaudeMonitor {
 
     try {
       // Get visible sessions (same filter as render)
-      const DONE_TIMEOUT_MS = 5 * 60 * 1000;
       const visibleSessions = new Map<string, TrackedSession>();
 
       for (const [id, session] of this.sessions) {
@@ -166,6 +198,47 @@ export class ClaudeMonitor {
     } catch (error) {
       // Log but don't crash - sync failures shouldn't stop the monitor
       console.error('[Monitor] Sync error:', error instanceof Error ? error.message : error);
+    }
+  }
+
+  /**
+   * Actively removes stale sessions that haven't been updated within the TTL.
+   * This runs periodically to clean up memory and ensure accurate sync state.
+   */
+  private reapStaleSessions(): void {
+    const now = Date.now();
+    const sessionsToRemove: string[] = [];
+
+    for (const [id, session] of this.sessions) {
+      const age = now - session.lastUpdate.getTime();
+
+      // Remove sessions that are "done" and older than DONE_TIMEOUT
+      if (session.activity.type === 'done' && age > DONE_TIMEOUT_MS) {
+        sessionsToRemove.push(id);
+        continue;
+      }
+
+      // Remove any session that hasn't been updated within SESSION_TTL
+      // (except those waiting for input, which can be idle longer)
+      if (session.activity.type !== 'waiting_input' && age > SESSION_TTL_MS) {
+        sessionsToRemove.push(id);
+      }
+    }
+
+    // Remove stale sessions and notify server
+    for (const sessionId of sessionsToRemove) {
+      this.sessions.delete(sessionId);
+
+      if (this.serverClient) {
+        this.serverClient.removeAgent(sessionId).catch((error) => {
+          console.error(`[Monitor] Failed to remove agent ${sessionId}:`, error);
+        });
+      }
+    }
+
+    // Re-render if sessions were removed
+    if (sessionsToRemove.length > 0) {
+      this.render();
     }
   }
 
@@ -234,6 +307,9 @@ export class ClaudeMonitor {
       // Get PID if known
       const pid = sessionToPid.get(sessionInfo.filePath);
 
+      // Detect if this is a sidechain (sub-agent)
+      const isSidechain = detectSidechain(messages);
+
       return {
         sessionId,
         slug: sessionInfo.slug || sessionId.slice(0, 8),
@@ -248,8 +324,8 @@ export class ClaudeMonitor {
         },
         activity,
         lastUpdate: new Date(lastModified),
-        isSidechain: false, // Would need more logic to detect
-        subAgents: [], // Would need more logic to populate
+        isSidechain,
+        subAgents: [], // Sub-agent linking would require cross-session correlation
       };
     } catch (error) {
       return null;
@@ -264,8 +340,7 @@ export class ClaudeMonitor {
 
     const sessionsArray = Array.from(this.sessions.values());
 
-    // Filter out done sessions older than 5 minutes
-    const DONE_TIMEOUT_MS = 5 * 60 * 1000;
+    // Filter out done sessions older than the timeout
     const visibleSessions = sessionsArray.filter(session => {
       if (session.activity.type === 'done') {
         const age = Date.now() - session.lastUpdate.getTime();

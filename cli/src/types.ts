@@ -43,6 +43,17 @@ export interface ToolUse {
 }
 
 /**
+ * Content block in a message (text, tool_use, tool_result, etc.)
+ */
+export interface ContentBlock {
+  type: string;
+  id?: string;
+  text?: string;
+  name?: string;
+  input?: Record<string, unknown>;
+}
+
+/**
  * A message from the conversation log
  */
 export interface ConversationMessage {
@@ -51,11 +62,13 @@ export interface ConversationMessage {
   timestamp?: string;
   message?: {
     role: string;
-    content: Array<{ type: string; text?: string; name?: string; input?: Record<string, unknown> }>;
+    content: Array<ContentBlock>;
     usage?: TokenUsage;
   };
   isSidechain?: boolean;
   cwd?: string;
+  /** Parent session ID if this is a sub-agent */
+  parentSessionId?: string;
 }
 
 /**

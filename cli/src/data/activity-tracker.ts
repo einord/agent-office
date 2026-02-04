@@ -193,6 +193,50 @@ export function isSidechainMessage(msg: ConversationMessage): boolean {
 }
 
 /**
+ * Detects if a session is a sidechain (sub-agent) based on its messages.
+ * A session is considered a sidechain if any of its messages have isSidechain: true.
+ * @param messages Conversation messages
+ * @returns True if this is a sidechain session
+ */
+export function detectSidechain(messages: ConversationMessage[]): boolean {
+  return messages.some(msg => msg.isSidechain === true);
+}
+
+/**
+ * Extracts Task tool spawns from messages.
+ * These represent sub-agents that were spawned by this session.
+ * @param messages Conversation messages
+ * @returns Array of Task tool use info with descriptions
+ */
+export function extractTaskSpawns(messages: ConversationMessage[]): Array<{
+  toolUseId: string;
+  description: string;
+  subagentType?: string;
+}> {
+  const spawns: Array<{ toolUseId: string; description: string; subagentType?: string }> = [];
+
+  for (const msg of messages) {
+    const content = msg.message?.content;
+    if (!Array.isArray(content)) continue;
+
+    for (const block of content) {
+      if (block.type === 'tool_use' && block.name === 'Task') {
+        const input = block.input as Record<string, unknown> | undefined;
+        if (input && block.id) {
+          spawns.push({
+            toolUseId: block.id,
+            description: (input.description as string) || 'Unknown task',
+            subagentType: input.subagent_type as string | undefined,
+          });
+        }
+      }
+    }
+  }
+
+  return spawns;
+}
+
+/**
  * Extracts the working directory from messages
  * @param messages Conversation messages
  * @returns Working directory path or undefined
