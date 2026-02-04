@@ -80,6 +80,14 @@ interface AgentResponse {
 }
 
 /**
+ * Result of a request, including status information.
+ */
+interface RequestResult<T> {
+  data: T | null;
+  notFound: boolean;
+}
+
+/**
  * HTTP client for synchronizing agent status with the backend server.
  * Handles authentication, agent creation, updates, and removal.
  */
@@ -147,17 +155,17 @@ export class ServerClient {
    * @param endpoint - API endpoint (e.g., '/agents')
    * @param options - Fetch options
    * @param context - Optional context for error messages (e.g., agent ID)
-   * @returns The response, or null if the request failed
+   * @returns The response with status info
    */
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
     context?: string
-  ): Promise<T | null> {
+  ): Promise<RequestResult<T>> {
     // Ensure we're authenticated
     const authenticated = await this.authenticate();
     if (!authenticated) {
-      return null;
+      return { data: null, notFound: false };
     }
 
     try {
@@ -177,17 +185,22 @@ export class ServerClient {
           this.tokenExpiresAt = null;
           const reauthenticated = await this.authenticate();
           if (reauthenticated) {
-            return this.request<T>(endpoint, options);
+            return this.request<T>(endpoint, options, context);
           }
+        }
+
+        // Check for 404 (not found)
+        if (response.status === 404) {
+          return { data: null, notFound: true };
         }
 
         const error = await response.json().catch(() => ({ error: 'Unknown error' }));
         const contextStr = context ? ` (${context})` : '';
         console.error(`[ServerClient] Request failed${contextStr}: ${error.error || response.statusText}`);
-        return null;
+        return { data: null, notFound: false };
       }
 
-      return (await response.json()) as T;
+      return { data: (await response.json()) as T, notFound: false };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (message.includes('fetch failed') || message.includes('ECONNREFUSED')) {
@@ -195,7 +208,7 @@ export class ServerClient {
       } else {
         console.error(`[ServerClient] Request error: ${message}`);
       }
-      return null;
+      return { data: null, notFound: false };
     }
   }
 
@@ -216,7 +229,7 @@ export class ServerClient {
       }),
     });
 
-    if (result) {
+    if (result.data) {
       this.syncedAgents.add(session.sessionId);
       this.lastActivityMap.set(session.sessionId, activity);
       console.log(`[ServerClient] Created agent: ${session.sessionId} (${session.slug})`);
@@ -228,6 +241,7 @@ export class ServerClient {
 
   /**
    * Updates an agent's activity on the backend server.
+   * If the agent is not found (404), it will be recreated automatically.
    * @param session - The tracked session to update
    * @returns True if the agent was updated successfully
    */
@@ -246,10 +260,18 @@ export class ServerClient {
       `agent: ${session.sessionId}`
     );
 
-    if (result) {
+    if (result.data) {
       this.lastActivityMap.set(session.sessionId, activity);
       console.log(`[ServerClient] Updated agent: ${session.sessionId} -> ${activity}`);
       return true;
+    }
+
+    // If agent not found on server, recreate it
+    if (result.notFound) {
+      console.log(`[ServerClient] Agent not found on server, recreating: ${session.sessionId}`);
+      this.syncedAgents.delete(session.sessionId);
+      this.lastActivityMap.delete(session.sessionId);
+      return this.createAgent(session);
     }
 
     return false;
@@ -267,10 +289,13 @@ export class ServerClient {
       `agent: ${sessionId}`
     );
 
-    if (result) {
+    // Consider it successful if agent was deleted or didn't exist
+    if (result.data || result.notFound) {
       this.syncedAgents.delete(sessionId);
       this.lastActivityMap.delete(sessionId);
-      console.log(`[ServerClient] Removed agent: ${sessionId}`);
+      if (result.data) {
+        console.log(`[ServerClient] Removed agent: ${sessionId}`);
+      }
       return true;
     }
 
