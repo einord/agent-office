@@ -147,11 +147,10 @@ export function initWebSocketServer(port: number): void {
     const clientAddress = req.socket.remoteAddress;
     console.log(`[WebSocket] Client connected from ${clientAddress}`);
 
-    // Only allow one Godot client at a time
+    // If there's an existing client, close it (e.g., page reload)
     if (godotClient && godotClient.readyState === WebSocket.OPEN) {
-      console.log('[WebSocket] Another client already connected, closing new connection');
-      ws.close(1000, 'Another client is already connected');
-      return;
+      console.log('[WebSocket] Closing previous client connection (new client connected)');
+      godotClient.close(1000, 'New client connected');
     }
 
     godotClient = ws;
