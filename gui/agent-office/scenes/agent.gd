@@ -170,4 +170,10 @@ func _physics_process(delta):
 		_on_velocity_computed(new_velocity)
 
 func _on_velocity_computed(safe_velocity: Vector2) -> void:
+	# Flip sprite horizontally based on movement direction
+	if safe_velocity.x < 0:
+		flip_h = true
+	elif safe_velocity.x > 0:
+		flip_h = false
+
 	global_position = global_position.move_toward(global_position + safe_velocity, movement_delta)
