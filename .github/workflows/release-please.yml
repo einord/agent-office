@@ -199,3 +199,17 @@ jobs:
             ghcr.io/${{ github.repository }}/backend:latest
             ghcr.io/${{ github.repository }}/backend:${{ steps.version.outputs.version }}
             ghcr.io/${{ github.repository }}/backend:${{ steps.version.outputs.major_minor }}
+
+      - name: Build and push Web UI image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./gui
+          file: gui/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            GODOT_VERSION=4.6
+          tags: |
+            ghcr.io/${{ github.repository }}/web-ui:latest
+            ghcr.io/${{ github.repository }}/web-ui:${{ steps.version.outputs.version }}
+            ghcr.io/${{ github.repository }}/web-ui:${{ steps.version.outputs.major_minor }}

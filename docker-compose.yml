@@ -1,17 +1,63 @@
-# Backend server - runs on the central server
-# CLI clients connect to this from their own machines
+# Agent Office Server Stack
+# Includes backend API/WebSocket server and Web UI
+#
+# Usage:
+#   docker compose up -d              # Start all services
+#   docker compose up -d backend      # Start only backend
+#   docker compose logs -f            # View logs
+#   docker compose down               # Stop all services
+#
+# The web UI is accessible at http://localhost:8080
+# API endpoints are proxied through /api/
+# WebSocket connects via /ws
 
 name: agent-office-server
+
 services:
+  # ==========================================================================
+  # Backend: Node.js API + WebSocket server
+  # ==========================================================================
   backend:
-    container_name: web-server
+    container_name: agent-office-backend
     image: ghcr.io/einord/agent-office/backend:latest
     build:
       context: .
       dockerfile: backend/Dockerfile
     ports:
-      - "3100:3100"
-      - "3101:3101"
+      # Expose ports directly for CLI clients connecting from other machines
+      - "3100:3100"  # HTTP API
+      - "3101:3101"  # WebSocket
     volumes:
       - ./backend/config.json:/app/config.json:ro
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ==========================================================================
+  # Web UI: Godot Web export served via nginx
+  # ==========================================================================
+  web-ui:
+    container_name: agent-office-web
+    image: ghcr.io/einord/agent-office/web-ui:latest
+    build:
+      context: ./gui
+      dockerfile: Dockerfile
+      args:
+        GODOT_VERSION: "4.6"
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+# ==========================================================================
+# Networks (optional, for external access)
+# ==========================================================================
+networks:
+  default:
+    name: agent-office-network

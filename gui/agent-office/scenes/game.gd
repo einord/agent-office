@@ -13,10 +13,25 @@ var _agents_by_id: Dictionary = {}  # Maps external ID to agent instance
 # WebSocket client for backend communication
 var _socket: WebSocketPeer = WebSocketPeer.new()
 var _ws_connected: bool = false
-const WS_URL: String = "ws://localhost:3101"
+
+## Returns the WebSocket URL based on platform.
+## - Web: Uses current page host with /ws path (proxied via nginx)
+## - Desktop: Uses localhost:3101 for local development
+func _get_ws_url() -> String:
+	if OS.get_name() == "Web":
+		# Running in browser - use JavaScript to get current host
+		var protocol = JavaScriptBridge.eval("window.location.protocol === 'https:' ? 'wss:' : 'ws:'")
+		var host = JavaScriptBridge.eval("window.location.host")
+		return "%s//%s/ws" % [protocol, host]
+	else:
+		# Desktop/local development
+		return "ws://localhost:3101"
 
 # Status label for connection state
 var _status_label: Label
+
+## The resolved WebSocket URL (set in _ready)
+var _ws_url: String = ""
 
 func _ready() -> void:
 	# Clear all existing agents at startup
@@ -26,8 +41,12 @@ func _ready() -> void:
 	# Create status label
 	_create_status_label()
 
+	# Determine WebSocket URL based on platform
+	_ws_url = _get_ws_url()
+	print("WebSocket URL: ", _ws_url)
+
 	# Connect to WebSocket server
-	var err = _socket.connect_to_url(WS_URL)
+	var err = _socket.connect_to_url(_ws_url)
 	if err != OK:
 		push_error("WebSocket connection failed: " + str(err))
 	_update_status_label()
@@ -70,7 +89,7 @@ func _poll_websocket() -> void:
 		WebSocketPeer.STATE_OPEN:
 			if not _ws_connected:
 				_ws_connected = true
-				print("WebSocket connected to ", WS_URL)
+				print("WebSocket connected to ", _ws_url)
 				_update_status_label()
 
 			# Process all available messages
@@ -91,7 +110,7 @@ func _poll_websocket() -> void:
 				_update_status_label()
 				# Attempt to reconnect after a short delay
 				await get_tree().create_timer(2.0).timeout
-				var err = _socket.connect_to_url(WS_URL)
+				var err = _socket.connect_to_url(_ws_url)
 				if err != OK:
 					push_error("WebSocket reconnection failed: " + str(err))
 
