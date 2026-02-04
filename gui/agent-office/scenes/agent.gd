@@ -8,6 +8,7 @@ enum AgentState { WORKING, IDLE, LEAVING }
 @export var idle_wait_max: float = 10.0  # Maximum wait time in idle state (seconds)
 @export var exit_wait_time: float = 2.0  # Time to wait at exit before despawning (seconds)
 @onready var navigation_agent: NavigationAgent2D = get_node("NavigationAgent2D")
+@onready var _name_label: Label = $AgentName/Label
 var movement_delta: float
 var current_state: AgentState = AgentState.IDLE
 var _idle_timer: float = 0.0
@@ -20,6 +21,9 @@ var user_name: String = ""
 
 func _ready() -> void:
 	navigation_agent.velocity_computed.connect(Callable(_on_velocity_computed))
+	# Update name label with display name
+	if _name_label and display_name != "":
+		_name_label.text = display_name
 	# Vänta en frame så att navigationskartan hinner synkroniseras
 	await get_tree().physics_frame
 	change_state(AgentState.IDLE)

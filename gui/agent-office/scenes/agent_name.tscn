@@ -4,10 +4,13 @@
 
 [sub_resource type="LabelSettings" id="LabelSettings_ptf7h"]
 font = ExtResource("1_sb7cc")
+outline_size = 3
 outline_color = Color(0, 0, 0, 1)
 shadow_size = 0
 
 [node name="AgentName" type="Node2D" unique_id=2049812729]
+z_index = 10
+z_as_relative = false
 
 [node name="Label" type="Label" parent="." unique_id=1487559192]
 texture_filter = 1

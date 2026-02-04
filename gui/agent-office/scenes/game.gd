@@ -333,6 +333,9 @@ func _spawn_agent() -> void:
 	# Instance and add agent
 	var agent = agent_scene.instantiate()
 
+	# Set test display name
+	agent.display_name = "Agent 007"
+
 	# Assign random sprite variant
 	if agent_variants.size() > 0:
 		var random_variant = agent_variants[randi() % agent_variants.size()]
