@@ -183,9 +183,10 @@ export class BlessedUI {
   private renderSession(session: TrackedSession, top: number): number {
     const name = generateName(session.sessionId);
     const timeAgo = formatTimeAgo(session.lastUpdate);
-    const statusIcon = session.activity.type === 'waiting_input' ? '{yellow-fg}●{/yellow-fg}' : '{green-fg}●{/green-fg}';
+    const activityType = session.activity?.type || 'idle';
+    const statusIcon = activityType === 'waiting_input' ? '{yellow-fg}●{/yellow-fg}' : '{green-fg}●{/green-fg}';
     const branchInfo = session.gitBranch ? ` {245-fg}(${session.gitBranch}){/245-fg}` : '';
-    const activityDisplay = ACTIVITY_DISPLAY[session.activity.type];
+    const activityDisplay = ACTIVITY_DISPLAY[activityType] || ACTIVITY_DISPLAY['idle'];
 
     // Shorten path
     const home = process.env.HOME || '';
@@ -226,9 +227,9 @@ export class BlessedUI {
     });
 
     // Line 3: Progress bar
-    const percentage = session.tokens.percentage;
-    const usedStr = formatTokens(session.tokens.used);
-    const maxStr = formatTokens(session.tokens.max);
+    const percentage = session.tokens?.percentage ?? 0;
+    const usedStr = formatTokens(session.tokens?.used ?? 0);
+    const maxStr = formatTokens(session.tokens?.max ?? 0);
     const barWidth = Math.max(10, (this.screen.width as number) - 35);
     const filledWidth = Math.round((percentage / 100) * barWidth);
     const emptyWidth = barWidth - filledWidth;
@@ -248,10 +249,11 @@ export class BlessedUI {
 
     // Line 4: Activity
     let activityContent = `${activityDisplay.icon} ${activityDisplay.label}`;
-    if (session.activity.detail) {
-      const detail = session.activity.detail.startsWith(home)
-        ? '~' + session.activity.detail.slice(home.length)
-        : session.activity.detail;
+    const activityDetail = session.activity?.detail;
+    if (activityDetail) {
+      const detail = activityDetail.startsWith(home)
+        ? '~' + activityDetail.slice(home.length)
+        : activityDetail;
       activityContent += ` {245-fg}(${detail}){/245-fg}`;
     }
 
