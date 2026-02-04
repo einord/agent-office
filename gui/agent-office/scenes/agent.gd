@@ -8,7 +8,8 @@ enum AgentState { WORKING, IDLE, LEAVING }
 @export var idle_wait_max: float = 10.0  # Maximum wait time in idle state (seconds)
 @export var exit_wait_time: float = 2.0  # Time to wait at exit before despawning (seconds)
 @onready var navigation_agent: NavigationAgent2D = get_node("NavigationAgent2D")
-@onready var _name_label: Label = $AgentName/Label
+var _name_label: Label = null
+var _ui_layer: Control = null
 var movement_delta: float
 var current_state: AgentState = AgentState.IDLE
 var _idle_timer: float = 0.0
@@ -21,12 +22,43 @@ var user_name: String = ""
 
 func _ready() -> void:
 	navigation_agent.velocity_computed.connect(Callable(_on_velocity_computed))
-	# Update name label with display name
-	if _name_label and display_name != "":
-		_name_label.text = display_name
+	_setup_name_label()
 	# Vänta en frame så att navigationskartan hinner synkroniseras
 	await get_tree().physics_frame
 	change_state(AgentState.IDLE)
+
+## Creates the name label in the UI layer (unscaled).
+func _setup_name_label() -> void:
+	# Find UILayer in the main scene
+	var main_node = get_tree().root.get_node_or_null("Main")
+	if main_node:
+		_ui_layer = main_node.get_node_or_null("UILayer")
+
+	if _ui_layer == null:
+		return
+
+	# Create label dynamically
+	_name_label = Label.new()
+	_name_label.text = display_name if display_name != "" else "Agent 007"
+	_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_name_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+	# Load the same font as the original AgentName label
+	var font = load("res://assets/fonts/Axolotl.ttf")
+	if font:
+		var label_settings = LabelSettings.new()
+		label_settings.font = font
+		label_settings.font_size = 32
+		label_settings.outline_color = Color.BLACK
+		label_settings.outline_size = 8
+		_name_label.label_settings = label_settings
+
+	_ui_layer.add_child(_name_label)
+
+func _exit_tree() -> void:
+	# Clean up the label when agent is removed
+	if _name_label and is_instance_valid(_name_label):
+		_name_label.queue_free()
 
 func set_movement_target(movement_target: Vector2):
 	navigation_agent.set_target_position(movement_target)
@@ -128,6 +160,38 @@ func _set_random_target() -> void:
 	)
 	var closest_valid = NavigationServer2D.map_get_closest_point(map_rid, fallback_target)
 	set_movement_target(closest_valid)
+
+func _process(_delta: float) -> void:
+	_update_label_position()
+
+## Updates the name label position to follow the agent in screen space.
+func _update_label_position() -> void:
+	if _name_label == null or _ui_layer == null:
+		return
+
+	# Get the SubViewport and SubViewportContainer to calculate scale
+	var viewport = get_viewport()
+	if viewport == null:
+		return
+
+	var viewport_container = viewport.get_parent()
+	if viewport_container == null or not viewport_container is SubViewportContainer:
+		return
+
+	# Calculate scale factor
+	var game_size = Vector2(200, 144)
+	var container_size = viewport_container.size
+	var scale_factor = container_size / game_size
+
+	# Convert agent position to screen position
+	var screen_pos = global_position * scale_factor
+
+	# Offset label above the agent sprite
+	var label_offset = Vector2(0, -12) * scale_factor
+
+	# Center the label horizontally and round to nearest pixel
+	var final_pos = screen_pos + label_offset - Vector2(_name_label.size.x / 2, 0)
+	_name_label.position = final_pos.round()
 
 func _physics_process(delta):
 	# Do not query when the map has never synchronized and is empty.

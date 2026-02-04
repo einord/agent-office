@@ -11,16 +11,14 @@ config_version=5
 [application]
 
 config/name="Agent Office"
-run/main_scene="uid://b88kgwuugd6if"
+run/main_scene="uid://t4epysr54odf"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [display]
 
-window/size/viewport_width=200
-window/size/viewport_height=144
-window/stretch/mode="viewport"
-window/stretch/scale_mode="integer"
+window/size/viewport_width=800
+window/size/viewport_height=576
 
 [physics]
 
