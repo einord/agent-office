@@ -39,7 +39,7 @@ func _setup_name_label() -> void:
 
 	# Create label dynamically
 	_name_label = Label.new()
-	_name_label.text = display_name if display_name != "" else "Agent 007"
+	_name_label.text = _get_label_text()
 	_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_name_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
@@ -54,6 +54,13 @@ func _setup_name_label() -> void:
 		_name_label.label_settings = label_settings
 
 	_ui_layer.add_child(_name_label)
+
+## Returns the formatted label text with display name and optional user name.
+func _get_label_text() -> String:
+	var name_text = display_name if display_name != "" else "Agent 007"
+	if user_name != "":
+		return "%s (%s)" % [name_text, user_name]
+	return name_text
 
 func _exit_tree() -> void:
 	# Clean up the label when agent is removed
