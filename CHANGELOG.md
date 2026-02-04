@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.9](https://github.com/einord/agent-office/compare/agent-office-v0.1.8...agent-office-v0.1.9) (2026-02-04)
+
+
+### Features
+
+* add display name to agents and update agent name scene configuration ([3f47107](https://github.com/einord/agent-office/commit/3f47107d054d8553e1c18e3256aca9d3e24cc47b))
+* add new agent variants and update game scene references ([ee9221d](https://github.com/einord/agent-office/commit/ee9221d9e91c552ff7958ce3822c14fae798ab1c))
+* enhance name label setup with dynamic text formatting for display and user names ([cbb1f5c](https://github.com/einord/agent-office/commit/cbb1f5c396f58910fa2f8348315432ca5aa38b0b))
+* implement dynamic agent name label and update viewport configuration ([636bfa9](https://github.com/einord/agent-office/commit/636bfa958738f84d2d6182c46ddeeb08de633d21))
+
+
+### Bug Fixes
+
+* add missing window/stretch/mode configuration for viewport ([d61e6b6](https://github.com/einord/agent-office/commit/d61e6b6e780aa5abd8d6623afe2b067cfaa7cc45))
+* adjust label position calculation and update scene hierarchy for viewport ([acc12be](https://github.com/einord/agent-office/commit/acc12becb4b75009284aa425f885fa327c127786))
+
 ## [0.1.8](https://github.com/einord/agent-office/compare/agent-office-v0.1.7...agent-office-v0.1.8) (2026-02-04)
 
 
