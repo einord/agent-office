@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.7](https://github.com/einord/agent-office/compare/agent-office-v0.1.6...agent-office-v0.1.7) (2026-02-04)
+
+
+### Features
+
+* add Docker deployment for backend + Godot web UI ([d1112a5](https://github.com/einord/agent-office/commit/d1112a5d60d819b9f6eec807e75d6b41158a9600))
+* enhance server-client error handling with detailed request results ([431f255](https://github.com/einord/agent-office/commit/431f2559b1cb7d60f0e590037b13bc751f87945a))
+* implement incremental reading for conversation files and enhance session management ([7564b1a](https://github.com/einord/agent-office/commit/7564b1a88e89bb91dc1d4c7d2f35ca10fd18e5b3))
+
 ## [0.1.6](https://github.com/einord/agent-office/compare/agent-office-v0.1.5...agent-office-v0.1.6) (2026-02-04)
 
 
