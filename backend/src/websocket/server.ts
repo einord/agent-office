@@ -5,6 +5,7 @@ import type {
   SpawnAgentPayload,
   UpdateAgentPayload,
   RemoveAgentPayload,
+  SyncCompletePayload,
 } from '../types.js';
 import type { Agent } from '../agents/types.js';
 import { onAgentChange, getAllAgents, confirmAgentRemoved } from '../agents/agent-manager.js';
@@ -102,7 +103,21 @@ function handleGodotMessage(data: string): void {
 }
 
 /**
+ * Sends a sync_complete message to Godot with all active agent IDs.
+ * This allows Godot to remove any stale agents that are no longer in the backend.
+ */
+function sendSyncComplete(agentIds: string[]): boolean {
+  const payload: SyncCompletePayload = {
+    agentIds,
+  };
+
+  return sendToGodot({ type: 'sync_complete', payload });
+}
+
+/**
  * Syncs all current agents to a newly connected Godot client.
+ * After sending spawn commands for all agents, sends a sync_complete message
+ * so Godot can clean up any stale agents.
  */
 function syncAgentsToGodot(): void {
   const agents = getAllAgents();
@@ -111,6 +126,10 @@ function syncAgentsToGodot(): void {
   for (const agent of agents) {
     sendSpawnAgent(agent);
   }
+
+  // Send sync_complete with all active agent IDs so Godot can clean up stale agents
+  const agentIds = agents.map((a) => a.id);
+  sendSyncComplete(agentIds);
 }
 
 /**

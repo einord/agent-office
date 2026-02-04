@@ -20,6 +20,7 @@ export function generateToken(user: AuthUser): Token {
     user,
     createdAt: now,
     expiresAt,
+    lastActivity: now,
   };
 
   tokens.set(token.token, token);
@@ -30,6 +31,7 @@ export function generateToken(user: AuthUser): Token {
 
 /**
  * Validates a token and returns the associated token data if valid.
+ * Also updates the lastActivity timestamp.
  * @param tokenString - The token string to validate
  * @returns The token object if valid, null otherwise
  */
@@ -46,6 +48,9 @@ export function validateToken(tokenString: string): Token | null {
     console.log(`[TokenManager] Token expired for user: ${token.user.displayName}`);
     return null;
   }
+
+  // Update last activity
+  token.lastActivity = Date.now();
 
   return token;
 }
@@ -110,4 +115,51 @@ export function getActiveTokenCount(): number {
   }
 
   return count;
+}
+
+/**
+ * Finds users who have been inactive for longer than the specified timeout.
+ * @param timeoutSeconds - The inactivity timeout in seconds
+ * @returns Array of API keys for inactive users
+ */
+export function getInactiveUserKeys(timeoutSeconds: number): string[] {
+  if (timeoutSeconds <= 0) {
+    return [];
+  }
+
+  const now = Date.now();
+  const timeoutMs = timeoutSeconds * 1000;
+  const inactiveKeys: string[] = [];
+
+  for (const token of tokens.values()) {
+    // Skip expired tokens
+    if (now > token.expiresAt) {
+      continue;
+    }
+
+    const inactiveFor = now - token.lastActivity;
+    if (inactiveFor > timeoutMs) {
+      inactiveKeys.push(token.user.key);
+      console.log(
+        `[TokenManager] User ${token.user.displayName} inactive for ${Math.round(inactiveFor / 1000)}s`
+      );
+    }
+  }
+
+  return inactiveKeys;
+}
+
+/**
+ * Marks a token as active (updates lastActivity).
+ * Useful for explicit heartbeat calls.
+ * @param tokenString - The token string
+ * @returns True if token was found and updated
+ */
+export function touchToken(tokenString: string): boolean {
+  const token = tokens.get(tokenString);
+  if (token && Date.now() <= token.expiresAt) {
+    token.lastActivity = Date.now();
+    return true;
+  }
+  return false;
 }

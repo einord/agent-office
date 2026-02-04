@@ -21,7 +21,7 @@ export type AgentActivity =
   | 'disconnected';
 
 /** WebSocket message types from backend to Godot */
-export type BackendMessageType = 'spawn_agent' | 'update_agent' | 'remove_agent';
+export type BackendMessageType = 'spawn_agent' | 'update_agent' | 'remove_agent' | 'sync_complete';
 
 /** WebSocket message types from Godot to backend */
 export type GodotMessageType = 'ack' | 'agent_removed';
@@ -52,6 +52,12 @@ export interface RemoveAgentPayload {
   id: string;
 }
 
+/** Sync complete payload - sent after all spawn_agent messages during initial sync */
+export interface SyncCompletePayload {
+  /** Array of all active agent IDs in the backend */
+  agentIds: string[];
+}
+
 /** Ack payload from Godot */
 export interface AckPayload {
   command: BackendMessageType;
@@ -68,7 +74,8 @@ export interface AgentRemovedPayload {
 export type BackendToGodotMessage =
   | WebSocketMessage<'spawn_agent', SpawnAgentPayload>
   | WebSocketMessage<'update_agent', UpdateAgentPayload>
-  | WebSocketMessage<'remove_agent', RemoveAgentPayload>;
+  | WebSocketMessage<'remove_agent', RemoveAgentPayload>
+  | WebSocketMessage<'sync_complete', SyncCompletePayload>;
 
 /** Godot to Backend messages */
 export type GodotToBackendMessage =
@@ -92,4 +99,6 @@ export interface AppConfig {
   users: ConfigUser[];
   server: ServerConfig;
   tokenExpirySeconds: number;
+  /** Seconds of inactivity before agents are removed (0 = disabled) */
+  inactivityTimeoutSeconds: number;
 }

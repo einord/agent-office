@@ -1,6 +1,7 @@
 import express from 'express';
 import { getConfig, initConfigWatcher } from './config/config-loader.js';
-import { cleanupExpiredTokens } from './auth/token-manager.js';
+import { cleanupExpiredTokens, getInactiveUserKeys } from './auth/token-manager.js';
+import { removeAgentsByOwner } from './agents/agent-manager.js';
 import routes from './api/routes.js';
 import { initWebSocketServer, closeWebSocketServer } from './websocket/server.js';
 
@@ -51,11 +52,28 @@ const tokenCleanupInterval = setInterval(() => {
   cleanupExpiredTokens();
 }, 5 * 60 * 1000);
 
+// Periodic inactivity check (every 10 seconds)
+const inactivityCheckInterval = setInterval(() => {
+  const currentConfig = getConfig();
+  if (currentConfig.inactivityTimeoutSeconds <= 0) {
+    return; // Disabled
+  }
+
+  const inactiveKeys = getInactiveUserKeys(currentConfig.inactivityTimeoutSeconds);
+  for (const key of inactiveKeys) {
+    const removed = removeAgentsByOwner(key);
+    if (removed > 0) {
+      console.log(`[Server] Removed ${removed} agent(s) due to inactivity`);
+    }
+  }
+}, 10 * 1000);
+
 // Graceful shutdown
 function shutdown(signal: string): void {
   console.log(`\n[Server] Received ${signal}, shutting down gracefully...`);
 
   clearInterval(tokenCleanupInterval);
+  clearInterval(inactivityCheckInterval);
 
   httpServer.close(() => {
     console.log('[HTTP] Server closed');
@@ -78,3 +96,4 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 console.log('[Server] Agent Office Backend started');
 console.log(`[Server] HTTP: http://localhost:${config.server.httpPort}`);
 console.log(`[Server] WebSocket: ws://localhost:${config.server.wsPort}`);
+console.log(`[Server] Inactivity timeout: ${config.inactivityTimeoutSeconds}s`);

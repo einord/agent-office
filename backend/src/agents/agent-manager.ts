@@ -206,3 +206,26 @@ export function confirmAgentRemoved(id: string): void {
   // Agent was already removed from our map when DELETE was called
   // This is just for logging/confirmation purposes
 }
+
+/**
+ * Removes all agents owned by a specific user (e.g., due to inactivity).
+ * @param ownerKey - The owner's API key
+ * @returns Number of agents removed
+ */
+export function removeAgentsByOwner(ownerKey: string): number {
+  const agentsToRemove: Agent[] = [];
+
+  for (const agent of agents.values()) {
+    if (agent.ownerKey === ownerKey) {
+      agentsToRemove.push(agent);
+    }
+  }
+
+  for (const agent of agentsToRemove) {
+    agents.delete(agent.id);
+    console.log(`[AgentManager] Removing agent ${agent.id} due to owner inactivity`);
+    notifyListeners('remove', agent);
+  }
+
+  return agentsToRemove.length;
+}

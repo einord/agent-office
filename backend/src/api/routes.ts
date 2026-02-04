@@ -247,4 +247,13 @@ router.get('/agents/:id', authMiddleware, (req: AuthenticatedRequest, res: Respo
   res.status(200).json(response);
 });
 
+/**
+ * POST /heartbeat
+ * Keeps the session alive. Any authenticated request updates lastActivity,
+ * but this endpoint is useful for clients that want to explicitly send heartbeats.
+ */
+router.post('/heartbeat', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 export default router;

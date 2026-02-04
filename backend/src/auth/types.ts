@@ -20,6 +20,8 @@ export interface Token {
   createdAt: number;
   /** Timestamp when the token expires (milliseconds since epoch) */
   expiresAt: number;
+  /** Timestamp of last activity (milliseconds since epoch) */
+  lastActivity: number;
 }
 
 /**

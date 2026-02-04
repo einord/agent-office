@@ -18,7 +18,13 @@ const configListeners: ((config: AppConfig) => void)[] = [];
  */
 function loadConfigFromFile(): AppConfig {
   const content = readFileSync(CONFIG_PATH, 'utf-8');
-  return JSON.parse(content) as AppConfig;
+  const config = JSON.parse(content) as Partial<AppConfig>;
+
+  // Apply defaults for optional fields
+  return {
+    ...config,
+    inactivityTimeoutSeconds: config.inactivityTimeoutSeconds ?? 60,
+  } as AppConfig;
 }
 
 /**

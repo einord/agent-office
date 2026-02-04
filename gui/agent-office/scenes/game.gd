@@ -118,6 +118,8 @@ func _handle_ws_message(message_str: String) -> void:
 			_handle_update_agent(payload)
 		"remove_agent":
 			_handle_remove_agent(payload)
+		"sync_complete":
+			_handle_sync_complete(payload)
 		_:
 			push_warning("Unknown WebSocket message type: " + msg_type)
 
@@ -185,6 +187,29 @@ func _handle_remove_agent(payload: Dictionary) -> void:
 	var agent = _agents_by_id[agent_id]
 	if is_instance_valid(agent):
 		agent.change_state(agent.AgentState.LEAVING)
+
+## Handles the sync_complete message from the backend.
+## Removes any local agents that are not in the backend's active agent list.
+func _handle_sync_complete(payload: Dictionary) -> void:
+	var active_ids = payload.get("agentIds", [])
+	var active_ids_set: Dictionary = {}
+
+	# Build a set of active IDs for quick lookup
+	for id in active_ids:
+		active_ids_set[id] = true
+
+	# Find and remove agents that are not in the active list
+	var stale_agents: Array = []
+	for agent_id in _agents_by_id.keys():
+		if not active_ids_set.has(agent_id):
+			stale_agents.append(agent_id)
+
+	# Set stale agents to LEAVING state
+	for agent_id in stale_agents:
+		var agent = _agents_by_id[agent_id]
+		if is_instance_valid(agent) and agent.current_state != agent.AgentState.LEAVING:
+			print("sync_complete: Removing stale agent: ", agent_id)
+			agent.change_state(agent.AgentState.LEAVING)
 
 ## Sends an acknowledgment message to the backend.
 func _send_ack(command: String, agent_id: String, success: bool) -> void:

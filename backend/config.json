@@ -7,5 +7,6 @@
     "httpPort": 3100,
     "wsPort": 3101
   },
-  "tokenExpirySeconds": 86400
+  "tokenExpirySeconds": 86400,
+  "inactivityTimeoutSeconds": 60
 }
