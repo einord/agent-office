@@ -11,34 +11,61 @@ import type { Agent } from '../agents/types.js';
 import { onAgentChange, getAllAgents, confirmAgentRemoved } from '../agents/agent-manager.js';
 
 let wss: WebSocketServer | null = null;
-let godotClient: WebSocket | null = null;
+const connectedClients: Set<WebSocket> = new Set();
 
 /**
- * Sends a message to the connected Godot client.
+ * Broadcasts a message to all connected clients.
  * @param message - The message to send
- * @returns True if sent successfully, false otherwise
+ * @returns Number of clients the message was sent to
  */
-function sendToGodot(message: BackendToGodotMessage): boolean {
-  if (!godotClient || godotClient.readyState !== WebSocket.OPEN) {
-    console.warn('[WebSocket] No Godot client connected, message not sent');
+function broadcastToClients(message: BackendToGodotMessage): number {
+  if (connectedClients.size === 0) {
+    console.warn('[WebSocket] No clients connected, message not sent');
+    return 0;
+  }
+
+  const json = JSON.stringify(message);
+  let sentCount = 0;
+
+  for (const client of connectedClients) {
+    if (client.readyState === WebSocket.OPEN) {
+      try {
+        client.send(json);
+        sentCount++;
+      } catch (error) {
+        console.error('[WebSocket] Error sending message to client:', error);
+      }
+    }
+  }
+
+  console.log(`[WebSocket] Broadcast ${message.type} to ${sentCount} client(s)`, message.payload);
+  return sentCount;
+}
+
+/**
+ * Sends a message to a specific client.
+ * @param client - The WebSocket client
+ * @param message - The message to send
+ */
+function sendToClient(client: WebSocket, message: BackendToGodotMessage): boolean {
+  if (client.readyState !== WebSocket.OPEN) {
     return false;
   }
 
   try {
     const json = JSON.stringify(message);
-    godotClient.send(json);
-    console.log(`[WebSocket] Sent to Godot: ${message.type}`, message.payload);
+    client.send(json);
     return true;
   } catch (error) {
-    console.error('[WebSocket] Error sending message to Godot:', error);
+    console.error('[WebSocket] Error sending message to client:', error);
     return false;
   }
 }
 
 /**
- * Sends a spawn_agent command to Godot.
+ * Broadcasts a spawn_agent command to all clients.
  */
-function sendSpawnAgent(agent: Agent): boolean {
+function broadcastSpawnAgent(agent: Agent): number {
   const payload: SpawnAgentPayload = {
     id: agent.id,
     displayName: agent.displayName,
@@ -47,30 +74,30 @@ function sendSpawnAgent(agent: Agent): boolean {
     state: agent.state,
   };
 
-  return sendToGodot({ type: 'spawn_agent', payload });
+  return broadcastToClients({ type: 'spawn_agent', payload });
 }
 
 /**
- * Sends an update_agent command to Godot.
+ * Broadcasts an update_agent command to all clients.
  */
-function sendUpdateAgent(agent: Agent): boolean {
+function broadcastUpdateAgent(agent: Agent): number {
   const payload: UpdateAgentPayload = {
     id: agent.id,
     state: agent.state,
   };
 
-  return sendToGodot({ type: 'update_agent', payload });
+  return broadcastToClients({ type: 'update_agent', payload });
 }
 
 /**
- * Sends a remove_agent command to Godot.
+ * Broadcasts a remove_agent command to all clients.
  */
-function sendRemoveAgent(agent: Agent): boolean {
+function broadcastRemoveAgent(agent: Agent): number {
   const payload: RemoveAgentPayload = {
     id: agent.id,
   };
 
-  return sendToGodot({ type: 'remove_agent', payload });
+  return broadcastToClients({ type: 'remove_agent', payload });
 }
 
 /**
@@ -103,33 +130,39 @@ function handleGodotMessage(data: string): void {
 }
 
 /**
- * Sends a sync_complete message to Godot with all active agent IDs.
- * This allows Godot to remove any stale agents that are no longer in the backend.
+ * Sends a sync_complete message to a specific client.
  */
-function sendSyncComplete(agentIds: string[]): boolean {
+function sendSyncComplete(client: WebSocket, agentIds: string[]): boolean {
   const payload: SyncCompletePayload = {
     agentIds,
   };
 
-  return sendToGodot({ type: 'sync_complete', payload });
+  return sendToClient(client, { type: 'sync_complete', payload });
 }
 
 /**
- * Syncs all current agents to a newly connected Godot client.
+ * Syncs all current agents to a newly connected client.
  * After sending spawn commands for all agents, sends a sync_complete message
- * so Godot can clean up any stale agents.
+ * so the client can clean up any stale agents.
  */
-function syncAgentsToGodot(): void {
+function syncAgentsToClient(client: WebSocket): void {
   const agents = getAllAgents();
-  console.log(`[WebSocket] Syncing ${agents.length} agents to Godot`);
+  console.log(`[WebSocket] Syncing ${agents.length} agents to new client`);
 
   for (const agent of agents) {
-    sendSpawnAgent(agent);
+    const payload: SpawnAgentPayload = {
+      id: agent.id,
+      displayName: agent.displayName,
+      userName: agent.ownerDisplayName,
+      variantIndex: agent.variantIndex,
+      state: agent.state,
+    };
+    sendToClient(client, { type: 'spawn_agent', payload });
   }
 
-  // Send sync_complete with all active agent IDs so Godot can clean up stale agents
+  // Send sync_complete with all active agent IDs so client can clean up stale agents
   const agentIds = agents.map((a) => a.id);
-  sendSyncComplete(agentIds);
+  sendSyncComplete(client, agentIds);
 }
 
 /**
@@ -145,32 +178,26 @@ export function initWebSocketServer(port: number): void {
 
   wss.on('connection', (ws, req) => {
     const clientAddress = req.socket.remoteAddress;
-    console.log(`[WebSocket] Client connected from ${clientAddress}`);
+    console.log(`[WebSocket] Client connected from ${clientAddress} (total: ${connectedClients.size + 1})`);
 
-    // If there's an existing client, close it (e.g., page reload)
-    if (godotClient && godotClient.readyState === WebSocket.OPEN) {
-      console.log('[WebSocket] Closing previous client connection (new client connected)');
-      godotClient.close(1000, 'New client connected');
-    }
-
-    godotClient = ws;
+    // Add to connected clients
+    connectedClients.add(ws);
 
     // Sync existing agents to the new client
-    syncAgentsToGodot();
+    syncAgentsToClient(ws);
 
     ws.on('message', (data) => {
       handleGodotMessage(data.toString());
     });
 
     ws.on('close', (code, reason) => {
-      console.log(`[WebSocket] Client disconnected: ${code} - ${reason.toString()}`);
-      if (godotClient === ws) {
-        godotClient = null;
-      }
+      connectedClients.delete(ws);
+      console.log(`[WebSocket] Client disconnected: ${code} - ${reason.toString()} (remaining: ${connectedClients.size})`);
     });
 
     ws.on('error', (error) => {
       console.error('[WebSocket] Client error:', error);
+      connectedClients.delete(ws);
     });
   });
 
@@ -182,13 +209,13 @@ export function initWebSocketServer(port: number): void {
   onAgentChange((type, agent) => {
     switch (type) {
       case 'spawn':
-        sendSpawnAgent(agent);
+        broadcastSpawnAgent(agent);
         break;
       case 'update':
-        sendUpdateAgent(agent);
+        broadcastUpdateAgent(agent);
         break;
       case 'remove':
-        sendRemoveAgent(agent);
+        broadcastRemoveAgent(agent);
         break;
     }
   });
@@ -207,10 +234,10 @@ export function closeWebSocketServer(): Promise<void> {
     }
 
     // Close all client connections
-    if (godotClient) {
-      godotClient.close(1000, 'Server shutting down');
-      godotClient = null;
+    for (const client of connectedClients) {
+      client.close(1000, 'Server shutting down');
     }
+    connectedClients.clear();
 
     wss.close((err) => {
       if (err) {
@@ -225,8 +252,15 @@ export function closeWebSocketServer(): Promise<void> {
 }
 
 /**
- * Checks if a Godot client is currently connected.
+ * Checks if any client is currently connected.
  */
-export function isGodotConnected(): boolean {
-  return godotClient !== null && godotClient.readyState === WebSocket.OPEN;
+export function isClientConnected(): boolean {
+  return connectedClients.size > 0;
+}
+
+/**
+ * Gets the number of connected clients.
+ */
+export function getConnectedClientCount(): number {
+  return connectedClients.size;
 }
