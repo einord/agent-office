@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.8](https://github.com/einord/agent-office/compare/agent-office-v0.1.7...agent-office-v0.1.8) (2026-02-04)
+
+
+### Features
+
+* support multiple WebSocket clients simultaneously ([265fe6b](https://github.com/einord/agent-office/commit/265fe6bc95e82c9379a085f6c43d1c4841f2b105))
+
+
+### Bug Fixes
+
+* allow WebSocket reconnection on page reload ([4cb05ef](https://github.com/einord/agent-office/commit/4cb05ef5ea7b8296739d00909bf31c48dc7f0391))
+* improve config loading with better error messages ([ab8a4bc](https://github.com/einord/agent-office/commit/ab8a4bcf840a79bb1282242e75ffaa648fb8a89e))
+
 ## [0.1.7](https://github.com/einord/agent-office/compare/agent-office-v0.1.6...agent-office-v0.1.7) (2026-02-04)
 
 
