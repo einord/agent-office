@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync, statSync } from 'fs';
 import { watch } from 'chokidar';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,7 +7,27 @@ import type { AppConfig } from '../types.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const CONFIG_PATH = path.resolve(__dirname, '../../config.json');
+/**
+ * Determines the config file path.
+ * Priority: CONFIG_PATH env var > ./config.json (cwd) > ../../config.json (relative to dist)
+ */
+function getConfigPath(): string {
+  // Check environment variable first
+  if (process.env.CONFIG_PATH) {
+    return path.resolve(process.env.CONFIG_PATH);
+  }
+
+  // Check current working directory
+  const cwdConfig = path.resolve(process.cwd(), 'config.json');
+  if (existsSync(cwdConfig) && statSync(cwdConfig).isFile()) {
+    return cwdConfig;
+  }
+
+  // Fall back to relative path from dist folder
+  return path.resolve(__dirname, '../../config.json');
+}
+
+const CONFIG_PATH = getConfigPath();
 
 let currentConfig: AppConfig | null = null;
 const configListeners: ((config: AppConfig) => void)[] = [];
@@ -17,6 +37,24 @@ const configListeners: ((config: AppConfig) => void)[] = [];
  * Throws an error if the file cannot be read or parsed.
  */
 function loadConfigFromFile(): AppConfig {
+  // Check if path exists and is a file
+  if (!existsSync(CONFIG_PATH)) {
+    throw new Error(
+      `Configuration file not found: ${CONFIG_PATH}\n` +
+      `Please create a config.json file or set CONFIG_PATH environment variable.\n` +
+      `See config.example.json for the required format.`
+    );
+  }
+
+  const stats = statSync(CONFIG_PATH);
+  if (!stats.isFile()) {
+    throw new Error(
+      `Configuration path is not a file: ${CONFIG_PATH}\n` +
+      `This usually happens when Docker creates an empty directory because the source file doesn't exist.\n` +
+      `Make sure config.json exists on the host before starting the container.`
+    );
+  }
+
   const content = readFileSync(CONFIG_PATH, 'utf-8');
   const config = JSON.parse(content) as Partial<AppConfig>;
 

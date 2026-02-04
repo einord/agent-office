@@ -18,7 +18,7 @@ mkdir agent-office && cd agent-office
 curl -O https://raw.githubusercontent.com/einord/agent-office/main/docker-compose.yml
 ```
 
-2. Create a config file:
+2. **IMPORTANT:** Create a config file (must exist before starting):
 
 ```bash
 cat > config.json << 'EOF'
