@@ -14,4 +14,6 @@ services:
     environment:
       - AGENT_OFFICE_SERVER_URL=${AGENT_OFFICE_SERVER_URL}
       - AGENT_OFFICE_API_KEY=${AGENT_OFFICE_API_KEY}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
