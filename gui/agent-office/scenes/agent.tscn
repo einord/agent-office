@@ -2,6 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://csn3uduealrwr" path="res://assets/sprites/template.png" id="1_b2pv0"]
 [ext_resource type="Script" uid="uid://f01bugove64e" path="res://scenes/agent.gd" id="2_umeaf"]
+[ext_resource type="PackedScene" uid="uid://c1sgglm8k87yc" path="res://scenes/agent_name.tscn" id="3_yc63n"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_umeaf"]
 atlas = ExtResource("1_b2pv0")
@@ -29,6 +30,9 @@ texture_filter = 1
 sprite_frames = SubResource("SpriteFrames_yc63n")
 offset = Vector2(0, -4)
 script = ExtResource("2_umeaf")
+
+[node name="AgentName" parent="." unique_id=2049812729 instance=ExtResource("3_yc63n")]
+position = Vector2(0, -8)
 
 [node name="NavigationAgent2D" type="NavigationAgent2D" parent="." unique_id=1827040352]
 path_desired_distance = 1.0

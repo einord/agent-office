@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://c1sgglm8k87yc"]
+
+[ext_resource type="FontFile" uid="uid://dm50snki6ibw1" path="res://assets/fonts/Axolotl.ttf" id="1_sb7cc"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_ptf7h"]
+font = ExtResource("1_sb7cc")
+outline_color = Color(0, 0, 0, 1)
+shadow_size = 0
+
+[node name="AgentName" type="Node2D" unique_id=2049812729]
+
+[node name="Label" type="Label" parent="." unique_id=1487559192]
+texture_filter = 1
+offset_left = -35.0
+offset_top = -13.0
+offset_right = 35.0
+text = "Agent 007"
+label_settings = SubResource("LabelSettings_ptf7h")
+horizontal_alignment = 1
