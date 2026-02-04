@@ -38,7 +38,7 @@ export function generateName(sessionId: string): string {
   const hash = hashString(sessionId);
 
   // Use different parts of the hash for each component
-  const syllableCount = 0 + (hash % 4); // 1-2 syllables
+  const syllableCount = 1 + (hash % 3); // 1-4 syllables
 
   let name = '';
   let h = hash;

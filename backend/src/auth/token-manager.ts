@@ -15,6 +15,14 @@ export function generateToken(user: AuthUser): Token {
   const now = Date.now();
   const expiresAt = now + config.tokenExpirySeconds * 1000;
 
+  // Remove any existing tokens for this user to prevent stale inactivity tracking
+  for (const [tokenString, existingToken] of tokens.entries()) {
+    if (existingToken.user.key === user.key) {
+      tokens.delete(tokenString);
+      console.log(`[TokenManager] Removed old token for user: ${user.displayName}`);
+    }
+  }
+
   const token: Token = {
     token: uuidv4(),
     user,

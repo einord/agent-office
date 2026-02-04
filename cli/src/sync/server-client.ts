@@ -197,7 +197,7 @@ export class ServerClient {
 
         const error = await response.json().catch(() => ({ error: 'Unknown error' }));
         const contextStr = context ? ` (${context})` : '';
-        console.error(`[ServerClient] Request failed${contextStr}: ${error.error || response.statusText}`);
+        console.error(`[ServerClient] Request failed${contextStr} [${response.status}] ${endpoint}: ${error.error || response.statusText}`);
         return { data: null, notFound: false };
       }
 
@@ -220,12 +220,15 @@ export class ServerClient {
    */
   async createAgent(session: TrackedSession): Promise<boolean> {
     const activity = mapActivityToBackend(session.activity.type);
+    const displayName = generateName(session.sessionId);
+
+    console.log(`[ServerClient] Creating agent: id=${session.sessionId}, displayName=${displayName}, activity=${activity}`);
 
     const result = await this.request<AgentResponse>('/agents', {
       method: 'POST',
       body: JSON.stringify({
         id: session.sessionId,
-        displayName: generateName(session.sessionId),
+        displayName,
         activity,
       }),
     });
