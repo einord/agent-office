@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.6](https://github.com/einord/agent-office/compare/agent-office-v0.1.5...agent-office-v0.1.6) (2026-02-04)
+
+
+### Features
+
+* update .env.example and docker-compose.yml for local development support ([e9e0d41](https://github.com/einord/agent-office/commit/e9e0d4168ed6c66782395f3f0d5df5b0d828ee5a))
+* update user configuration and enhance server-client error handling ([46e2be4](https://github.com/einord/agent-office/commit/46e2be4e6b4cb76afb14104ae29cf2bdb806fda7))
+
 ## [0.1.5](https://github.com/einord/agent-office/compare/agent-office-v0.1.4...agent-office-v0.1.5) (2026-02-04)
 
 
