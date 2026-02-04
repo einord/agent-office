@@ -1,7 +1,7 @@
 {
   "users": [
-    { "key": "abc123", "displayName": "Alice" },
-    { "key": "def456", "displayName": "Bob" }
+    { "key": "glxblt2026", "displayName": "Jonte" },
+    { "key": "bitterboy", "displayName": "Samuel" }
   ],
   "server": {
     "httpPort": 3100,

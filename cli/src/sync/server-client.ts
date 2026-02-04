@@ -146,11 +146,13 @@ export class ServerClient {
    * Automatically handles token refresh if needed.
    * @param endpoint - API endpoint (e.g., '/agents')
    * @param options - Fetch options
+   * @param context - Optional context for error messages (e.g., agent ID)
    * @returns The response, or null if the request failed
    */
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    context?: string
   ): Promise<T | null> {
     // Ensure we're authenticated
     const authenticated = await this.authenticate();
@@ -180,7 +182,8 @@ export class ServerClient {
         }
 
         const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error(`[ServerClient] Request failed: ${error.error || response.statusText}`);
+        const contextStr = context ? ` (${context})` : '';
+        console.error(`[ServerClient] Request failed${contextStr}: ${error.error || response.statusText}`);
         return null;
       }
 
@@ -237,10 +240,11 @@ export class ServerClient {
       return true;
     }
 
-    const result = await this.request<AgentResponse>(`/agents/${session.sessionId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ activity }),
-    });
+    const result = await this.request<AgentResponse>(
+      `/agents/${session.sessionId}`,
+      { method: 'PUT', body: JSON.stringify({ activity }) },
+      `agent: ${session.sessionId}`
+    );
 
     if (result) {
       this.lastActivityMap.set(session.sessionId, activity);
@@ -259,7 +263,8 @@ export class ServerClient {
   async removeAgent(sessionId: string): Promise<boolean> {
     const result = await this.request<{ message: string; id: string }>(
       `/agents/${sessionId}`,
-      { method: 'DELETE' }
+      { method: 'DELETE' },
+      `agent: ${sessionId}`
     );
 
     if (result) {

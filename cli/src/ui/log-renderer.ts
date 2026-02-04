@@ -11,6 +11,7 @@ import { formatTokens } from './progress-bar.js';
 export class LogRenderer {
   private previousSessions: Map<string, TrackedSession> = new Map();
   private lastStatusUpdate: number = 0;
+  private isFirstUpdate: boolean = true;
   private readonly STATUS_INTERVAL_MS = 60_000; // Log status every 60 seconds
 
   /**
@@ -50,11 +51,15 @@ export class LogRenderer {
       }
     }
 
-    // Periodic status update
+    // Status update: always on first update, then periodically
     const now = Date.now();
-    if (now - this.lastStatusUpdate >= this.STATUS_INTERVAL_MS && topLevelSessions.length > 0) {
+    const shouldLogStatus = this.isFirstUpdate ||
+      (now - this.lastStatusUpdate >= this.STATUS_INTERVAL_MS && topLevelSessions.length > 0);
+
+    if (shouldLogStatus) {
       this.logStatusUpdate(topLevelSessions);
       this.lastStatusUpdate = now;
+      this.isFirstUpdate = false;
     }
 
     // Store current state for next comparison
@@ -139,34 +144,39 @@ export class LogRenderer {
       chalk.gray(timestamp) + ' ' +
       chalk.cyan('═══ Statusuppdatering ═══')
     );
-    console.log(
-      chalk.cyan(`Aktiva sessioner: ${sessions.length}`)
-    );
 
-    for (const session of sessions) {
-      const name = generateName(session.sessionId);
-      const activityDisplay = ACTIVITY_DISPLAY[session.activity.type] || ACTIVITY_DISPLAY['idle'];
-      const projectName = this.getProjectName(session.projectPath);
-      const tokenStr = formatTokens(session.tokens.used);
-      const percentage = session.tokens.percentage;
-
-      let tokenColor = chalk.green;
-      if (percentage >= 90) {
-        tokenColor = chalk.red;
-      } else if (percentage >= 70) {
-        tokenColor = chalk.yellow;
-      }
-
+    if (sessions.length === 0) {
+      console.log(chalk.gray('  Inga aktiva sessioner'));
+    } else {
       console.log(
-        '  ' +
-        chalk.cyan.bold(name) + ' ' +
-        chalk.gray('|') + ' ' +
-        chalk.white(projectName) + ' ' +
-        chalk.gray('|') + ' ' +
-        chalk.yellow(activityDisplay.label) + ' ' +
-        chalk.gray('|') + ' ' +
-        tokenColor(`${tokenStr} (${percentage}%)`)
+        chalk.cyan(`Aktiva sessioner: ${sessions.length}`)
       );
+
+      for (const session of sessions) {
+        const name = generateName(session.sessionId);
+        const activityDisplay = ACTIVITY_DISPLAY[session.activity.type] || ACTIVITY_DISPLAY['idle'];
+        const projectName = this.getProjectName(session.projectPath);
+        const tokenStr = formatTokens(session.tokens.used);
+        const percentage = session.tokens.percentage;
+
+        let tokenColor = chalk.green;
+        if (percentage >= 90) {
+          tokenColor = chalk.red;
+        } else if (percentage >= 70) {
+          tokenColor = chalk.yellow;
+        }
+
+        console.log(
+          '  ' +
+          chalk.cyan.bold(name) + ' ' +
+          chalk.gray('|') + ' ' +
+          chalk.white(projectName) + ' ' +
+          chalk.gray('|') + ' ' +
+          chalk.yellow(activityDisplay.label) + ' ' +
+          chalk.gray('|') + ' ' +
+          tokenColor(`${tokenStr} (${percentage}%)`)
+        );
+      }
     }
 
     console.log(chalk.cyan('═'.repeat(26)));

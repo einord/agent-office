@@ -56,12 +56,14 @@ export class ClaudeMonitor {
 
     // Initial scan
     await this.refresh();
-    this.render();
 
-    // Initial sync if server client is configured
+    // Initial sync if server client is configured (before rendering status)
     if (this.serverClient) {
       await this.syncToServer();
     }
+
+    // Render initial status (after server connection is established)
+    this.render();
 
     // Set up file watching
     this.setupWatcher();
