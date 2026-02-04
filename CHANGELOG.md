@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.1.10](https://github.com/einord/agent-office/compare/agent-office-v0.1.9...agent-office-v0.1.10) (2026-02-04)
+
+
+### Features
+
+* enhance token management and improve agent creation logging ([0c21d4e](https://github.com/einord/agent-office/commit/0c21d4ea1413c686690ab57e65d36b1cbb67edaa))
+* use generated names for displayName in ServerClient requests ([54af414](https://github.com/einord/agent-office/commit/54af414de614db4d2a9eec820f3f8f7344091c78))
+
+
+### Documentation
+
+* simplify README to focus on Docker installation ([4582720](https://github.com/einord/agent-office/commit/45827204fae8e07af26d64739145f42b79ab6013))
+
+
+### Miscellaneous
+
+* remove npm publishing from release workflow ([79772ad](https://github.com/einord/agent-office/commit/79772ad511411cc7447c69d98a5106024cb591e0))
+* use local builds in docker-compose files ([bbe5991](https://github.com/einord/agent-office/commit/bbe5991ec9689788cd93ccbaf70b4ccf9351ea40))
+
 ## [0.1.9](https://github.com/einord/agent-office/compare/agent-office-v0.1.8...agent-office-v0.1.9) (2026-02-04)
 
 
