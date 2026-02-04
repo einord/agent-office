@@ -8,6 +8,7 @@ enum AgentState { WORKING, IDLE, LEAVING }
 @export var idle_wait_max: float = 10.0  # Maximum wait time in idle state (seconds)
 @export var exit_wait_time: float = 2.0  # Time to wait at exit before despawning (seconds)
 @onready var navigation_agent: NavigationAgent2D = get_node("NavigationAgent2D")
+@onready var _anim_player: AnimationPlayer = $AnimationPlayer
 var _name_label: Label = null
 var _ui_layer: Control = null
 var movement_delta: float
@@ -211,6 +212,10 @@ func _physics_process(delta):
 		return
 
 	if navigation_agent.is_navigation_finished():
+		# Play standing animation when not moving
+		if _anim_player.current_animation != "standing":
+			_anim_player.play("standing")
+
 		# Handle state-specific behavior when navigation is complete
 		match current_state:
 			AgentState.WORKING:
@@ -253,5 +258,13 @@ func _on_velocity_computed(safe_velocity: Vector2) -> void:
 		flip_h = true
 	elif safe_velocity.x > 0:
 		flip_h = false
+
+	# Play walking animation when moving
+	if safe_velocity.length() > 0.1:
+		if _anim_player.current_animation != "walking":
+			_anim_player.play("walking")
+	else:
+		if _anim_player.current_animation != "standing":
+			_anim_player.play("standing")
 
 	global_position = global_position.move_toward(global_position + safe_velocity, movement_delta)
