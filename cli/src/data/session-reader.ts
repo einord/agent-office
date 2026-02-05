@@ -236,37 +236,36 @@ async function readFirstLine(filePath: string): Promise<string | null> {
     let firstLine: string | null = null;
     let settled = false;
     
-    const cleanup = () => {
-      rl.removeAllListeners();
-      stream.removeAllListeners();
-      rl.close();
-      stream.destroy();
-    };
-    
-    rl.on('line', (line) => {
+    const handleLine = (line: string) => {
       if (!settled) {
         firstLine = line;
         settled = true;
         rl.close();
       }
-    });
+    };
     
-    rl.on('close', () => {
+    const handleClose = () => {
+      stream.destroy();
       if (!settled) {
         settled = true;
+        resolve(firstLine);
+      } else {
+        // Already settled (captured first line), now just resolve
+        resolve(firstLine);
       }
-      cleanup();
-      resolve(firstLine);
-    });
+    };
     
     const handleError = (err: Error) => {
       if (!settled) {
         settled = true;
-        cleanup();
+        rl.close();
+        stream.destroy();
         reject(err);
       }
     };
     
+    rl.on('line', handleLine);
+    rl.on('close', handleClose);
     stream.on('error', handleError);
     rl.on('error', handleError);
   });
