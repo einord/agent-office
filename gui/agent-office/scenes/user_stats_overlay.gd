@@ -7,7 +7,7 @@ extends PanelContainer
 @onready var _stats_grid: GridContainer = $MarginContainer/ContentContainer/StatsGrid
 @onready var _margin_container: MarginContainer = $MarginContainer
 
-const BASE_MARGIN := 16
+const BASE_MARGIN := 8
 const BASE_WINDOW_WIDTH := 1200.0
 const TEXT_COLOR := Color(0.15, 0.12, 0.1, 1.0)
 
@@ -36,9 +36,12 @@ func _on_window_resized() -> void:
 		_stats_label.add_theme_color_override("default_color", TEXT_COLOR)
 
 	if _margin_container:
-		var margin = clampi(int(BASE_MARGIN * scale_factor), 8, 32)
-		for side in ["left", "top", "right", "bottom"]:
-			_margin_container.add_theme_constant_override("margin_" + side, margin)
+		var h_margin = clampi(int(BASE_MARGIN * scale_factor), 4, 16)
+		var v_margin = clampi(int(BASE_MARGIN * scale_factor * 0.5), 2, 8)
+		_margin_container.add_theme_constant_override("margin_left", h_margin)
+		_margin_container.add_theme_constant_override("margin_right", h_margin)
+		_margin_container.add_theme_constant_override("margin_top", 0)
+		_margin_container.add_theme_constant_override("margin_bottom", v_margin)
 
 	if _stats_grid:
 		_stats_grid.add_theme_constant_override("h_separation", clampi(int(16 * scale_factor), 8, 32))
