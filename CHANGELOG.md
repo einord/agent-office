@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.14](https://github.com/einord/agent-office/compare/agent-office-v0.1.13...agent-office-v0.1.14) (2026-02-05)
+
+
+### Bug Fixes
+
+* replace change_state with _enter_state for initial agent state ([b21a96c](https://github.com/einord/agent-office/commit/b21a96cf1382af0786b05a4b7710b805124b3ec5))
+
 ## [0.1.13](https://github.com/einord/agent-office/compare/agent-office-v0.1.12...agent-office-v0.1.13) (2026-02-05)
 
 
