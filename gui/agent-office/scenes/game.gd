@@ -60,8 +60,8 @@ func _create_status_label() -> void:
 	# Position at bottom-left with some padding
 	_status_label.position = Vector2(4, 180)
 
-	# Small font size
-	_status_label.add_theme_font_size_override("font_size", 8)
+	# Small font size - scaled for DPI
+	_status_label.add_theme_font_size_override("font_size", DisplayManager.get_scaled_font_size(8))
 
 	add_child(_status_label)
 

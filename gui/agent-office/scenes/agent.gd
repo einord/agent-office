@@ -49,9 +49,10 @@ func _setup_name_label() -> void:
 	if font:
 		var label_settings = LabelSettings.new()
 		label_settings.font = font
-		label_settings.font_size = 32
+		# Use DPI-scaled font size for proper display on high-density screens
+		label_settings.font_size = DisplayManager.get_scaled_font_size(32)
 		label_settings.outline_color = Color.BLACK
-		label_settings.outline_size = 8
+		label_settings.outline_size = DisplayManager.get_scaled_size(8)
 		_name_label.label_settings = label_settings
 
 	_ui_layer.add_child(_name_label)
