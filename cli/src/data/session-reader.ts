@@ -257,7 +257,7 @@ async function readFirstLine(filePath: string): Promise<string | null> {
         settled = true;
         rl.close();
         stream.destroy();
-        reject(err);
+        reject(new Error(`Failed to read first line from ${filePath}: ${err.message}`));
       }
     };
     
