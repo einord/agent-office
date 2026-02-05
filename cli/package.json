@@ -1,6 +1,6 @@
 {
   "name": "agent-office",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Real-time monitoring CLI for Claude AI agents",
   "type": "module",
   "main": "dist/index.js",
