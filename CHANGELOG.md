@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.1.13](https://github.com/einord/agent-office/compare/agent-office-v0.1.12...agent-office-v0.1.13) (2026-02-05)
+
+
+### Features
+
+* add context percentage to agent management and UI elements ([c00c053](https://github.com/einord/agent-office/commit/c00c0536a0d8c33e009a4769c6f522d8fb0aa272))
+* add jr suffix for sidechain agents ([8057910](https://github.com/einord/agent-office/commit/8057910b4a5178620a5d8579e8c4b5e38a868a4c))
+* add jr suffix for sidechain agents and J key for testing ([f18d2bd](https://github.com/einord/agent-office/commit/f18d2bd13ce5e878e121a08ed26cbdb0df46af1a))
+* add new agent variants and update sprite regions for improved animations ([58032cf](https://github.com/einord/agent-office/commit/58032cff2cd52e665e6702c989e7c0547997e4c6))
+* add new computer and workstation functionality with associated sprites and scenes ([e88b152](https://github.com/einord/agent-office/commit/e88b1523de8f6457f298379f39b34b349f083c4e))
+* add toggle between minimal and expanded mode for user stats overlay ([6a2a7b2](https://github.com/einord/agent-office/commit/6a2a7b2ba7d46ccc4597ac6f0e2fbf56401d5296))
+* add user stats overlay with toggle views ([0da616d](https://github.com/einord/agent-office/commit/0da616d087edf5ca573ae5b142ea91cecc3f6179))
+* enhance agent behavior with group management and workstation preference logic ([fab21b4](https://github.com/einord/agent-office/commit/fab21b4d7d1e8093a1d4e8d8abcff36c1d1e7b4f))
+* more objects and context progress bar ([55b058d](https://github.com/einord/agent-office/commit/55b058d628ab95c15ca9ff8c87d8ca3e8869b87c))
+* update tilemap and tileset with new desk positions and sprite adjustments ([737ee10](https://github.com/einord/agent-office/commit/737ee1051ff755613679d9675083048cef072497))
+* use GridContainer for aligned column layout in expanded stats view ([24ad731](https://github.com/einord/agent-office/commit/24ad7316ad34434aebe7a73c8c068d2d5935d7ee))
+
+
+### Code Refactoring
+
+* address code review feedback ([37d6335](https://github.com/einord/agent-office/commit/37d63355dca5885bb9c978791f0560d22a2f424a))
+
+
+### Documentation
+
+* add conventional commits guidelines to CLAUDE.md ([9cb9a83](https://github.com/einord/agent-office/commit/9cb9a83d65ff5172360f76f48a6d71a7065f2f6e))
+* add testing shortcuts and hot-reload gotcha to GUI docs ([7aed488](https://github.com/einord/agent-office/commit/7aed4880cddd68063381f420a7f9f4e5ddd2fc1c))
+* update CLAUDE.md files with current architecture ([977c6e1](https://github.com/einord/agent-office/commit/977c6e1c1a71fc2e27633d133485950d78ae07ac))
+
 ## [0.1.12](https://github.com/einord/agent-office/compare/agent-office-v0.1.11...agent-office-v0.1.12) (2026-02-05)
 
 
