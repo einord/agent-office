@@ -239,12 +239,14 @@ async function readFirstLine(filePath: string): Promise<string | null> {
     const cleanup = () => {
       rl.removeAllListeners();
       stream.removeAllListeners();
+      rl.close();
       stream.destroy();
     };
     
     rl.on('line', (line) => {
       if (!settled) {
         firstLine = line;
+        settled = true;
         rl.close();
       }
     });
@@ -252,9 +254,9 @@ async function readFirstLine(filePath: string): Promise<string | null> {
     rl.on('close', () => {
       if (!settled) {
         settled = true;
-        cleanup();
-        resolve(firstLine);
       }
+      cleanup();
+      resolve(firstLine);
     });
     
     const handleError = (err: Error) => {
