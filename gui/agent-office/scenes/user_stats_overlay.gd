@@ -18,8 +18,11 @@ var _current_font_size: int = 32
 
 func _ready() -> void:
 	_font = load("res://assets/fonts/Axolotl.ttf")
+	if _font == null:
+		push_warning("UserStatsOverlay: Failed to load font at 'res://assets/fonts/Axolotl.ttf'")
 	get_tree().root.size_changed.connect(_on_window_resized)
 	_on_window_resized()
+	_update_display()
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:

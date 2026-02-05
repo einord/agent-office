@@ -34,7 +34,7 @@ size_2d_override = Vector2i(200, 144)
 size_2d_override_stretch = true
 render_target_update_mode = 4
 
-[node name="Game" parent="AspectRatioContainer/SubViewportContainer/SubViewport" unique_name_in_owner=true instance=ExtResource("1_game")]
+[node name="Game" parent="AspectRatioContainer/SubViewportContainer/SubViewport" instance=ExtResource("1_game")]
 
 [node name="UILayer" type="Control" parent="." unique_id=1033649464]
 texture_filter = 1
@@ -46,5 +46,5 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="UserStatsOverlay" parent="UILayer" unique_name_in_owner=true instance=ExtResource("2_overlay")]
+[node name="UserStatsOverlay" parent="UILayer" instance=ExtResource("2_overlay")]
 layout_mode = 1

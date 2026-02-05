@@ -105,14 +105,13 @@ function broadcastRemoveAgent(agent: Agent): number {
 }
 
 /**
- * Builds and broadcasts user stats to all connected clients.
+ * Builds the user stats payload with current data.
  */
-export function broadcastUserStats(): number {
+function buildUserStatsPayload(): UserStatsPayload {
   const config = getConfig();
   const activeUsers = getActiveUsers();
   const allAgents = getAllAgents();
 
-  // Build user stats for all configured users
   const users: UserStatsPayload['users'] = config.users.map((configUser) => {
     const activeSession = activeUsers.get(configUser.key);
     const userAgents = getAgentsByOwner(configUser.key);
@@ -125,12 +124,11 @@ export function broadcastUserStats(): number {
     };
   });
 
-  // Calculate totals
   const activeUserCount = users.filter((u) => u.isActive).length;
   const totalSessions = users.reduce((sum, u) => sum + u.sessionCount, 0);
   const totalAgents = allAgents.length;
 
-  const payload: UserStatsPayload = {
+  return {
     users,
     totals: {
       activeUsers: activeUserCount,
@@ -138,7 +136,13 @@ export function broadcastUserStats(): number {
       totalAgents,
     },
   };
+}
 
+/**
+ * Builds and broadcasts user stats to all connected clients.
+ */
+export function broadcastUserStats(): number {
+  const payload = buildUserStatsPayload();
   return broadcastToClients({ type: 'user_stats', payload });
 }
 
@@ -186,35 +190,7 @@ function sendSyncComplete(client: WebSocket, agentIds: string[]): boolean {
  * Sends current user stats to a specific client.
  */
 function sendUserStatsToClient(client: WebSocket): boolean {
-  const config = getConfig();
-  const activeUsers = getActiveUsers();
-  const allAgents = getAllAgents();
-
-  const users: UserStatsPayload['users'] = config.users.map((configUser) => {
-    const activeSession = activeUsers.get(configUser.key);
-    const userAgents = getAgentsByOwner(configUser.key);
-
-    return {
-      displayName: configUser.displayName,
-      sessionCount: activeSession?.sessionCount ?? 0,
-      agentCount: userAgents.length,
-      isActive: activeSession !== undefined,
-    };
-  });
-
-  const activeUserCount = users.filter((u) => u.isActive).length;
-  const totalSessions = users.reduce((sum, u) => sum + u.sessionCount, 0);
-  const totalAgents = allAgents.length;
-
-  const payload: UserStatsPayload = {
-    users,
-    totals: {
-      activeUsers: activeUserCount,
-      totalSessions,
-      totalAgents,
-    },
-  };
-
+  const payload = buildUserStatsPayload();
   return sendToClient(client, { type: 'user_stats', payload });
 }
 
@@ -251,6 +227,12 @@ function syncAgentsToClient(client: WebSocket): void {
  * @param port - The port to listen on
  */
 export function initWebSocketServer(port: number): void {
+  // Clear any existing interval to prevent duplicates
+  if (userStatsInterval) {
+    clearInterval(userStatsInterval);
+    userStatsInterval = null;
+  }
+
   wss = new WebSocketServer({ port });
 
   wss.on('listening', () => {
