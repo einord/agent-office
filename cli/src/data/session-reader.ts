@@ -241,11 +241,19 @@ async function readFirstLine(filePath: string): Promise<string | null> {
     });
     
     rl.on('close', () => {
+      stream.destroy(); // Ensure stream is properly closed
       resolve(firstLine);
     });
     
-    stream.on('error', reject);
-    rl.on('error', reject);
+    stream.on('error', (err) => {
+      rl.close();
+      reject(err);
+    });
+    
+    rl.on('error', (err) => {
+      stream.destroy();
+      reject(err);
+    });
   });
 }
 
