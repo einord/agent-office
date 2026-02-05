@@ -67,8 +67,11 @@ func _setup_name_label() -> void:
 	_ui_layer.add_child(_name_label)
 
 ## Returns the formatted label text with display name and optional user name.
+## Sidechain agents get "jr" suffix.
 func _get_label_text() -> String:
 	var name_text = display_name if display_name != "" else "Agent 007"
+	if is_sidechain:
+		name_text += " jr"
 	if user_name != "":
 		return "%s (%s)" % [name_text, user_name]
 	return name_text
