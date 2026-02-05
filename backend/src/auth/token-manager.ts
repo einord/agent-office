@@ -171,3 +171,40 @@ export function touchToken(tokenString: string): boolean {
   }
   return false;
 }
+
+/** User session info for stats */
+export interface ActiveUserSession {
+  key: string;
+  displayName: string;
+  sessionCount: number;
+}
+
+/**
+ * Gets a map of active users with their session counts.
+ * Groups tokens by user key and counts active sessions.
+ * @returns Map of user key to session info
+ */
+export function getActiveUsers(): Map<string, ActiveUserSession> {
+  const now = Date.now();
+  const userMap = new Map<string, ActiveUserSession>();
+
+  for (const token of tokens.values()) {
+    // Skip expired tokens
+    if (now > token.expiresAt) {
+      continue;
+    }
+
+    const existing = userMap.get(token.user.key);
+    if (existing) {
+      existing.sessionCount++;
+    } else {
+      userMap.set(token.user.key, {
+        key: token.user.key,
+        displayName: token.user.displayName,
+        sessionCount: 1,
+      });
+    }
+  }
+
+  return userMap;
+}

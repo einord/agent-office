@@ -10,6 +10,9 @@ extends Node2D
 var _agent_queue: Array = []  # FIFO queue of agents
 var _agents_by_id: Dictionary = {}  # Maps external ID to agent instance
 
+## Reference to the user stats overlay (set via set_user_stats_overlay)
+var _user_stats_overlay: Node = null
+
 # WebSocket client for backend communication
 var _socket: WebSocketPeer = WebSocketPeer.new()
 var _ws_connected: bool = false
@@ -139,6 +142,8 @@ func _handle_ws_message(message_str: String) -> void:
 			_handle_remove_agent(payload)
 		"sync_complete":
 			_handle_sync_complete(payload)
+		"user_stats":
+			_handle_user_stats(payload)
 		_:
 			push_warning("Unknown WebSocket message type: " + msg_type)
 
@@ -233,6 +238,15 @@ func _handle_sync_complete(payload: Dictionary) -> void:
 		if is_instance_valid(agent) and agent.current_state != agent.AgentState.LEAVING:
 			print("sync_complete: Removing stale agent: ", agent_id)
 			agent.change_state(agent.AgentState.LEAVING)
+
+## Handles the user_stats message from the backend.
+func _handle_user_stats(payload: Dictionary) -> void:
+	if _user_stats_overlay != null and is_instance_valid(_user_stats_overlay):
+		_user_stats_overlay.update_stats(payload)
+
+## Sets the reference to the user stats overlay node.
+func set_user_stats_overlay(overlay: Node) -> void:
+	_user_stats_overlay = overlay
 
 ## Sends an acknowledgment message to the backend.
 func _send_ack(command: String, agent_id: String, success: bool) -> void:
