@@ -83,13 +83,27 @@ router.post('/agents', authMiddleware, (req: AuthenticatedRequest, res: Response
     return;
   }
 
+  // Validate optional parentId
+  if (body.parentId !== undefined && body.parentId !== null && typeof body.parentId !== 'string') {
+    res.status(400).json({ error: 'parentId must be a string or null' });
+    return;
+  }
+
+  // Validate optional isSidechain
+  if (body.isSidechain !== undefined && typeof body.isSidechain !== 'boolean') {
+    res.status(400).json({ error: 'isSidechain must be a boolean' });
+    return;
+  }
+
   const agent = createAgent(
     body.id,
     body.displayName,
     body.activity,
     user.key,
     user.displayName,
-    body.variantIndex
+    body.variantIndex,
+    body.parentId,
+    body.isSidechain
   );
 
   if (!agent) {
@@ -104,6 +118,8 @@ router.post('/agents', authMiddleware, (req: AuthenticatedRequest, res: Response
     activity: agent.activity,
     state: agent.state,
     userName: agent.ownerDisplayName,
+    parentId: agent.parentId,
+    isSidechain: agent.isSidechain,
   };
 
   res.status(201).json(response);
@@ -158,6 +174,8 @@ router.put('/agents/:id', authMiddleware, (req: AuthenticatedRequest, res: Respo
     activity: agent.activity,
     state: agent.state,
     userName: agent.ownerDisplayName,
+    parentId: agent.parentId,
+    isSidechain: agent.isSidechain,
   };
 
   res.status(200).json(response);
@@ -209,6 +227,8 @@ router.get('/agents', authMiddleware, (req: AuthenticatedRequest, res: Response)
     activity: agent.activity,
     state: agent.state,
     userName: agent.ownerDisplayName,
+    parentId: agent.parentId,
+    isSidechain: agent.isSidechain,
   }));
 
   res.status(200).json(response);
@@ -242,6 +262,8 @@ router.get('/agents/:id', authMiddleware, (req: AuthenticatedRequest, res: Respo
     activity: agent.activity,
     state: agent.state,
     userName: agent.ownerDisplayName,
+    parentId: agent.parentId,
+    isSidechain: agent.isSidechain,
   };
 
   res.status(200).json(response);

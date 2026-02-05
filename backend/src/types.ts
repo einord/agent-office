@@ -39,6 +39,10 @@ export interface SpawnAgentPayload {
   userName: string;
   variantIndex: number;
   state: AgentState;
+  /** Parent agent ID if this is a sub-agent */
+  parentId: string | null;
+  /** Whether this is a sidechain (sub-agent) */
+  isSidechain: boolean;
 }
 
 /** Update agent payload */

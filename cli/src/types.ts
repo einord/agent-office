@@ -99,6 +99,8 @@ export interface ActivityInfo {
  */
 export interface TrackedSession {
   sessionId: string;
+  /** Unique identifier for agents - uses agentId for sub-agents, sessionId for main sessions */
+  agentId: string;
   slug: string;
   projectPath: string;
   gitBranch?: string;

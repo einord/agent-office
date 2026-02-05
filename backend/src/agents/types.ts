@@ -22,6 +22,10 @@ export interface Agent {
   createdAt: number;
   /** Timestamp when the agent was last updated */
   updatedAt: number;
+  /** Parent agent ID if this is a sub-agent */
+  parentId: string | null;
+  /** Whether this is a sidechain (sub-agent) */
+  isSidechain: boolean;
 }
 
 /**
@@ -36,6 +40,10 @@ export interface CreateAgentRequest {
   activity: AgentActivity;
   /** Optional variant index (random if not provided) */
   variantIndex?: number;
+  /** Parent agent ID if this is a sub-agent */
+  parentId?: string | null;
+  /** Whether this is a sidechain (sub-agent) */
+  isSidechain?: boolean;
 }
 
 /**
@@ -62,6 +70,10 @@ export interface AgentResponse {
   state: AgentState;
   /** The owner's display name */
   userName: string;
+  /** Parent agent ID if this is a sub-agent */
+  parentId: string | null;
+  /** Whether this is a sidechain (sub-agent) */
+  isSidechain: boolean;
 }
 
 /**

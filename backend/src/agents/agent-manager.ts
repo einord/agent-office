@@ -59,6 +59,8 @@ export function removeAgentChangeListener(callback: AgentChangeCallback): void {
  * @param ownerKey - API key of the owner
  * @param ownerDisplayName - Display name of the owner
  * @param variantIndex - Optional sprite variant index (random if not provided)
+ * @param parentId - Optional parent agent ID (for sub-agents)
+ * @param isSidechain - Whether this is a sidechain (sub-agent)
  * @returns The created agent, or null if an agent with that ID already exists
  */
 export function createAgent(
@@ -67,7 +69,9 @@ export function createAgent(
   activity: AgentActivity,
   ownerKey: string,
   ownerDisplayName: string,
-  variantIndex?: number
+  variantIndex?: number,
+  parentId?: string | null,
+  isSidechain?: boolean
 ): Agent | null {
   if (agents.has(id)) {
     console.warn(`[AgentManager] Agent with ID "${id}" already exists`);
@@ -85,10 +89,12 @@ export function createAgent(
     ownerDisplayName,
     createdAt: now,
     updatedAt: now,
+    parentId: parentId ?? null,
+    isSidechain: isSidechain ?? false,
   };
 
   agents.set(id, agent);
-  console.log(`[AgentManager] Created agent: ${id} (${displayName}) with state ${agent.state}`);
+  console.log(`[AgentManager] Created agent: ${id} (${displayName}) with state ${agent.state}, parentId=${agent.parentId}, isSidechain=${agent.isSidechain}`);
 
   notifyListeners('spawn', agent);
   return agent;
