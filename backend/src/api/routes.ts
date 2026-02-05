@@ -103,7 +103,8 @@ router.post('/agents', authMiddleware, (req: AuthenticatedRequest, res: Response
     user.displayName,
     body.variantIndex,
     body.parentId,
-    body.isSidechain
+    body.isSidechain,
+    body.contextPercentage
   );
 
   if (!agent) {
@@ -120,6 +121,7 @@ router.post('/agents', authMiddleware, (req: AuthenticatedRequest, res: Response
     userName: agent.ownerDisplayName,
     parentId: agent.parentId,
     isSidechain: agent.isSidechain,
+    contextPercentage: agent.contextPercentage,
   };
 
   res.status(201).json(response);
@@ -160,7 +162,7 @@ router.put('/agents/:id', authMiddleware, (req: AuthenticatedRequest, res: Respo
     return;
   }
 
-  const agent = updateAgentActivity(id, body.activity, user.key);
+  const agent = updateAgentActivity(id, body.activity, user.key, body.contextPercentage);
 
   if (!agent) {
     res.status(500).json({ error: 'Failed to update agent' });
@@ -176,6 +178,7 @@ router.put('/agents/:id', authMiddleware, (req: AuthenticatedRequest, res: Respo
     userName: agent.ownerDisplayName,
     parentId: agent.parentId,
     isSidechain: agent.isSidechain,
+    contextPercentage: agent.contextPercentage,
   };
 
   res.status(200).json(response);
@@ -229,6 +232,7 @@ router.get('/agents', authMiddleware, (req: AuthenticatedRequest, res: Response)
     userName: agent.ownerDisplayName,
     parentId: agent.parentId,
     isSidechain: agent.isSidechain,
+    contextPercentage: agent.contextPercentage,
   }));
 
   res.status(200).json(response);
@@ -264,6 +268,7 @@ router.get('/agents/:id', authMiddleware, (req: AuthenticatedRequest, res: Respo
     userName: agent.ownerDisplayName,
     parentId: agent.parentId,
     isSidechain: agent.isSidechain,
+    contextPercentage: agent.contextPercentage,
   };
 
   res.status(200).json(response);

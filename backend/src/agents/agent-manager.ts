@@ -61,7 +61,8 @@ export function createAgent(
   ownerDisplayName: string,
   variantIndex?: number,
   parentId?: string | null,
-  isSidechain?: boolean
+  isSidechain?: boolean,
+  contextPercentage?: number
 ): Agent | null {
   if (agents.has(id)) {
     console.warn(`[AgentManager] Agent with ID "${id}" already exists`);
@@ -81,6 +82,7 @@ export function createAgent(
     updatedAt: now,
     parentId: parentId ?? null,
     isSidechain: isSidechain ?? false,
+    contextPercentage: contextPercentage ?? 0,
   };
 
   agents.set(id, agent);
@@ -100,7 +102,8 @@ export function createAgent(
 export function updateAgentActivity(
   id: string,
   activity: AgentActivity,
-  ownerKey: string
+  ownerKey: string,
+  contextPercentage?: number
 ): Agent | null {
   const agent = agents.get(id);
 
@@ -120,6 +123,10 @@ export function updateAgentActivity(
   agent.activity = activity;
   agent.state = newState;
   agent.updatedAt = Date.now();
+
+  if (contextPercentage !== undefined) {
+    agent.contextPercentage = contextPercentage;
+  }
 
   console.log(`[AgentManager] Updated agent: ${id} -> activity: ${activity}, state: ${newState} (was: ${oldState})`);
 

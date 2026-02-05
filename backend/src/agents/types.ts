@@ -26,6 +26,8 @@ export interface Agent {
   parentId: string | null;
   /** Whether this is a sidechain (sub-agent) */
   isSidechain: boolean;
+  /** Context window usage percentage (0-100) */
+  contextPercentage: number;
 }
 
 /**
@@ -44,6 +46,8 @@ export interface CreateAgentRequest {
   parentId?: string | null;
   /** Whether this is a sidechain (sub-agent) */
   isSidechain?: boolean;
+  /** Context window usage percentage (0-100) */
+  contextPercentage?: number;
 }
 
 /**
@@ -52,6 +56,8 @@ export interface CreateAgentRequest {
 export interface UpdateAgentRequest {
   /** New activity for the agent */
   activity: AgentActivity;
+  /** Context window usage percentage (0-100) */
+  contextPercentage?: number;
 }
 
 /**
@@ -74,6 +80,8 @@ export interface AgentResponse {
   parentId: string | null;
   /** Whether this is a sidechain (sub-agent) */
   isSidechain: boolean;
+  /** Context window usage percentage (0-100) */
+  contextPercentage: number;
 }
 
 /**

@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://byn4qqj67lko7"]
+
+[ext_resource type="Script" uid="uid://dkc8mw2qp7r5x" path="res://scenes/computer.gd" id="1_script"]
+
+[node name="Computer" type="AnimatedSprite2D" unique_id=1481073927]
+y_sort_enabled = true
+texture_filter = 1
+script = ExtResource("1_script")

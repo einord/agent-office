@@ -78,6 +78,7 @@ function broadcastSpawnAgent(agent: Agent): number {
     state: agent.state,
     parentId: agent.parentId,
     isSidechain: agent.isSidechain,
+    contextPercentage: agent.contextPercentage,
   };
 
   return broadcastToClients({ type: 'spawn_agent', payload });
@@ -90,6 +91,7 @@ function broadcastUpdateAgent(agent: Agent): number {
   const payload: UpdateAgentPayload = {
     id: agent.id,
     state: agent.state,
+    contextPercentage: agent.contextPercentage,
   };
 
   return broadcastToClients({ type: 'update_agent', payload });
@@ -214,6 +216,7 @@ function syncAgentsToClient(client: WebSocket): void {
       state: agent.state,
       parentId: agent.parentId,
       isSidechain: agent.isSidechain,
+      contextPercentage: agent.contextPercentage,
     };
     sendToClient(client, { type: 'spawn_agent', payload });
   }
