@@ -48,5 +48,14 @@ Connects to backend WebSocket (default `ws://localhost:3101`):
 
 - Requires Godot 4.x (uses GL Compatibility renderer)
 - Pixel-perfect fonts: Use sizes in multiples of 16 (16, 32, 64) for Axolotl font
+- Hot-reload: Autoload/script changes require full Godot restart, not just scene reload
+- Set agent properties before `add_child()` - that's when `_ready()` runs
 - WebSocket URL may need configuration for non-local backends
 - Export presets configured for Web deployment
+
+## Testing Shortcuts
+
+In-game keyboard shortcuts for local testing (no backend needed):
+- `+` or `=` - Spawn regular agent
+- `J` - Spawn sidechain agent (jr, 70% size)
+- `-` - Remove oldest agent
