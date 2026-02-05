@@ -1,26 +1,23 @@
 extends PanelContainer
 
-## Displays user statistics overlay in the top-right corner.
-## Shows active users with their session and agent counts.
-## Dynamically scales based on window size.
+## Displays user statistics overlay with active users, session counts, and agent counts.
+## Supports collapsed (summary) and expanded (per-user) views. Scales based on window size.
 
-@onready var _stats_label: RichTextLabel = $MarginContainer/StatsLabel
+@onready var _stats_label: RichTextLabel = $MarginContainer/ContentContainer/StatsLabel
+@onready var _stats_grid: GridContainer = $MarginContainer/ContentContainer/StatsGrid
 @onready var _margin_container: MarginContainer = $MarginContainer
 
-
-## Base values for scaling
 const BASE_MARGIN := 16
 const BASE_WINDOW_WIDTH := 1200.0
+const TEXT_COLOR := Color(0.15, 0.12, 0.1, 1.0)
 
 var _font: Font
 var _is_expanded: bool = false
 var _current_data: Dictionary = {}
+var _current_font_size: int = 32
 
 func _ready() -> void:
-	# Load font for dynamic sizing
 	_font = load("res://assets/fonts/Axolotl.ttf")
-
-	# Connect to window resize
 	get_tree().root.size_changed.connect(_on_window_resized)
 	_on_window_resized()
 
@@ -30,56 +27,56 @@ func _gui_input(event: InputEvent) -> void:
 		_update_display()
 
 func _on_window_resized() -> void:
-	var window_size = get_viewport().get_visible_rect().size
-	var scale_factor = window_size.x / BASE_WINDOW_WIDTH
+	var scale_factor = get_viewport().get_visible_rect().size.x / BASE_WINDOW_WIDTH
+	_current_font_size = _get_font_size_for_scale(scale_factor)
 
-	# Pick pixel-perfect font size based on window width
-	var font_size: int
-	if scale_factor < 0.6:
-		font_size = 16
-	elif scale_factor < 1.3:
-		font_size = 32
-	else:
-		font_size = 64
-
-	# Apply font settings to RichTextLabel
 	if _stats_label and _font:
 		_stats_label.add_theme_font_override("normal_font", _font)
-		_stats_label.add_theme_font_size_override("normal_font_size", font_size)
-		_stats_label.add_theme_color_override("default_color", Color(0.15, 0.12, 0.1, 1.0))
+		_stats_label.add_theme_font_size_override("normal_font_size", _current_font_size)
+		_stats_label.add_theme_color_override("default_color", TEXT_COLOR)
 
-	# Scale margins proportionally
 	if _margin_container:
-		var margin = int(BASE_MARGIN * scale_factor)
-		margin = clampi(margin, 8, 32)
-		_margin_container.add_theme_constant_override("margin_left", margin)
-		_margin_container.add_theme_constant_override("margin_top", margin)
-		_margin_container.add_theme_constant_override("margin_right", margin)
-		_margin_container.add_theme_constant_override("margin_bottom", margin)
+		var margin = clampi(int(BASE_MARGIN * scale_factor), 8, 32)
+		for side in ["left", "top", "right", "bottom"]:
+			_margin_container.add_theme_constant_override("margin_" + side, margin)
 
-## Updates the overlay with new user stats data.
-## @param data - Dictionary with 'users' array and 'totals' object
+	if _stats_grid:
+		_stats_grid.add_theme_constant_override("h_separation", clampi(int(16 * scale_factor), 8, 32))
+
+	if _is_expanded:
+		_update_display()
+
+func _get_font_size_for_scale(scale: float) -> int:
+	if scale < 0.6:
+		return 16
+	if scale < 1.3:
+		return 32
+	return 64
+
+## Updates the overlay with new user stats data containing 'users' array and 'totals' object.
 func update_stats(data: Dictionary) -> void:
 	_current_data = data
 	_update_display()
 
 func _update_display() -> void:
-	if _stats_label == null:
+	if _stats_label == null or _stats_grid == null:
 		return
 
 	if _is_expanded:
 		_render_expanded()
 	else:
-		_render_minimal()
+		_render_collapsed()
 
-func _render_minimal() -> void:
+func _render_collapsed() -> void:
+	_stats_label.visible = true
+	_stats_grid.visible = false
+
 	var totals = _current_data.get("totals", {})
-	var parts: Array[String] = []
-
 	var users = totals.get("activeUsers", 0)
 	var sessions = totals.get("totalSessions", 0)
 	var agents = totals.get("totalAgents", 0)
 
+	var parts: Array[String] = []
 	if users > 0:
 		parts.append("%du" % users)
 	if sessions > 0:
@@ -87,38 +84,45 @@ func _render_minimal() -> void:
 	if agents > 0:
 		parts.append("%da" % agents)
 
-	var text = "  ".join(parts) if parts.size() > 0 else "-"
-	_stats_label.text = text + "  ▼"
+	_stats_label.text = ("  ".join(parts) if parts.size() > 0 else "-") + "  ▼"
 
 func _render_expanded() -> void:
-	var all_users = _current_data.get("users", [])
+	for child in _stats_grid.get_children():
+		child.queue_free()
 
-	# Filter only active users
-	var users: Array = []
-	for user in all_users:
-		if user.get("isActive", false):
-			users.append(user)
+	var active_users = _current_data.get("users", []).filter(func(u): return u.get("isActive", false))
 
-	if users.is_empty():
+	if active_users.is_empty():
+		_stats_label.visible = true
+		_stats_grid.visible = false
 		_stats_label.text = "No active users"
 		return
 
-	var lines: Array[String] = []
+	_stats_label.visible = false
+	_stats_grid.visible = true
 
-	# Find longest name for padding
-	var max_name_len := 0
-	for user in users:
-		max_name_len = max(max_name_len, user.get("displayName", "").length())
-
-	for user in users:
-		var name = user.get("displayName", "?")
+	for user in active_users:
+		var display_name = user.get("displayName", "?")
 		var sessions = user.get("sessionCount", 0)
 		var agents = user.get("agentCount", 0)
 
-		var padded_name = name.rpad(max_name_len)
-		var session_str = "%ds" % sessions if sessions > 0 else " -"
-		var agent_str = "%da" % agents if agents > 0 else " -"
+		_stats_grid.add_child(_create_grid_label(display_name))
+		_stats_grid.add_child(_create_grid_label(_format_count(sessions, "s")))
+		_stats_grid.add_child(_create_grid_label(_format_count(agents, "a")))
 
-		lines.append("%s  %s  %s" % [padded_name, session_str, agent_str])
+func _format_count(count: int, suffix: String) -> String:
+	return "%d%s" % [count, suffix] if count > 0 else "-"
 
-	_stats_label.text = "\n".join(lines)
+func _create_grid_label(text: String) -> Label:
+	var label = Label.new()
+	label.text = text
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	if _font:
+		var settings = LabelSettings.new()
+		settings.font = _font
+		settings.font_size = _current_font_size
+		settings.font_color = TEXT_COLOR
+		label.label_settings = settings
+
+	return label

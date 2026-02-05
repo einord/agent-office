@@ -31,10 +31,20 @@ script = ExtResource("1_script")
 layout_mode = 2
 mouse_filter = 2
 
-[node name="StatsLabel" type="RichTextLabel" parent="MarginContainer"]
+[node name="ContentContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="StatsLabel" type="RichTextLabel" parent="MarginContainer/ContentContainer"]
 layout_mode = 2
 mouse_filter = 2
 bbcode_enabled = true
 fit_content = true
 autowrap_mode = 0
 text = "Loading..."
+
+[node name="StatsGrid" type="GridContainer" parent="MarginContainer/ContentContainer"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+columns = 3
