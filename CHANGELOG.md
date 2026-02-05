@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.1.12](https://github.com/einord/agent-office/compare/agent-office-v0.1.11...agent-office-v0.1.12) (2026-02-05)
+
+
+### Features
+
+* add context to error messages in readFirstLine ([5b7630b](https://github.com/einord/agent-office/commit/5b7630b127bf3cb4769e38992edfd16f7ae10ba0))
+* add DPI-aware font scaling for high-density displays ([63bc810](https://github.com/einord/agent-office/commit/63bc810e8b717d7b56af26d7a2f78020070df6f8))
+* add DPI-aware font scaling for high-density displays ([c95939d](https://github.com/einord/agent-office/commit/c95939d82f5d0afe41effbacd348a9787b690899))
+* add sidechain (sub-agent) detection and visual indicator ([7b3e9f5](https://github.com/einord/agent-office/commit/7b3e9f536ad77865d9c89ecb1869723e43ffb0d7))
+* add sidechain (sub-agent) detection and visual indicator ([fdbb77d](https://github.com/einord/agent-office/commit/fdbb77d3165af7e7afbe9cba66cc8add06124eeb))
+* refactor URLs to use variable placeholders and improve sprite variant selection logic ([4c25d52](https://github.com/einord/agent-office/commit/4c25d524cd4a606119979f2078cde036926465d0))
+
+
+### Bug Fixes
+
+* eliminate race condition and improve cleanup order ([5ab23ff](https://github.com/einord/agent-office/commit/5ab23ff5d62b892609915557a951ea6eae85d113))
+* ensure proper stream cleanup in readFirstLine ([3a4de58](https://github.com/einord/agent-office/commit/3a4de5805ee4e234d9ccb51a2f6c2fd5664681f9))
+* improve error handling to prevent double rejection ([519df52](https://github.com/einord/agent-office/commit/519df52526628f3f86e11bc547c94574d38c68f0))
+* remove unused import and fix stream closing ([b549f12](https://github.com/einord/agent-office/commit/b549f12b0af9386bc388f36c012e3d738bce6a9a))
+
+
+### Code Refactoring
+
+* improve efficiency and code clarity in session-reader ([aa582f0](https://github.com/einord/agent-office/commit/aa582f0e567ee9b55d5242420e9eba603a263a2d))
+* simplify error handling and avoid redundant cleanup ([53c5e23](https://github.com/einord/agent-office/commit/53c5e23aff1700430ef2818f95b22b36226c14b3))
+* simplify handleClose logic ([7610097](https://github.com/einord/agent-office/commit/76100977ac201c464462e62ca780d08aaf8b4864))
+
+
+### Documentation
+
+* add CLAUDE.md project instructions ([7e819a2](https://github.com/einord/agent-office/commit/7e819a2f7dfc85db0a2cb46dec04a58945ba05b0))
+* add CLAUDE.md project instructions for Claude Code ([5bbae7f](https://github.com/einord/agent-office/commit/5bbae7fb336099817f067f0068a94ecfc2dcd73c))
+* add gui/CLAUDE.md and document gui development ([878f0f0](https://github.com/einord/agent-office/commit/878f0f08cea9fd9904f01f4545bfeb19c8cddb2a))
+
 ## [0.1.11](https://github.com/einord/agent-office/compare/agent-office-v0.1.10...agent-office-v0.1.11) (2026-02-04)
 
 
