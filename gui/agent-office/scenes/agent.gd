@@ -33,6 +33,7 @@ var current_workstation: Marker2D = null
 var _has_arrived_at_work: bool = false
 
 func _ready() -> void:
+	add_to_group("agent")
 	navigation_agent.velocity_computed.connect(Callable(_on_velocity_computed))
 	_setup_name_label()
 	# Vänta en frame så att navigationskartan hinner synkroniseras
@@ -96,9 +97,11 @@ func set_sprite_variant(frames: SpriteFrames) -> void:
 		scale = Vector2(SIDECHAIN_SCALE, SIDECHAIN_SCALE)
 
 ## Changes the agent's state and triggers exit/enter callbacks.
+## If already WORKING and receiving WORKING again, stays at current workstation.
 func change_state(new_state: AgentState) -> void:
-	if current_state != new_state:
-		_exit_state(current_state)
+	if current_state == new_state:
+		return
+	_exit_state(current_state)
 	current_state = new_state
 	_enter_state(new_state)
 
@@ -127,15 +130,29 @@ func _exit_state(state: AgentState) -> void:
 			_is_exit_waiting = false
 
 ## Sets target to a random work station from the "work_station" group.
+## Prefers unoccupied stations; falls back to any if all are taken.
 func _set_work_target() -> void:
 	var work_stations = get_tree().get_nodes_in_group("work_station")
-	if work_stations.size() > 0:
-		var target_node = work_stations[randi() % work_stations.size()]
-		current_workstation = target_node
-		set_movement_target(target_node.global_position)
-	else:
-		# Fallback if no work stations exist
+	if work_stations.size() == 0:
 		set_movement_target(global_position)
+		return
+
+	# Collect occupied workstations from other agents
+	var occupied: Dictionary = {}
+	for other in get_tree().get_nodes_in_group("agent"):
+		if other != self and other.current_workstation != null:
+			occupied[other.current_workstation] = true
+
+	# Prefer unoccupied stations
+	var free_stations: Array = []
+	for ws in work_stations:
+		if not occupied.has(ws):
+			free_stations.append(ws)
+
+	var pool = free_stations if free_stations.size() > 0 else work_stations
+	var target_node = pool[randi() % pool.size()]
+	current_workstation = target_node
+	set_movement_target(target_node.global_position)
 
 ## Sets target to a random position near a break area from the "break_area" group.
 func _set_idle_target() -> void:
