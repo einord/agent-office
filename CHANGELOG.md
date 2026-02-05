@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.11](https://github.com/einord/agent-office/compare/agent-office-v0.1.10...agent-office-v0.1.11) (2026-02-04)
+
+
+### Features
+
+* add animations for standing and walking states in agent ([8b2233a](https://github.com/einord/agent-office/commit/8b2233a7f20fafee846889435c09f364e407e175))
+
 ## [0.1.10](https://github.com/einord/agent-office/compare/agent-office-v0.1.9...agent-office-v0.1.10) (2026-02-04)
 
 
