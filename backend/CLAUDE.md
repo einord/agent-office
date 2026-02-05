@@ -31,10 +31,16 @@ npm start        # Run compiled server
 
 ## WebSocket Protocol
 
-Messages to GUI clients:
+Messages to GUI clients (Backend → Godot):
 - `spawn_agent` - New agent appeared
 - `update_agent` - State/activity changed
 - `remove_agent` - Agent gone
+- `sync_complete` - Initial sync done, includes active agent IDs
+- `user_stats` - Active users, session counts, agent counts
+
+Messages from GUI clients (Godot → Backend):
+- `ack` - Acknowledges spawn/remove commands
+- `agent_removed` - Confirms agent left the scene
 
 ## Gotchas
 

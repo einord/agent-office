@@ -31,7 +31,7 @@ pnpm build
 ```
 cli/       - Terminal monitor, reads ~/.claude/projects/
 backend/   - Express REST + WebSocket server
-gui/       - Godot client (embryonic)
+gui/       - Godot 4.x client, 2D office visualization
 ```
 
 ## Key Files
