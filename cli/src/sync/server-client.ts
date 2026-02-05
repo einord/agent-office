@@ -98,6 +98,7 @@ export class ServerClient {
   private tokenExpiresAt: Date | null = null;
   private syncedAgents: Set<string> = new Set();
   private lastActivityMap: Map<string, BackendActivity> = new Map();
+  private lastContextMap: Map<string, number> = new Map();
 
   /**
    * Creates a new ServerClient instance.
@@ -235,12 +236,14 @@ export class ServerClient {
         activity,
         parentId: session.parentSessionId || null,
         isSidechain: session.isSidechain,
+        contextPercentage: session.tokens.percentage,
       }),
     });
 
     if (result.data) {
       this.syncedAgents.add(id);
       this.lastActivityMap.set(id, activity);
+      this.lastContextMap.set(id, session.tokens.percentage);
       console.log(`[ServerClient] Created agent: ${id} (${session.slug})`);
       return true;
     }
@@ -258,20 +261,23 @@ export class ServerClient {
     const activity = mapActivityToBackend(session.activity.type);
     const id = session.agentId;
 
-    // Skip if activity hasn't changed
+    // Skip if neither activity nor context percentage have changed
     const lastActivity = this.lastActivityMap.get(id);
-    if (lastActivity === activity) {
+    const contextPercentage = session.tokens.percentage;
+    const lastContext = this.lastContextMap.get(id);
+    if (lastActivity === activity && lastContext === contextPercentage) {
       return true;
     }
 
     const result = await this.request<AgentResponse>(
       `/agents/${id}`,
-      { method: 'PUT', body: JSON.stringify({ activity }) },
+      { method: 'PUT', body: JSON.stringify({ activity, contextPercentage }) },
       `agent: ${id}`
     );
 
     if (result.data) {
       this.lastActivityMap.set(id, activity);
+      this.lastContextMap.set(id, contextPercentage);
       console.log(`[ServerClient] Updated agent: ${id} -> ${activity}`);
       return true;
     }
@@ -281,6 +287,7 @@ export class ServerClient {
       console.log(`[ServerClient] Agent not found on server, recreating: ${id}`);
       this.syncedAgents.delete(id);
       this.lastActivityMap.delete(id);
+      this.lastContextMap.delete(id);
       return this.createAgent(session);
     }
 
@@ -303,6 +310,7 @@ export class ServerClient {
     if (result.data || result.notFound) {
       this.syncedAgents.delete(sessionId);
       this.lastActivityMap.delete(sessionId);
+      this.lastContextMap.delete(sessionId);
       if (result.data) {
         console.log(`[ServerClient] Removed agent: ${sessionId}`);
       }

@@ -13,6 +13,7 @@ const SIDECHAIN_SCALE := 0.7
 @onready var navigation_agent: NavigationAgent2D = get_node("NavigationAgent2D")
 @onready var _anim_player: AnimationPlayer = $AnimationPlayer
 var _name_label: Label = null
+var _progress_sprite: AnimatedSprite2D = null
 var _ui_layer: Control = null
 var movement_delta: float
 var current_state: AgentState = AgentState.IDLE
@@ -31,6 +32,8 @@ var is_sidechain: bool = false
 var current_workstation: Marker2D = null
 ## Flag to only trigger computer activation once per work session
 var _has_arrived_at_work: bool = false
+## Context window usage percentage (0-100)
+var context_percentage: float = 0.0
 
 func _ready() -> void:
 	add_to_group("agent")
@@ -71,6 +74,18 @@ func _setup_name_label() -> void:
 
 	_ui_layer.add_child(_name_label)
 
+	# Create progress circle sprite
+	var progress_frames = load("res://assets/sprites/progress_circle_frames.tres") as SpriteFrames
+	if progress_frames:
+		_progress_sprite = AnimatedSprite2D.new()
+		_progress_sprite.sprite_frames = progress_frames
+		_progress_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_progress_sprite.frame = 0
+		# Scale to match UI layer (same DPI scaling as label)
+		var sprite_scale = DisplayManager.get_scaled_size(8)
+		_progress_sprite.scale = Vector2(sprite_scale, sprite_scale)
+		_ui_layer.add_child(_progress_sprite)
+
 ## Returns the formatted label text with display name and optional user name.
 ## Sidechain agents get "jr" suffix.
 func _get_label_text() -> String:
@@ -82,9 +97,11 @@ func _get_label_text() -> String:
 	return name_text
 
 func _exit_tree() -> void:
-	# Clean up the label when agent is removed
+	# Clean up the label and progress sprite when agent is removed
 	if _name_label and is_instance_valid(_name_label):
 		_name_label.queue_free()
+	if _progress_sprite and is_instance_valid(_progress_sprite):
+		_progress_sprite.queue_free()
 
 func set_movement_target(movement_target: Vector2):
 	navigation_agent.set_target_position(movement_target)
@@ -246,6 +263,14 @@ func _update_label_position() -> void:
 	var final_pos = screen_pos + label_offset - Vector2(_name_label.size.x / 2, 0)
 	_name_label.position = final_pos.round()
 
+	# Position progress circle to the right of the label
+	if _progress_sprite and is_instance_valid(_progress_sprite):
+		var circle_pos = Vector2(
+			final_pos.x + _name_label.size.x + 2 * scale_factor.x,
+			final_pos.y + _name_label.size.y / 2
+		)
+		_progress_sprite.position = circle_pos.round()
+
 func _physics_process(delta):
 	# Do not query when the map has never synchronized and is empty.
 	var map_id = navigation_agent.get_navigation_map()
@@ -313,6 +338,14 @@ func _on_velocity_computed(safe_velocity: Vector2) -> void:
 			_anim_player.play("standing")
 
 	global_position = global_position.move_toward(global_position + safe_velocity, movement_delta)
+
+## Updates the context window percentage and the progress circle frame.
+func set_context_percentage(percentage: float) -> void:
+	context_percentage = clampf(percentage, 0.0, 100.0)
+	if _progress_sprite and is_instance_valid(_progress_sprite):
+		# Map 0-100% to frames 0-8 (each step = 12.5%)
+		var frame_index = clampi(roundi(context_percentage / 12.5), 0, 8)
+		_progress_sprite.frame = frame_index
 
 ## Activates or deactivates all computers linked to the current workstation.
 func _activate_workstation_computers(active: bool) -> void:

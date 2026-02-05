@@ -43,12 +43,16 @@ export interface SpawnAgentPayload {
   parentId: string | null;
   /** Whether this is a sidechain (sub-agent) */
   isSidechain: boolean;
+  /** Context window usage percentage (0-100) */
+  contextPercentage: number;
 }
 
 /** Update agent payload */
 export interface UpdateAgentPayload {
   id: string;
   state: AgentState;
+  /** Context window usage percentage (0-100) */
+  contextPercentage: number;
 }
 
 /** Remove agent payload */
