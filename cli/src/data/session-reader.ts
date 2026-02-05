@@ -248,11 +248,8 @@ async function readFirstLine(filePath: string): Promise<string | null> {
       stream.destroy();
       if (!settled) {
         settled = true;
-        resolve(firstLine);
-      } else {
-        // Already settled (captured first line), now just resolve
-        resolve(firstLine);
       }
+      resolve(firstLine);
     };
     
     const handleError = (err: Error) => {
