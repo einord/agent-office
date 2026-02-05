@@ -19,6 +19,9 @@ cd backend && npm run dev    # Hot reload on :3100/:3101
 # CLI (connects to backend)
 cd cli && npm run dev        # Builds and runs with test server
 
+# GUI (Godot client)
+godot gui/agent-office/project.godot  # Open in editor
+
 # Build all
 pnpm build
 ```
