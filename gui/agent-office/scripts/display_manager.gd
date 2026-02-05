@@ -8,6 +8,9 @@ extends Node
 ## - 160 DPI: Android mdpi baseline
 const REFERENCE_DPI: float = 96.0
 
+## Minimum font size for pixel-perfect font (base size)
+const MIN_FONT_SIZE: int = 16
+
 ## Minimum and maximum scale factors to prevent extreme values
 const MIN_SCALE: float = 0.5
 const MAX_SCALE: float = 4.0
@@ -25,7 +28,8 @@ func _ready() -> void:
 
 ## Calculates the DPI scale factor based on screen pixel density.
 func _calculate_dpi_scale() -> void:
-	var screen_dpi = DisplayServer.screen_get_dpi()
+	var current_screen := DisplayServer.window_get_current_screen()
+	var screen_dpi = DisplayServer.screen_get_dpi(current_screen)
 
 	# Fallback for platforms that don't report DPI (returns 0 or -1)
 	if screen_dpi <= 0:
@@ -44,14 +48,22 @@ func get_dpi_scale() -> float:
 	return _dpi_scale
 
 ## Returns a font size scaled by the DPI factor.
-## @param base_size: The base font size at 96 DPI
-## @return: The scaled font size as an integer
+## For pixel-perfect fonts, ensures the result is never smaller than 16px
+## and always in multiples of the base size (16px, 32px, 64px).
+## base_size: The base font size at 96 DPI
+## Returns the scaled font size as an integer
 func get_scaled_font_size(base_size: int) -> int:
-	return int(round(base_size * _dpi_scale))
+	var scaled = int(round(base_size * _dpi_scale))
+	# Ensure minimum size and snap to nearest valid font size (16, 32, 64, etc.)
+	if scaled < MIN_FONT_SIZE:
+		return MIN_FONT_SIZE
+	# Round to nearest power-of-2 multiple of 16 for pixel-perfect rendering
+	var power = int(round(log(float(scaled) / MIN_FONT_SIZE) / log(2.0)))
+	return MIN_FONT_SIZE * int(pow(2, max(0, power)))
 
 ## Returns a dimension (e.g., outline size, padding) scaled by the DPI factor.
-## @param base_size: The base dimension at 96 DPI
-## @return: The scaled dimension as an integer
+## base_size: The base dimension at 96 DPI
+## Returns the scaled dimension as an integer
 func get_scaled_size(base_size: int) -> int:
 	return int(round(base_size * _dpi_scale))
 

@@ -40,6 +40,9 @@ func _ready() -> void:
 
 	# Create status label
 	_create_status_label()
+	
+	# Listen for DPI changes to update status label font size
+	DisplayManager.dpi_scale_changed.connect(_on_dpi_scale_changed)
 
 	# Determine WebSocket URL based on platform
 	_ws_url = _get_ws_url()
@@ -76,6 +79,13 @@ func _update_status_label() -> void:
 	else:
 		_status_label.text = "Disconnected"
 		_status_label.add_theme_color_override("font_color", Color(0.8, 0.4, 0.4))  # Red
+
+## Called when DPI scale changes to update status label font size dynamically.
+func _on_dpi_scale_changed(_new_scale: float) -> void:
+	if _status_label == null:
+		return
+	# Update font size with new DPI scale
+	_status_label.add_theme_font_size_override("font_size", DisplayManager.get_scaled_font_size(8))
 
 func _process(_delta: float) -> void:
 	_poll_websocket()

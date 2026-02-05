@@ -24,6 +24,8 @@ var user_name: String = ""
 func _ready() -> void:
 	navigation_agent.velocity_computed.connect(Callable(_on_velocity_computed))
 	_setup_name_label()
+	# Listen for DPI changes to update label font size
+	DisplayManager.dpi_scale_changed.connect(_on_dpi_scale_changed)
 	# Vänta en frame så att navigationskartan hinner synkroniseras
 	await get_tree().physics_frame
 	change_state(AgentState.IDLE)
@@ -64,7 +66,18 @@ func _get_label_text() -> String:
 		return "%s (%s)" % [name_text, user_name]
 	return name_text
 
+## Called when DPI scale changes to update label font size dynamically.
+func _on_dpi_scale_changed(_new_scale: float) -> void:
+	if _name_label == null or _name_label.label_settings == null:
+		return
+	# Update font size and outline size with new DPI scale
+	_name_label.label_settings.font_size = DisplayManager.get_scaled_font_size(32)
+	_name_label.label_settings.outline_size = DisplayManager.get_scaled_size(8)
+
 func _exit_tree() -> void:
+	# Disconnect DPI change signal
+	if DisplayManager.dpi_scale_changed.is_connected(_on_dpi_scale_changed):
+		DisplayManager.dpi_scale_changed.disconnect(_on_dpi_scale_changed)
 	# Clean up the label when agent is removed
 	if _name_label and is_instance_valid(_name_label):
 		_name_label.queue_free()
