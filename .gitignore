@@ -3,3 +3,6 @@ dist/
 *.log
 .DS_Store
 .env
+
+# Claude Code local overrides (user-specific, not committed)
+CLAUDE.local.md
