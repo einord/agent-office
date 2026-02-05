@@ -4,7 +4,7 @@
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_vm573"]
 atlas = ExtResource("1_atlas")
-region = Rect2(0, 24, 8, 8)
+region = Rect2(24, 0, 8, 8)
 
 [resource]
 animations = [{

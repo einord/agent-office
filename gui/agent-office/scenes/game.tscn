@@ -21,12 +21,22 @@
 [ext_resource type="SpriteFrames" uid="uid://be7no7ww0iuv2" path="res://assets/sprites/agent_variant_15.tres" id="18_suyxu"]
 [ext_resource type="SpriteFrames" uid="uid://dmhy7siax5ug8" path="res://assets/sprites/agent_variant_16.tres" id="19_sgl2t"]
 [ext_resource type="SpriteFrames" uid="uid://byqiclbqb0s8j" path="res://assets/sprites/agent_variant_17.tres" id="20_qouja"]
+[ext_resource type="SpriteFrames" uid="uid://dt8bjj57cxvao" path="res://assets/sprites/agent_variant_18.tres" id="21_qouja"]
+[ext_resource type="SpriteFrames" uid="uid://baa5vjtoub0nw" path="res://assets/sprites/agent_variant_19.tres" id="22_wljb1"]
+[ext_resource type="SpriteFrames" uid="uid://mkay5lqrhi21" path="res://assets/sprites/agent_variant_20.tres" id="23_v2yb1"]
+[ext_resource type="SpriteFrames" uid="uid://c8cb1oa23iw35" path="res://assets/sprites/agent_variant_21.tres" id="24_js0lu"]
+[ext_resource type="SpriteFrames" uid="uid://bf3n5tohe1u2k" path="res://assets/sprites/agent_variant_22.tres" id="25_gxtfn"]
+[ext_resource type="SpriteFrames" uid="uid://chxa3dli7fq0k" path="res://assets/sprites/agent_variant_23.tres" id="26_twgab"]
+[ext_resource type="SpriteFrames" uid="uid://qp21mehr10cd" path="res://assets/sprites/agent_variant_24.tres" id="27_02fa5"]
+[ext_resource type="SpriteFrames" uid="uid://bi4b1chko8f5n" path="res://assets/sprites/agent_variant_25.tres" id="28_nepv3"]
+[ext_resource type="SpriteFrames" uid="uid://1efo5khgeyas" path="res://assets/sprites/agent_variant_26.tres" id="29_7025r"]
+[ext_resource type="SpriteFrames" uid="uid://bg0jvqkgh21kc" path="res://assets/sprites/agent_variant_27.tres" id="30_m4url"]
 
 [node name="Game" type="Node2D" unique_id=1157974618]
 y_sort_enabled = true
 script = ExtResource("3_game")
 agent_scene = ExtResource("2_yqjtg")
-agent_variants = Array[SpriteFrames]([ExtResource("3_vtaks"), ExtResource("4_kvpfn"), ExtResource("5_dinhu"), ExtResource("6_kvuet"), ExtResource("7_trtic"), ExtResource("8_ir15t"), ExtResource("9_ca42v"), ExtResource("10_5newe"), ExtResource("11_37s47"), ExtResource("12_bt5mj"), ExtResource("13_e1j6l"), ExtResource("14_pl11u"), ExtResource("15_bhx41"), ExtResource("16_qnb83"), ExtResource("17_sww3w"), ExtResource("18_suyxu"), ExtResource("19_sgl2t"), ExtResource("20_qouja")])
+agent_variants = Array[SpriteFrames]([ExtResource("3_vtaks"), ExtResource("4_kvpfn"), ExtResource("5_dinhu"), ExtResource("6_kvuet"), ExtResource("7_trtic"), ExtResource("8_ir15t"), ExtResource("9_ca42v"), ExtResource("10_5newe"), ExtResource("11_37s47"), ExtResource("12_bt5mj"), ExtResource("13_e1j6l"), ExtResource("14_pl11u"), ExtResource("15_bhx41"), ExtResource("16_qnb83"), ExtResource("17_sww3w"), ExtResource("18_suyxu"), ExtResource("19_sgl2t"), ExtResource("20_qouja"), ExtResource("21_qouja"), ExtResource("22_wljb1"), ExtResource("23_v2yb1"), ExtResource("24_js0lu"), ExtResource("25_gxtfn"), ExtResource("26_twgab"), ExtResource("27_02fa5"), ExtResource("28_nepv3"), ExtResource("29_7025r"), ExtResource("30_m4url")])
 
 [node name="Tilemap" parent="." unique_id=984404399 instance=ExtResource("1_uwrxv")]
 
