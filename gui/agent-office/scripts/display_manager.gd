@@ -57,8 +57,8 @@ func get_scaled_font_size(base_size: int) -> int:
 	# Ensure minimum size and snap to nearest valid font size (16, 32, 64, etc.)
 	if scaled < MIN_FONT_SIZE:
 		return MIN_FONT_SIZE
-	# Round to nearest power-of-2 multiple of 16 for pixel-perfect rendering
-	var power = int(round(log(float(scaled) / MIN_FONT_SIZE) / log(2.0)))
+	# Round down to nearest power-of-2 multiple of 16 for pixel-perfect rendering
+	var power = int(floor(log(float(scaled) / MIN_FONT_SIZE) / log(2.0)))
 	return MIN_FONT_SIZE * int(pow(2, max(0, power)))
 
 ## Returns a dimension (e.g., outline size, padding) scaled by the DPI factor.
