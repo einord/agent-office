@@ -48,6 +48,30 @@ gui/       - Godot 4.x client, 2D office visualization
 - Backend reads config.json from cwd, not from src/
 - No test suite - manual testing only
 
+## Commit Messages
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) for release-please automation.
+
+**Format**: `<type>(<scope>): <description>`
+
+| Type | When to use | Version impact |
+|------|-------------|----------------|
+| `feat` | New feature | Minor bump |
+| `fix` | Bug fix | Patch bump |
+| `perf` | Performance improvement | Patch bump |
+| `refactor` | Code refactoring (no behavior change) | None |
+| `style` | Code style/formatting (no logic change) | None |
+| `docs` | Documentation only | None |
+| `chore` | Build, deps, tooling | None |
+
+**Breaking changes**: Add `!` before colon: `feat!: remove deprecated API`
+
+**Examples**:
+- `feat: add user stats overlay`
+- `fix: resolve memory leak in agent manager`
+- `docs: update API documentation`
+- `feat(gui): add toggle for expanded view`
+
 ## Local Overrides
 
 Create `CLAUDE.local.md` (in root or any subdirectory) for personal settings that shouldn't be committed. These files are gitignored.
