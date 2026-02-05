@@ -1,6 +1,8 @@
 import { readFile, readdir, stat } from 'fs/promises';
 import { join, basename, dirname } from 'path';
 import { homedir } from 'os';
+import { createReadStream } from 'fs';
+import { createInterface } from 'readline';
 import type { SessionIndex, ConversationMessage, TokenUsage } from '../types.js';
 import { getIncrementalReader } from './incremental-reader.js';
 
@@ -222,6 +224,51 @@ export interface SubagentInfo {
 }
 
 /**
+ * Reads the first line from a file efficiently using streaming.
+ * @param filePath Path to the file
+ * @returns The first line or null if file is empty
+ */
+async function readFirstLine(filePath: string): Promise<string | null> {
+  return new Promise((resolve, reject) => {
+    const stream = createReadStream(filePath, { encoding: 'utf-8' });
+    const rl = createInterface({ input: stream, crlfDelay: Infinity });
+    
+    let firstLine: string | null = null;
+    let settled = false;
+    
+    const handleLine = (line: string) => {
+      if (!settled) {
+        firstLine = line;
+        settled = true;
+        rl.close();
+      }
+    };
+    
+    const handleClose = () => {
+      stream.destroy();
+      if (!settled) {
+        settled = true;
+      }
+      resolve(firstLine);
+    };
+    
+    const handleError = (err: Error) => {
+      if (!settled) {
+        settled = true;
+        rl.close();
+        stream.destroy();
+        reject(new Error(`Failed to read first line from ${filePath}: ${err.message}`));
+      }
+    };
+    
+    rl.on('line', handleLine);
+    rl.on('close', handleClose);
+    stream.on('error', handleError);
+    rl.on('error', handleError);
+  });
+}
+
+/**
  * Parses sub-agent metadata from the first line of a sub-agent JSONL file.
  * Sub-agent files have sessionId (parent) and agentId (unique ID) in their messages.
  * @param filePath Path to the sub-agent JSONL file
@@ -229,8 +276,7 @@ export interface SubagentInfo {
  */
 export async function parseSubagentFile(filePath: string): Promise<SubagentInfo | null> {
   try {
-    const content = await readFile(filePath, 'utf-8');
-    const firstLine = content.split('\n')[0];
+    const firstLine = await readFirstLine(filePath);
     if (!firstLine) return null;
 
     const data = JSON.parse(firstLine);
@@ -358,8 +404,8 @@ export async function getAllSessions(): Promise<Map<string, SessionIndex & { pro
 
     // Process sub-agent files
     const subagentFiles = await findSubagentFiles(projectDir);
-    for (const filePath of subagentFiles) {
-      const subagentInfo = await parseSubagentFile(filePath);
+    for (const subagentFilePath of subagentFiles) {
+      const subagentInfo = await parseSubagentFile(subagentFilePath);
       if (!subagentInfo) continue;
 
       const ageMinutes = (Date.now() - subagentInfo.lastModified) / (1000 * 60);
@@ -373,7 +419,7 @@ export async function getAllSessions(): Promise<Map<string, SessionIndex & { pro
           slug: subagentInfo.agentId.slice(0, 8),
           projectPath: originalPath || projectDir,
           projectDir,
-          filePath,
+          filePath: subagentFilePath,
           lastModified: subagentInfo.lastModified,
           isSidechain: true,
         });
