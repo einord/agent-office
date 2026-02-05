@@ -220,23 +220,28 @@ export class ServerClient {
    */
   async createAgent(session: TrackedSession): Promise<boolean> {
     const activity = mapActivityToBackend(session.activity.type);
-    const displayName = generateName(session.sessionId);
+    const displayName = generateName(session.agentId);
 
-    console.log(`[ServerClient] Creating agent: id=${session.sessionId}, displayName=${displayName}, activity=${activity}`);
+    // Use agentId as the unique identifier (same as sessionId for main sessions)
+    const id = session.agentId;
+
+    console.log(`[ServerClient] Creating agent: id=${id}, displayName=${displayName}, activity=${activity}, isSidechain=${session.isSidechain}, parentId=${session.parentSessionId || 'none'}`);
 
     const result = await this.request<AgentResponse>('/agents', {
       method: 'POST',
       body: JSON.stringify({
-        id: session.sessionId,
+        id,
         displayName,
         activity,
+        parentId: session.parentSessionId || null,
+        isSidechain: session.isSidechain,
       }),
     });
 
     if (result.data) {
-      this.syncedAgents.add(session.sessionId);
-      this.lastActivityMap.set(session.sessionId, activity);
-      console.log(`[ServerClient] Created agent: ${session.sessionId} (${session.slug})`);
+      this.syncedAgents.add(id);
+      this.lastActivityMap.set(id, activity);
+      console.log(`[ServerClient] Created agent: ${id} (${session.slug})`);
       return true;
     }
 
@@ -251,30 +256,31 @@ export class ServerClient {
    */
   async updateAgent(session: TrackedSession): Promise<boolean> {
     const activity = mapActivityToBackend(session.activity.type);
+    const id = session.agentId;
 
     // Skip if activity hasn't changed
-    const lastActivity = this.lastActivityMap.get(session.sessionId);
+    const lastActivity = this.lastActivityMap.get(id);
     if (lastActivity === activity) {
       return true;
     }
 
     const result = await this.request<AgentResponse>(
-      `/agents/${session.sessionId}`,
+      `/agents/${id}`,
       { method: 'PUT', body: JSON.stringify({ activity }) },
-      `agent: ${session.sessionId}`
+      `agent: ${id}`
     );
 
     if (result.data) {
-      this.lastActivityMap.set(session.sessionId, activity);
-      console.log(`[ServerClient] Updated agent: ${session.sessionId} -> ${activity}`);
+      this.lastActivityMap.set(id, activity);
+      console.log(`[ServerClient] Updated agent: ${id} -> ${activity}`);
       return true;
     }
 
     // If agent not found on server, recreate it
     if (result.notFound) {
-      console.log(`[ServerClient] Agent not found on server, recreating: ${session.sessionId}`);
-      this.syncedAgents.delete(session.sessionId);
-      this.lastActivityMap.delete(session.sessionId);
+      console.log(`[ServerClient] Agent not found on server, recreating: ${id}`);
+      this.syncedAgents.delete(id);
+      this.lastActivityMap.delete(id);
       return this.createAgent(session);
     }
 
@@ -309,7 +315,7 @@ export class ServerClient {
   /**
    * Synchronizes all tracked sessions with the backend server.
    * Creates new agents, updates existing ones, and removes stale ones.
-   * @param sessions - Map of session IDs to tracked sessions
+   * @param sessions - Map of agent IDs to tracked sessions
    */
   async syncAll(sessions: Map<string, TrackedSession>): Promise<void> {
     // Find agents to remove (synced but no longer in sessions)
@@ -321,13 +327,13 @@ export class ServerClient {
     }
 
     // Remove stale agents
-    for (const sessionId of agentsToRemove) {
-      await this.removeAgent(sessionId);
+    for (const agentId of agentsToRemove) {
+      await this.removeAgent(agentId);
     }
 
-    // Create or update agents
-    for (const [sessionId, session] of sessions) {
-      if (this.syncedAgents.has(sessionId)) {
+    // Create or update agents (keyed by agentId)
+    for (const [agentId, session] of sessions) {
+      if (this.syncedAgents.has(agentId)) {
         // Update existing agent
         await this.updateAgent(session);
       } else {

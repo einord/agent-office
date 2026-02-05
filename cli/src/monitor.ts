@@ -143,6 +143,8 @@ export class ClaudeMonitor {
     const watchPaths = [
       join(projectsDir, '*', 'sessions-index.json'),
       join(projectsDir, '*', '*.jsonl'),
+      // Watch for sub-agent files: <project>/<session-id>/subagents/agent-*.jsonl
+      join(projectsDir, '*', '*', 'subagents', 'agent-*.jsonl'),
     ];
 
     this.watcher = chokidar.watch(watchPaths, {
@@ -209,29 +211,29 @@ export class ClaudeMonitor {
     const now = Date.now();
     const sessionsToRemove: string[] = [];
 
-    for (const [id, session] of this.sessions) {
+    for (const [agentId, session] of this.sessions) {
       const age = now - session.lastUpdate.getTime();
 
       // Remove sessions that are "done" and older than DONE_TIMEOUT
       if (session.activity.type === 'done' && age > DONE_TIMEOUT_MS) {
-        sessionsToRemove.push(id);
+        sessionsToRemove.push(agentId);
         continue;
       }
 
       // Remove any session that hasn't been updated within SESSION_TTL
       // (except those waiting for input, which can be idle longer)
       if (session.activity.type !== 'waiting_input' && age > SESSION_TTL_MS) {
-        sessionsToRemove.push(id);
+        sessionsToRemove.push(agentId);
       }
     }
 
-    // Remove stale sessions and notify server
-    for (const sessionId of sessionsToRemove) {
-      this.sessions.delete(sessionId);
+    // Remove stale sessions and notify server (use agentId as the unique identifier)
+    for (const agentId of sessionsToRemove) {
+      this.sessions.delete(agentId);
 
       if (this.serverClient) {
-        this.serverClient.removeAgent(sessionId).catch((error) => {
-          console.error(`[Monitor] Failed to remove agent ${sessionId}:`, error);
+        this.serverClient.removeAgent(agentId).catch((error) => {
+          console.error(`[Monitor] Failed to remove agent ${agentId}:`, error);
         });
       }
     }
@@ -252,7 +254,7 @@ export class ClaudeMonitor {
       const openFiles = await getOpenSessionFiles();
       const sessionToPid = matchProcessesToSessions(processes, openFiles);
 
-      // Get all sessions
+      // Get all sessions (includes sub-agents)
       const allSessions = await getAllSessions();
 
       // Store previous sessions for comparison
@@ -261,15 +263,16 @@ export class ClaudeMonitor {
       // Build tracked sessions
       const newSessions = new Map<string, TrackedSession>();
 
-      for (const [sessionId, sessionInfo] of allSessions) {
+      for (const [uniqueId, sessionInfo] of allSessions) {
         const tracked = await this.buildTrackedSession(
-          sessionId,
+          uniqueId,
           sessionInfo,
           sessionToPid
         );
 
         if (tracked) {
-          newSessions.set(sessionId, tracked);
+          // Use agentId as the map key (agentId for sub-agents, sessionId for main sessions)
+          newSessions.set(tracked.agentId, tracked);
         }
       }
 
@@ -283,8 +286,8 @@ export class ClaudeMonitor {
    * Builds a tracked session from session info.
    */
   private async buildTrackedSession(
-    sessionId: string,
-    sessionInfo: SessionIndex & { projectDir: string; filePath: string; lastModified?: number },
+    uniqueId: string,
+    sessionInfo: SessionIndex & { projectDir: string; filePath: string; lastModified?: number; agentId?: string; isSidechain?: boolean },
     sessionToPid: Map<string, number>
   ): Promise<TrackedSession | null> {
     try {
@@ -307,16 +310,25 @@ export class ClaudeMonitor {
       // Get PID if known
       const pid = sessionToPid.get(sessionInfo.filePath);
 
-      // Detect if this is a sidechain (sub-agent)
-      const isSidechain = detectSidechain(messages);
+      // Determine if this is a sidechain - use sessionInfo.isSidechain if set (from subagent file),
+      // otherwise fall back to detecting from messages
+      const isSidechain = sessionInfo.isSidechain ?? detectSidechain(messages);
+
+      // For sub-agents, use agentId; for main sessions, use sessionId
+      const agentId = sessionInfo.agentId || sessionInfo.sessionId;
+
+      // parentSessionId: for sub-agents it's the sessionId field from the subagent file
+      // (which is the parent's session ID)
+      const parentSessionId = isSidechain ? sessionInfo.sessionId : undefined;
 
       return {
-        sessionId,
-        slug: sessionInfo.slug || sessionId.slice(0, 8),
+        sessionId: sessionInfo.sessionId,
+        agentId,
+        slug: sessionInfo.slug || agentId.slice(0, 8),
         projectPath: sessionInfo.projectPath || sessionInfo.projectDir,
         gitBranch: sessionInfo.gitBranch,
         pid,
-        color: getSessionColor(sessionId),
+        color: getSessionColor(agentId),
         tokens: {
           used: totalTokens,
           max: MAX_CONTEXT_TOKENS,
@@ -325,6 +337,7 @@ export class ClaudeMonitor {
         activity,
         lastUpdate: new Date(lastModified),
         isSidechain,
+        parentSessionId,
         subAgents: [], // Sub-agent linking would require cross-session correlation
       };
     } catch (error) {

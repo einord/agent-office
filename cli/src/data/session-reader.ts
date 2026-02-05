@@ -1,6 +1,8 @@
 import { readFile, readdir, stat } from 'fs/promises';
 import { join, basename, dirname } from 'path';
 import { homedir } from 'os';
+import { createReadStream } from 'fs';
+import { createInterface } from 'readline';
 import type { SessionIndex, ConversationMessage, TokenUsage } from '../types.js';
 import { getIncrementalReader } from './incremental-reader.js';
 
@@ -212,10 +214,146 @@ export function getSessionFilePath(projectDir: string, sessionId: string): strin
 }
 
 /**
- * Gets all active sessions across all projects
- * @returns Map of session ID to session info with project path
+ * Information about a sub-agent parsed from its JSONL file
  */
-export async function getAllSessions(): Promise<Map<string, SessionIndex & { projectDir: string; filePath: string }>> {
+export interface SubagentInfo {
+  agentId: string;
+  parentSessionId: string;
+  filePath: string;
+  lastModified: number;
+}
+
+/**
+ * Reads the first line from a file efficiently using streaming.
+ * @param filePath Path to the file
+ * @returns The first line or null if file is empty
+ */
+async function readFirstLine(filePath: string): Promise<string | null> {
+  return new Promise((resolve, reject) => {
+    const stream = createReadStream(filePath, { encoding: 'utf-8' });
+    const rl = createInterface({ input: stream, crlfDelay: Infinity });
+    
+    let firstLine: string | null = null;
+    let settled = false;
+    
+    const handleLine = (line: string) => {
+      if (!settled) {
+        firstLine = line;
+        settled = true;
+        rl.close();
+      }
+    };
+    
+    const handleClose = () => {
+      stream.destroy();
+      if (!settled) {
+        settled = true;
+      }
+      resolve(firstLine);
+    };
+    
+    const handleError = (err: Error) => {
+      if (!settled) {
+        settled = true;
+        rl.close();
+        stream.destroy();
+        reject(new Error(`Failed to read first line from ${filePath}: ${err.message}`));
+      }
+    };
+    
+    rl.on('line', handleLine);
+    rl.on('close', handleClose);
+    stream.on('error', handleError);
+    rl.on('error', handleError);
+  });
+}
+
+/**
+ * Parses sub-agent metadata from the first line of a sub-agent JSONL file.
+ * Sub-agent files have sessionId (parent) and agentId (unique ID) in their messages.
+ * @param filePath Path to the sub-agent JSONL file
+ * @returns Sub-agent info or null if parsing fails
+ */
+export async function parseSubagentFile(filePath: string): Promise<SubagentInfo | null> {
+  try {
+    const firstLine = await readFirstLine(filePath);
+    if (!firstLine) return null;
+
+    const data = JSON.parse(firstLine);
+
+    // Sub-agent files have sessionId (parent's ID) and agentId (unique sub-agent ID)
+    const agentId = data.agentId;
+    const parentSessionId = data.sessionId;
+
+    if (!agentId || !parentSessionId) {
+      return null;
+    }
+
+    const stats = await stat(filePath);
+    return {
+      agentId,
+      parentSessionId,
+      filePath,
+      lastModified: stats.mtime.getTime(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Finds all sub-agent JSONL files in a project directory.
+ * Sub-agent files are located at: <session-id>/subagents/agent-<agent-id>.jsonl
+ * @param projectDir Project directory path
+ * @returns Array of sub-agent file paths sorted by modification time (newest first)
+ */
+export async function findSubagentFiles(projectDir: string): Promise<string[]> {
+  try {
+    const entries = await readdir(projectDir, { withFileTypes: true });
+    const subagentFiles: string[] = [];
+
+    // Iterate through directories that might contain subagents
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const subagentsDir = join(projectDir, entry.name, 'subagents');
+        try {
+          const subagentEntries = await readdir(subagentsDir, { withFileTypes: true });
+          for (const subEntry of subagentEntries) {
+            if (subEntry.isFile() && subEntry.name.startsWith('agent-') && subEntry.name.endsWith('.jsonl')) {
+              subagentFiles.push(join(subagentsDir, subEntry.name));
+            }
+          }
+        } catch {
+          // subagents directory doesn't exist, skip
+        }
+      }
+    }
+
+    // Get stats and sort by mtime
+    const filesWithStats = await Promise.all(
+      subagentFiles.map(async file => {
+        try {
+          const stats = await stat(file);
+          return { file, mtime: stats.mtime.getTime() };
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    const validFiles = filesWithStats.filter((f): f is { file: string; mtime: number } => f !== null);
+    validFiles.sort((a, b) => b.mtime - a.mtime);
+    return validFiles.map(f => f.file);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Gets all active sessions across all projects, including sub-agents
+ * @returns Map of unique ID (sessionId for main sessions, agentId for sub-agents) to session info
+ */
+export async function getAllSessions(): Promise<Map<string, SessionIndex & { projectDir: string; filePath: string; agentId?: string; isSidechain?: boolean }>> {
   const sessions = new Map();
   const projectDirs = await getProjectDirs();
 
@@ -256,10 +394,35 @@ export async function getAllSessions(): Promise<Map<string, SessionIndex & { pro
             projectDir,
             filePath,
             lastModified: stats.mtime.getTime(),
+            isSidechain: false,
           });
         }
       } catch {
         // File doesn't exist or can't be read, skip
+      }
+    }
+
+    // Process sub-agent files
+    const subagentFiles = await findSubagentFiles(projectDir);
+    for (const subagentFilePath of subagentFiles) {
+      const subagentInfo = await parseSubagentFile(subagentFilePath);
+      if (!subagentInfo) continue;
+
+      const ageMinutes = (Date.now() - subagentInfo.lastModified) / (1000 * 60);
+
+      // Only include sub-agents modified in the last 60 minutes
+      if (ageMinutes <= 60) {
+        // Use agentId as the unique key for sub-agents
+        sessions.set(subagentInfo.agentId, {
+          sessionId: subagentInfo.parentSessionId,  // Parent's session ID
+          agentId: subagentInfo.agentId,            // Sub-agent's unique ID
+          slug: subagentInfo.agentId.slice(0, 8),
+          projectPath: originalPath || projectDir,
+          projectDir,
+          filePath: subagentFilePath,
+          lastModified: subagentInfo.lastModified,
+          isSidechain: true,
+        });
       }
     }
   }

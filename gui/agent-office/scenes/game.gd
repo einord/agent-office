@@ -149,6 +149,10 @@ func _handle_spawn_agent(payload: Dictionary) -> void:
 	var user_name = payload.get("userName", "")
 	var variant_index = payload.get("variantIndex", 0)
 	var state_str = payload.get("state", "IDLE")
+	var parent_id = payload.get("parentId", "")
+	if parent_id == null:
+		parent_id = ""
+	var is_sidechain = payload.get("isSidechain", false)
 
 	if agent_id == "":
 		push_error("spawn_agent missing 'id'")
@@ -161,7 +165,7 @@ func _handle_spawn_agent(payload: Dictionary) -> void:
 		return
 
 	# Spawn the agent
-	var agent = _spawn_agent_with_params(agent_id, display_name, user_name, variant_index, state_str)
+	var agent = _spawn_agent_with_params(agent_id, display_name, user_name, variant_index, state_str, parent_id, is_sidechain)
 	if agent != null:
 		_send_ack("spawn_agent", agent_id, true)
 	else:
@@ -269,7 +273,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_send_agent_to_exit()
 
 ## Spawns a new agent with specified parameters from WebSocket command.
-func _spawn_agent_with_params(agent_id: String, display_name: String, user_name: String, variant_index: int, state_str: String) -> Node:
+func _spawn_agent_with_params(agent_id: String, display_name: String, user_name: String, variant_index: int, state_str: String, parent_id: String = "", is_sidechain: bool = false) -> Node:
 	if agent_scene == null:
 		push_error("Agent scene not assigned!")
 		return null
@@ -287,6 +291,10 @@ func _spawn_agent_with_params(agent_id: String, display_name: String, user_name:
 	agent.external_id = agent_id
 	agent.display_name = display_name
 	agent.user_name = user_name
+
+	# Set parent/sidechain metadata
+	agent.parent_agent_id = parent_id
+	agent.is_sidechain = is_sidechain
 
 	# Assign sprite variant by index, or deterministically based on agent ID
 	if agent_variants.size() > 0 and variant_index >= 0 and variant_index < agent_variants.size():

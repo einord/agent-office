@@ -72,6 +72,8 @@ function broadcastSpawnAgent(agent: Agent): number {
     userName: agent.ownerDisplayName,
     variantIndex: agent.variantIndex,
     state: agent.state,
+    parentId: agent.parentId,
+    isSidechain: agent.isSidechain,
   };
 
   return broadcastToClients({ type: 'spawn_agent', payload });
@@ -156,6 +158,8 @@ function syncAgentsToClient(client: WebSocket): void {
       userName: agent.ownerDisplayName,
       variantIndex: agent.variantIndex,
       state: agent.state,
+      parentId: agent.parentId,
+      isSidechain: agent.isSidechain,
     };
     sendToClient(client, { type: 'spawn_agent', payload });
   }

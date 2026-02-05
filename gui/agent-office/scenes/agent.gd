@@ -2,6 +2,9 @@ extends AnimatedSprite2D
 
 enum AgentState { WORKING, IDLE, LEAVING }
 
+## Scale factor for sidechain agents (sub-agents)
+const SIDECHAIN_SCALE := 0.7
+
 @export var movement_speed: float = 25.0
 @export var random_range: Vector2 = Vector2(200, 200)  # Område för slumpmässiga positioner
 @export var idle_wait_min: float = 5.0  # Minimum wait time in idle state (seconds)
@@ -20,6 +23,10 @@ var _is_exit_waiting: bool = false
 var external_id: String = ""
 var display_name: String = ""
 var user_name: String = ""
+## Parent agent ID if this is a sub-agent (sidechain)
+var parent_agent_id: String = ""
+## Whether this is a sidechain (sub-agent)
+var is_sidechain: bool = false
 
 func _ready() -> void:
 	navigation_agent.velocity_computed.connect(Callable(_on_velocity_computed))
@@ -49,9 +56,10 @@ func _setup_name_label() -> void:
 	if font:
 		var label_settings = LabelSettings.new()
 		label_settings.font = font
-		label_settings.font_size = 32
+		# Smaller font for sidechain agents
+		label_settings.font_size = 22 if is_sidechain else 32
 		label_settings.outline_color = Color.BLACK
-		label_settings.outline_size = 8
+		label_settings.outline_size = 6 if is_sidechain else 8
 		_name_label.label_settings = label_settings
 
 	_ui_layer.add_child(_name_label)
@@ -74,6 +82,9 @@ func set_movement_target(movement_target: Vector2):
 ## Sets the sprite frames for this agent. Call this right after instantiation.
 func set_sprite_variant(frames: SpriteFrames) -> void:
 	sprite_frames = frames
+	# Apply sidechain scaling after sprite is set
+	if is_sidechain:
+		scale = Vector2(SIDECHAIN_SCALE, SIDECHAIN_SCALE)
 
 ## Changes the agent's state and triggers exit/enter callbacks.
 func change_state(new_state: AgentState) -> void:
