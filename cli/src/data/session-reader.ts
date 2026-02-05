@@ -234,26 +234,39 @@ async function readFirstLine(filePath: string): Promise<string | null> {
     const rl = createInterface({ input: stream, crlfDelay: Infinity });
     
     let firstLine: string | null = null;
+    let settled = false;
+    
+    const cleanup = () => {
+      rl.removeAllListeners();
+      stream.removeAllListeners();
+      stream.destroy();
+    };
     
     rl.on('line', (line) => {
-      firstLine = line;
-      rl.close();
+      if (!settled) {
+        firstLine = line;
+        rl.close();
+      }
     });
     
     rl.on('close', () => {
-      stream.destroy(); // Ensure stream is properly closed
-      resolve(firstLine);
+      if (!settled) {
+        settled = true;
+        cleanup();
+        resolve(firstLine);
+      }
     });
     
-    stream.on('error', (err) => {
-      rl.close();
-      reject(err);
-    });
+    const handleError = (err: Error) => {
+      if (!settled) {
+        settled = true;
+        cleanup();
+        reject(err);
+      }
+    };
     
-    rl.on('error', (err) => {
-      stream.destroy();
-      reject(err);
-    });
+    stream.on('error', handleError);
+    rl.on('error', handleError);
   });
 }
 
