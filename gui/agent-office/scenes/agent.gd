@@ -41,7 +41,7 @@ func _ready() -> void:
 	_setup_name_label()
 	# Vänta en frame så att navigationskartan hinner synkroniseras
 	await get_tree().physics_frame
-	change_state(AgentState.IDLE)
+	_enter_state(current_state)
 
 ## Creates the name label in the UI layer (unscaled).
 func _setup_name_label() -> void:
