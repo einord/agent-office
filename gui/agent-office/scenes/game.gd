@@ -288,13 +288,13 @@ func _spawn_agent_with_params(agent_id: String, display_name: String, user_name:
 	agent.display_name = display_name
 	agent.user_name = user_name
 
-	# Assign sprite variant by index
+	# Assign sprite variant by index, or deterministically based on agent ID
 	if agent_variants.size() > 0 and variant_index >= 0 and variant_index < agent_variants.size():
 		agent.set_sprite_variant(agent_variants[variant_index])
 	elif agent_variants.size() > 0:
-		# Fallback to random if index is out of bounds
-		var random_variant = agent_variants[randi() % agent_variants.size()]
-		agent.set_sprite_variant(random_variant)
+		# Use agent ID as seed for deterministic variant selection
+		var variant_idx = _hash_string(agent_id) % agent_variants.size()
+		agent.set_sprite_variant(agent_variants[variant_idx])
 
 	agent.position = spawn_position
 	_agents_container.add_child(agent)
@@ -364,3 +364,11 @@ func _on_agent_removed(agent: Node) -> void:
 	if agent.external_id != "":
 		_send_agent_removed(agent.external_id)
 		_agents_by_id.erase(agent.external_id)
+
+## Simple hash function for deterministic variant selection.
+func _hash_string(s: String) -> int:
+	var hash_value: int = 0
+	for i in range(s.length()):
+		hash_value = ((hash_value << 5) - hash_value) + s.unicode_at(i)
+		hash_value = hash_value & 0x7FFFFFFF  # Keep positive
+	return hash_value

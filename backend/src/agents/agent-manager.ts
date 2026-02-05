@@ -2,21 +2,11 @@ import type { AgentActivity } from '../types.js';
 import type { Agent, AgentChangeCallback } from './types.js';
 import { mapActivityToState } from './state-mapper.js';
 
-/** Number of available sprite variants */
-const VARIANT_COUNT = 6;
-
 /** In-memory storage for agents */
 const agents = new Map<string, Agent>();
 
 /** Listeners for agent changes */
 const changeListeners: AgentChangeCallback[] = [];
-
-/**
- * Generates a random variant index for agent sprites.
- */
-function getRandomVariantIndex(): number {
-  return Math.floor(Math.random() * VARIANT_COUNT);
-}
 
 /**
  * Notifies all registered listeners of an agent change.
@@ -78,7 +68,7 @@ export function createAgent(
   const agent: Agent = {
     id,
     displayName,
-    variantIndex: variantIndex ?? getRandomVariantIndex(),
+    variantIndex: variantIndex ?? -1,  // -1 = let Godot choose randomly from all available variants
     activity,
     state: mapActivityToState(activity),
     ownerKey,
