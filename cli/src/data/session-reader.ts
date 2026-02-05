@@ -1,4 +1,4 @@
-import { readFile, readdir, stat, open } from 'fs/promises';
+import { readFile, readdir, stat } from 'fs/promises';
 import { join, basename, dirname } from 'path';
 import { homedir } from 'os';
 import { createReadStream } from 'fs';
@@ -238,7 +238,6 @@ async function readFirstLine(filePath: string): Promise<string | null> {
     rl.on('line', (line) => {
       firstLine = line;
       rl.close();
-      stream.close();
     });
     
     rl.on('close', () => {
