@@ -263,12 +263,16 @@ func _send_ws_message(data: Dictionary) -> void:
 		_socket.send_text(json_str)
 
 ## Handles keyboard input for spawning and removing agents (for local testing).
+## +/= spawns agent, J spawns sidechain (jr), - removes agent
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
-		# Check for + key (unicode 43) or numpad add, or = key (US keyboard)
+		# + or = key spawns regular agent
 		if event.unicode == 43 or event.keycode == KEY_KP_ADD or event.keycode == KEY_EQUAL:
-			_spawn_agent()
-		# Check for - key (unicode 45) or numpad subtract
+			_spawn_agent(false)
+		# J key spawns sidechain (jr) agent
+		elif event.keycode == KEY_J:
+			_spawn_agent(true)
+		# - key removes agent
 		elif event.unicode == 45 or event.keycode == KEY_KP_SUBTRACT or event.keycode == KEY_MINUS:
 			_send_agent_to_exit()
 
@@ -327,7 +331,9 @@ func _spawn_agent_with_params(agent_id: String, display_name: String, user_name:
 	return agent
 
 ## Spawns a new agent at the exit location for local testing (keyboard input).
-func _spawn_agent() -> void:
+## Use J key to spawn a sidechain (jr) agent.
+func _spawn_agent(is_sidechain: bool = false) -> void:
+	print("[Game] _spawn_agent called, is_sidechain=", is_sidechain)
 	if agent_scene == null:
 		push_error("Agent scene not assigned!")
 		return
@@ -343,6 +349,7 @@ func _spawn_agent() -> void:
 
 	# Set test display name
 	agent.display_name = "Agent 007"
+	agent.is_sidechain = is_sidechain
 
 	# Assign random sprite variant
 	if agent_variants.size() > 0:
