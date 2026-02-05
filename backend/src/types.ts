@@ -75,7 +75,26 @@ export type BackendToGodotMessage =
   | WebSocketMessage<'spawn_agent', SpawnAgentPayload>
   | WebSocketMessage<'update_agent', UpdateAgentPayload>
   | WebSocketMessage<'remove_agent', RemoveAgentPayload>
-  | WebSocketMessage<'sync_complete', SyncCompletePayload>;
+  | WebSocketMessage<'sync_complete', SyncCompletePayload>
+  | WebSocketMessage<'user_stats', UserStatsPayload>;
+
+/** User stats for a single user */
+export interface UserStats {
+  displayName: string;
+  sessionCount: number;
+  agentCount: number;
+  isActive: boolean;
+}
+
+/** User stats payload sent to clients */
+export interface UserStatsPayload {
+  users: UserStats[];
+  totals: {
+    activeUsers: number;
+    totalSessions: number;
+    totalAgents: number;
+  };
+}
 
 /** Godot to Backend messages */
 export type GodotToBackendMessage =

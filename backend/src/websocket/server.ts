@@ -6,12 +6,16 @@ import type {
   UpdateAgentPayload,
   RemoveAgentPayload,
   SyncCompletePayload,
+  UserStatsPayload,
 } from '../types.js';
 import type { Agent } from '../agents/types.js';
-import { onAgentChange, getAllAgents, confirmAgentRemoved } from '../agents/agent-manager.js';
+import { onAgentChange, getAllAgents, confirmAgentRemoved, getAgentsByOwner } from '../agents/agent-manager.js';
+import { getActiveUsers } from '../auth/token-manager.js';
+import { getConfig } from '../config/config-loader.js';
 
 let wss: WebSocketServer | null = null;
 const connectedClients: Set<WebSocket> = new Set();
+let userStatsInterval: ReturnType<typeof setInterval> | null = null;
 
 /**
  * Broadcasts a message to all connected clients.
@@ -101,6 +105,44 @@ function broadcastRemoveAgent(agent: Agent): number {
 }
 
 /**
+ * Builds and broadcasts user stats to all connected clients.
+ */
+export function broadcastUserStats(): number {
+  const config = getConfig();
+  const activeUsers = getActiveUsers();
+  const allAgents = getAllAgents();
+
+  // Build user stats for all configured users
+  const users: UserStatsPayload['users'] = config.users.map((configUser) => {
+    const activeSession = activeUsers.get(configUser.key);
+    const userAgents = getAgentsByOwner(configUser.key);
+
+    return {
+      displayName: configUser.displayName,
+      sessionCount: activeSession?.sessionCount ?? 0,
+      agentCount: userAgents.length,
+      isActive: activeSession !== undefined,
+    };
+  });
+
+  // Calculate totals
+  const activeUserCount = users.filter((u) => u.isActive).length;
+  const totalSessions = users.reduce((sum, u) => sum + u.sessionCount, 0);
+  const totalAgents = allAgents.length;
+
+  const payload: UserStatsPayload = {
+    users,
+    totals: {
+      activeUsers: activeUserCount,
+      totalSessions,
+      totalAgents,
+    },
+  };
+
+  return broadcastToClients({ type: 'user_stats', payload });
+}
+
+/**
  * Handles messages received from Godot.
  */
 function handleGodotMessage(data: string): void {
@@ -141,6 +183,42 @@ function sendSyncComplete(client: WebSocket, agentIds: string[]): boolean {
 }
 
 /**
+ * Sends current user stats to a specific client.
+ */
+function sendUserStatsToClient(client: WebSocket): boolean {
+  const config = getConfig();
+  const activeUsers = getActiveUsers();
+  const allAgents = getAllAgents();
+
+  const users: UserStatsPayload['users'] = config.users.map((configUser) => {
+    const activeSession = activeUsers.get(configUser.key);
+    const userAgents = getAgentsByOwner(configUser.key);
+
+    return {
+      displayName: configUser.displayName,
+      sessionCount: activeSession?.sessionCount ?? 0,
+      agentCount: userAgents.length,
+      isActive: activeSession !== undefined,
+    };
+  });
+
+  const activeUserCount = users.filter((u) => u.isActive).length;
+  const totalSessions = users.reduce((sum, u) => sum + u.sessionCount, 0);
+  const totalAgents = allAgents.length;
+
+  const payload: UserStatsPayload = {
+    users,
+    totals: {
+      activeUsers: activeUserCount,
+      totalSessions,
+      totalAgents,
+    },
+  };
+
+  return sendToClient(client, { type: 'user_stats', payload });
+}
+
+/**
  * Syncs all current agents to a newly connected client.
  * After sending spawn commands for all agents, sends a sync_complete message
  * so the client can clean up any stale agents.
@@ -163,6 +241,9 @@ function syncAgentsToClient(client: WebSocket): void {
   // Send sync_complete with all active agent IDs so client can clean up stale agents
   const agentIds = agents.map((a) => a.id);
   sendSyncComplete(client, agentIds);
+
+  // Also send current user stats
+  sendUserStatsToClient(client);
 }
 
 /**
@@ -210,17 +291,30 @@ export function initWebSocketServer(port: number): void {
     switch (type) {
       case 'spawn':
         broadcastSpawnAgent(agent);
+        // Broadcast updated user stats when agent spawns
+        broadcastUserStats();
         break;
       case 'update':
         broadcastUpdateAgent(agent);
         break;
       case 'remove':
         broadcastRemoveAgent(agent);
+        // Broadcast updated user stats when agent is removed
+        broadcastUserStats();
         break;
     }
   });
 
   console.log('[WebSocket] Agent change listener registered');
+
+  // Start periodic user stats broadcast (every 5 seconds)
+  userStatsInterval = setInterval(() => {
+    if (connectedClients.size > 0) {
+      broadcastUserStats();
+    }
+  }, 5000);
+
+  console.log('[WebSocket] User stats broadcast interval started');
 }
 
 /**
@@ -228,6 +322,12 @@ export function initWebSocketServer(port: number): void {
  */
 export function closeWebSocketServer(): Promise<void> {
   return new Promise((resolve, reject) => {
+    // Clear the user stats interval
+    if (userStatsInterval) {
+      clearInterval(userStatsInterval);
+      userStatsInterval = null;
+    }
+
     if (!wss) {
       resolve();
       return;
