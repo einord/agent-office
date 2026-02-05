@@ -1,6 +1,11 @@
 [gd_scene format=4 uid="uid://bkuqnhixoabdn"]
 
 [ext_resource type="TileSet" uid="uid://ik0il8pnk6a1" path="res://scenes/tileset.tres" id="1_55lsm"]
+[ext_resource type="PackedScene" uid="uid://byn4qqj67lko7" path="res://scenes/computer.tscn" id="2_comp"]
+[ext_resource type="SpriteFrames" uid="uid://r3p6na2qs53v" path="res://assets/sprites/large_screen_frames.tres" id="3_lsf"]
+[ext_resource type="SpriteFrames" uid="uid://gdkgo3he1qiw" path="res://assets/sprites/small_screen_frames.tres" id="4_ssf"]
+[ext_resource type="SpriteFrames" uid="uid://hhjtphwf2jll" path="res://assets/sprites/laptop_down_frames.tres" id="5_ldf"]
+[ext_resource type="SpriteFrames" uid="uid://dqdn74l3gk8qq" path="res://assets/sprites/laptop_up_frames.tres" id="6_luf"]
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_55lsm"]
 vertices = PackedVector2Array(101, 35, 101, 19, 131, 19, 131, 43, 99, 43, 99, 37, 91, 35, 61, 37, 61, 59, 91, 59, 91, 75, 85, 91, 75, 91, 43, 67, 155, 91, 101, 75, 101, 63, 107, 63, 133, 65, 107, 59, 133, 59, 147, 65, 147, 59, 155, 59, 141, 43, 141, 23, 149, 23, 149, 35, 155, 43, 179, 35, 179, 21, 155, 21, 155, 19, 195, 19, 195, 43, 165, 43, 165, 59, 183, 59, 183, 65, 181, 91, 193, 65, 193, 59, 195, 59, 195, 91, 195, 107, 195, 113, 191, 113, 191, 111, 181, 107, 183, 111, 183, 113, 165, 113, 155, 107, 165, 139, 195, 139, 195, 142, 117, 142, 117, 107, 85, 107, 93, 107, 93, 115, 89, 119, 79, 119, 75, 111, 107, 115, 107, 142, 91, 139, 91, 125, 61, 142, 61, 139, 89, 125, 79, 125, 61, 125, 61, 111, 45, 107, 51, 107, 51, 131, 37, 131, 35, 115, 37, 142, 5, 142, 5, 115, 45, 91, 35, 91, 5, 91, 5, 75, 19, 75, 19, 67, 13, 53, 13, 65, 5, 65, 5, 35, 43, 53, 35, 35, 35, 21, 5, 21, 5, 19, 91, 19)
@@ -20,7 +25,7 @@ navigation_polygon = SubResource("NavigationPolygon_55lsm")
 z_index = 2
 z_as_relative = false
 y_sort_enabled = true
-tile_map_data = PackedByteArray("AAAVAA8AAAAGAAYAAAAXAA4AAAAIAAYAAAAXAA8AAAAIAAQAAAAJAAYAAAAOAAgAAAAKAAYAAAAPAAgAAAAKAAQAAAAOAAkAAAACAAMAAAAOAAgAAAADAAMAAAAPAAgAAAACAA0AAAAOAAgAAAADAA0AAAAPAAgAAAAJABAAAAAOAAgAAAAKABAAAAAPAAgAAAADAAcAAAAOAAgAAAAEAAcAAAAPAAgAAAAIAAQAAAAOAAkAAAAUAAIAAAAOAAkAAAAVAAIAAAAPAAkAAAAKAA8AAAAJAAUAAAASAAEAAAAHAAQAAAA=")
+tile_map_data = PackedByteArray("AAAVAA8AAAAGAAYAAAAXAA4AAAAIAAYAAAAXAA8AAAAIAAQAAAAJAAYAAAAOAAgAAAAKAAYAAAAPAAgAAAACAAMAAAAOAAgAAAADAAMAAAAPAAgAAAACAA0AAAAOAAgAAAADAA0AAAAPAAgAAAAKAA8AAAAJAAUAAAASAAEAAAAHAAQAAAACAAcAAAAOAAgAAAADAAcAAAAPAAgAAAAEAAcAAAAOAAgAAAA=")
 tile_set = ExtResource("1_55lsm")
 
 [node name="Objects" type="TileMapLayer" parent="NavigationRegion2D" unique_id=152478153]
@@ -62,7 +67,7 @@ position = Vector2(20, 64)
 position = Vector2(76, 56)
 
 [node name="Desk4" type="Marker2D" parent="Locations/WorkStations" unique_id=1120125731 groups=["work_station"]]
-position = Vector2(76, 40)
+position = Vector2(69, 40)
 
 [node name="Desk5" type="Marker2D" parent="Locations/WorkStations" unique_id=2001942679 groups=["work_station"]]
 position = Vector2(20, 112)
@@ -72,6 +77,9 @@ position = Vector2(76, 136)
 
 [node name="Desk7" type="Marker2D" parent="Locations/WorkStations" unique_id=1652281002 groups=["work_station"]]
 position = Vector2(164, 23)
+
+[node name="Desk8" type="Marker2D" parent="Locations/WorkStations" unique_id=268055806 groups=["work_station"]]
+position = Vector2(35, 64)
 
 [node name="BreakAreas" type="Node2D" parent="Locations" unique_id=1677382587]
 
@@ -103,3 +111,72 @@ position = Vector2(136, 116)
 
 [node name="MainExit" type="Marker2D" parent="Locations/Exits" unique_id=1732082379 groups=["exit"]]
 position = Vector2(3, 81)
+
+[node name="Computers" type="Node2D" parent="." unique_id=1039959061]
+z_index = 2
+z_as_relative = false
+y_sort_enabled = true
+
+[node name="Computer_Desk1" parent="Computers" unique_id=164449672 instance=ExtResource("2_comp")]
+z_index = 2
+z_as_relative = false
+position = Vector2(20, 31)
+offset = Vector2(0, -12)
+sprite_frames_resource = ExtResource("3_lsf")
+workstation_path = NodePath("../../Locations/WorkStations/Desk1")
+
+[node name="Computer_Desk2" parent="Computers" unique_id=544464641 instance=ExtResource("2_comp")]
+z_index = 2
+z_as_relative = false
+position = Vector2(20, 63)
+offset = Vector2(0, -12)
+sprite_frames_resource = ExtResource("4_ssf")
+workstation_path = NodePath("../../Locations/WorkStations/Desk2")
+
+[node name="Computer_Desk3" parent="Computers" unique_id=633058136 instance=ExtResource("2_comp")]
+z_index = 2
+z_as_relative = false
+position = Vector2(76, 55)
+offset = Vector2(0, -12)
+sprite_frames_resource = ExtResource("3_lsf")
+workstation_path = NodePath("../../Locations/WorkStations/Desk3")
+
+[node name="Computer_Desk4" parent="Computers" unique_id=1595274534 instance=ExtResource("2_comp")]
+z_index = 2
+z_as_relative = false
+position = Vector2(69, 49)
+offset = Vector2(0, -12)
+sprite_frames_resource = ExtResource("6_luf")
+workstation_path = NodePath("../../Locations/WorkStations/Desk4")
+
+[node name="Computer_Desk5" parent="Computers" unique_id=255894098 instance=ExtResource("2_comp")]
+z_index = 2
+z_as_relative = false
+position = Vector2(20, 111)
+offset = Vector2(0, -12)
+sprite_frames_resource = ExtResource("3_lsf")
+workstation_path = NodePath("../../Locations/WorkStations/Desk5")
+
+[node name="Computer_Desk6" parent="Computers" unique_id=1517428056 instance=ExtResource("2_comp")]
+z_index = 2
+z_as_relative = false
+position = Vector2(76, 135)
+offset = Vector2(0, -12)
+sprite_frames_resource = ExtResource("5_ldf")
+workstation_path = NodePath("../../Locations/WorkStations/Desk6")
+
+[node name="Computer_Desk7" parent="Computers" unique_id=1992089490 instance=ExtResource("2_comp")]
+z_index = 2
+z_as_relative = false
+position = Vector2(164, 31)
+offset = Vector2(0, -8)
+sprite_frames_resource = ExtResource("6_luf")
+workstation_path = NodePath("../../Locations/WorkStations/Desk7")
+
+[node name="Computer_Desk8" parent="Computers" unique_id=1481073927 instance=ExtResource("2_comp")]
+z_index = 2
+z_as_relative = false
+position = Vector2(35, 63)
+offset = Vector2(0, -12)
+sprite_frames_resource = ExtResource("4_ssf")
+workstation_path = NodePath("../../Locations/WorkStations/Desk8")

@@ -27,6 +27,10 @@ var user_name: String = ""
 var parent_agent_id: String = ""
 ## Whether this is a sidechain (sub-agent)
 var is_sidechain: bool = false
+## Reference to the chosen workstation Marker2D
+var current_workstation: Marker2D = null
+## Flag to only trigger computer activation once per work session
+var _has_arrived_at_work: bool = false
 
 func _ready() -> void:
 	navigation_agent.velocity_computed.connect(Callable(_on_velocity_computed))
@@ -111,6 +115,10 @@ func _enter_state(state: AgentState) -> void:
 ## Called when exiting a state. Can be used for cleanup.
 func _exit_state(state: AgentState) -> void:
 	match state:
+		AgentState.WORKING:
+			_activate_workstation_computers(false)
+			current_workstation = null
+			_has_arrived_at_work = false
 		AgentState.IDLE:
 			_idle_timer = 0.0
 			_is_idle_waiting = false
@@ -123,6 +131,7 @@ func _set_work_target() -> void:
 	var work_stations = get_tree().get_nodes_in_group("work_station")
 	if work_stations.size() > 0:
 		var target_node = work_stations[randi() % work_stations.size()]
+		current_workstation = target_node
 		set_movement_target(target_node.global_position)
 	else:
 		# Fallback if no work stations exist
@@ -235,7 +244,10 @@ func _physics_process(delta):
 		# Handle state-specific behavior when navigation is complete
 		match current_state:
 			AgentState.WORKING:
-				# Stay at work station - do nothing
+				# Activate computers when first arriving at workstation
+				if not _has_arrived_at_work:
+					_has_arrived_at_work = true
+					_activate_workstation_computers(true)
 				return
 			AgentState.IDLE:
 				# Wait for a random duration before wandering to a new point
@@ -284,3 +296,14 @@ func _on_velocity_computed(safe_velocity: Vector2) -> void:
 			_anim_player.play("standing")
 
 	global_position = global_position.move_toward(global_position + safe_velocity, movement_delta)
+
+## Activates or deactivates all computers linked to the current workstation.
+func _activate_workstation_computers(active: bool) -> void:
+	if current_workstation == null:
+		return
+	for computer in get_tree().get_nodes_in_group("computer"):
+		if computer.workstation == current_workstation:
+			if active:
+				computer.turn_on()
+			else:
+				computer.turn_off()

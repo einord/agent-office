@@ -1,0 +1,30 @@
+[gd_resource type="SpriteFrames" format=3 uid="uid://dqdn74l3gk8qq"]
+
+[ext_resource type="Texture2D" uid="uid://ywwlpnjvyklh" path="res://assets/sprites/laptop-up.png" id="1_atlas"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_off"]
+atlas = ExtResource("1_atlas")
+region = Rect2(0, 0, 8, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_26qjc"]
+atlas = ExtResource("1_atlas")
+region = Rect2(0, 16, 8, 16)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_off")
+}],
+"loop": false,
+"name": &"off",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_26qjc")
+}],
+"loop": true,
+"name": &"on",
+"speed": 1.5
+}]

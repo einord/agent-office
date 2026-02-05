@@ -289,6 +289,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		# - key removes agent
 		elif event.unicode == 45 or event.keycode == KEY_KP_SUBTRACT or event.keycode == KEY_MINUS:
 			_send_agent_to_exit()
+		# 1 key sets all test agents to IDLE
+		elif event.keycode == KEY_1:
+			_set_test_agents_state(preload("res://scenes/agent.gd").AgentState.IDLE)
+		# 2 key sets all test agents to WORKING
+		elif event.keycode == KEY_2:
+			_set_test_agents_state(preload("res://scenes/agent.gd").AgentState.WORKING)
 
 ## Spawns a new agent with specified parameters from WebSocket command.
 func _spawn_agent_with_params(agent_id: String, display_name: String, user_name: String, variant_index: int, state_str: String, parent_id: String = "", is_sidechain: bool = false) -> Node:
@@ -376,6 +382,12 @@ func _spawn_agent(is_sidechain: bool = false) -> void:
 
 	# Connect to agent's removal signal
 	agent.tree_exiting.connect(_on_agent_removed.bind(agent))
+
+## Sets all test agents (no external_id) to the given state.
+func _set_test_agents_state(state: int) -> void:
+	for agent in _agent_queue:
+		if is_instance_valid(agent) and agent.external_id == "" and agent.current_state != agent.AgentState.LEAVING:
+			agent.change_state(state)
 
 ## Sends the oldest agent (FIFO) to the exit.
 func _send_agent_to_exit() -> void:
