@@ -214,7 +214,10 @@ export function getContextWindowUsage(messages: ConversationMessage[]): number {
   for (let i = messages.length - 1; i >= 0; i--) {
     const usage = messages[i].message?.usage;
     if (usage) {
-      return (usage.input_tokens || 0) + (usage.output_tokens || 0);
+      return (usage.input_tokens || 0)
+        + (usage.output_tokens || 0)
+        + (usage.cache_creation_input_tokens || 0)
+        + (usage.cache_read_input_tokens || 0);
     }
   }
   return 0;
