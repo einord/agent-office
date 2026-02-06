@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.1.18](https://github.com/einord/agent-office/compare/agent-office-v0.1.17...agent-office-v0.1.18) (2026-02-06)
+
+
+### Features
+
+* Add vacuum sprite assets and implement color handling for cans ([45b10c7](https://github.com/einord/agent-office/commit/45b10c737f967e9444bf2d00e414b2e136499ec5))
+* Implement cleaning service with can counting and vacuum functionality ([6e0651c](https://github.com/einord/agent-office/commit/6e0651c75518f822235aa11de31d7a2383d86506))
+* Implement idle action system for agents ([be01698](https://github.com/einord/agent-office/commit/be01698dbe9d2dc5dca3c4154054403f8fdc65c5))
+
+
+### Bug Fixes
+
+* Adjust hold offset calculations and add pause timer for vacuum pickup ([70cc0a0](https://github.com/einord/agent-office/commit/70cc0a0d19eb1be12a47bd31c3ee4703b5298ac3))
+
+
+### Code Refactoring
+
+* Simplify can collection logic and improve target selection for vacuum ([aa1c0e7](https://github.com/einord/agent-office/commit/aa1c0e765d847cff20a9bc2f217ea4856ab55b50))
+
 ## [0.1.17](https://github.com/einord/agent-office/compare/agent-office-v0.1.16...agent-office-v0.1.17) (2026-02-06)
 
 
