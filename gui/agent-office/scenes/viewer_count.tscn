@@ -1,0 +1,43 @@
+[gd_scene format=3 uid="uid://elk61qy1ix7k"]
+
+[ext_resource type="Script" path="res://scenes/viewer_count.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://5jfn6ev0k0ux" path="res://assets/sprites/eye.png" id="2_eye"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.9, 0.88, 0.85, 0.95)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.35, 0.28, 0.22, 1)
+
+[node name="ViewerCount" type="PanelContainer" unique_id=556269177]
+offset_left = 24.0
+offset_top = 24.0
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+script = ExtResource("1_script")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=2062603617]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="HBox" type="HBoxContainer" parent="MarginContainer" unique_id=368473233]
+layout_mode = 2
+mouse_filter = 2
+alignment = 1
+
+[node name="EyeIcon" type="TextureRect" parent="MarginContainer/HBox" unique_id=1816807584]
+texture_filter = 1
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 2
+size_flags_horizontal = 3
+texture = ExtResource("2_eye")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Label" type="Label" parent="MarginContainer/HBox" unique_id=452594723]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0"
