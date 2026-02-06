@@ -12,6 +12,8 @@ var _agents_by_id: Dictionary = {}  # Maps external ID to agent instance
 
 ## Reference to the user stats overlay (set via set_user_stats_overlay)
 var _user_stats_overlay: Node = null
+## Reference to the viewer count overlay (set via set_viewer_count_overlay)
+var _viewer_count_overlay: Node = null
 
 # WebSocket client for backend communication
 var _socket: WebSocketPeer = WebSocketPeer.new()
@@ -254,10 +256,19 @@ func _handle_sync_complete(payload: Dictionary) -> void:
 func _handle_user_stats(payload: Dictionary) -> void:
 	if _user_stats_overlay != null and is_instance_valid(_user_stats_overlay):
 		_user_stats_overlay.update_stats(payload)
+	# Update viewer count from totals
+	var totals = payload.get("totals", {})
+	var viewer_count = totals.get("viewerCount", 0)
+	if _viewer_count_overlay != null and is_instance_valid(_viewer_count_overlay):
+		_viewer_count_overlay.update_viewer_count(viewer_count)
 
 ## Sets the reference to the user stats overlay node.
 func set_user_stats_overlay(overlay: Node) -> void:
 	_user_stats_overlay = overlay
+
+## Sets the reference to the viewer count overlay node.
+func set_viewer_count_overlay(overlay: Node) -> void:
+	_viewer_count_overlay = overlay
 
 ## Sends an acknowledgment message to the backend.
 func _send_ack(command: String, agent_id: String, success: bool) -> void:

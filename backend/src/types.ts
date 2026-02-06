@@ -101,6 +101,7 @@ export interface UserStatsPayload {
     activeUsers: number;
     totalSessions: number;
     totalAgents: number;
+    viewerCount: number;
   };
 }
 

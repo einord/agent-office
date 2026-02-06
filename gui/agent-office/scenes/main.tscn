@@ -3,6 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://b88kgwuugd6if" path="res://scenes/game.tscn" id="1_game"]
 [ext_resource type="PackedScene" uid="uid://cuser_stats_overlay" path="res://scenes/user_stats_overlay.tscn" id="2_overlay"]
 [ext_resource type="Script" path="res://scenes/main.gd" id="3_main"]
+[ext_resource type="PackedScene" uid="uid://dvc_scene_001" path="res://scenes/viewer_count.tscn" id="4_viewer"]
 
 [node name="Main" type="Control" unique_id=52458885]
 layout_mode = 3
@@ -45,6 +46,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+
+[node name="ViewerCount" parent="UILayer" instance=ExtResource("4_viewer")]
+layout_mode = 1
 
 [node name="UserStatsOverlay" parent="UILayer" instance=ExtResource("2_overlay")]
 layout_mode = 1

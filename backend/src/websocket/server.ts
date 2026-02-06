@@ -138,6 +138,7 @@ function buildUserStatsPayload(): UserStatsPayload {
       activeUsers: activeUserCount,
       totalSessions,
       totalAgents,
+      viewerCount: connectedClients.size,
     },
   };
 }
