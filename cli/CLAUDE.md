@@ -12,7 +12,9 @@ npm start        # Run compiled CLI (no server sync)
 
 ## Key Files
 
+- `src/index.ts` - CLI entry point
 - `src/monitor.ts` - Core logic: process scanning, session reading
+- `src/data/` - Data layer: process-scanner, session-reader, activity-tracker, incremental-reader
 - `src/types.ts` - Agent states and activity types
 - `src/ui/` - Terminal rendering with chalk
 - `src/sync/` - Server synchronization client
@@ -36,3 +38,4 @@ AGENT_OFFICE_API_KEY=your-key
 - Requires `TERM=xterm-256color` for colors (set in npm scripts)
 - macOS/Linux only (uses `ps` and `lsof`)
 - Dev mode hardcodes API key for convenience
+- Dev script syncs to production server (plik.se), not localhost

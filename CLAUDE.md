@@ -37,8 +37,18 @@ gui/       - Godot 4.x client, 2D office visualization
 ## Key Files
 
 - `cli/src/monitor.ts` - Core session scanning logic
+- `cli/src/data/` - Process scanning, session reading, activity tracking
 - `backend/src/index.ts` - Server entry, auth + WS setup
+- `backend/src/api/routes.ts` - All REST API route definitions
 - `backend/config.json` - API keys and port config (not in src/)
+
+## Docker
+
+```bash
+docker compose up         # Run full stack (backend + CLI)
+```
+
+See `.env.example` for required environment variables.
 
 ## Gotchas
 

@@ -18,9 +18,12 @@ npm start        # Run compiled server
 ## Key Files
 
 - `src/index.ts` - Server entry, Express + WS setup
+- `src/api/routes.ts` - REST API route definitions
 - `src/agents/` - Agent CRUD and state management
 - `src/auth/` - JWT token generation/validation
 - `src/websocket/` - WS message handling for GUI
+- `src/config/config-loader.ts` - Config file loading
+- `src/types.ts` - Shared type definitions
 - `config.json` - User API keys and port config (in project root, not src/)
 
 ## API Flow

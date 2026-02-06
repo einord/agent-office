@@ -26,6 +26,13 @@ agent-office/
 │   ├── game.gd       - Game logic, backend WebSocket connection
 │   ├── agent.tscn    - Agent character scene
 │   ├── agent.gd      - Agent behavior and animations
+│   ├── agent_name.tscn - Agent name label
+│   ├── computer.tscn - Workstation scene
+│   ├── computer.gd   - Workstation behavior
+│   ├── user_stats_overlay.tscn - Stats overlay UI
+│   ├── user_stats_overlay.gd   - Stats overlay logic
+│   ├── viewer_count.tscn - Viewer count display
+│   ├── viewer_count.gd   - Viewer count logic
 │   ├── tilemap.tscn  - Office tilemap
 │   └── tileset.tres  - Tile definitions
 ├── scripts/
