@@ -7,7 +7,6 @@ const PICKUP_PAUSE := 1.0
 
 var _state: VacuumState = VacuumState.IDLE
 var _charge_position: Vector2
-var _targets: Array = []
 var _current_target: Node2D = null
 var _pause_timer: float = 0.0
 
@@ -19,17 +18,12 @@ func _ready() -> void:
 
 ## Starts the cleaning cycle by collecting all floor cans.
 func start_cleaning() -> void:
-	var cans: Array = []
-	for node in get_tree().get_nodes_in_group("floor_item"):
-		if node is AnimatedSprite2D and node.has_method("drop") and node.current_state == 1:  # CanState.ON_FLOOR = 1
-			cans.append(node)
-	if cans.is_empty():
+	var first = _find_next_can()
+	if first == null:
 		return
-	_targets = cans
-	_current_target = _targets.pop_front()
+	_current_target = first
 	_state = VacuumState.CLEANING
 	_nav_agent.target_position = _current_target.global_position
-	visible = true
 	play(&"down")
 
 func _physics_process(delta: float) -> void:
@@ -70,17 +64,27 @@ func _consume_current_target() -> void:
 		_pause_timer = PICKUP_PAUSE
 	_current_target = null
 
-	if _targets.is_empty():
+	# Rescan for any cans on the floor (including newly dropped ones)
+	var next = _find_next_can()
+	if next != null:
+		_current_target = next
+		_nav_agent.target_position = _current_target.global_position
+	else:
 		# All cans collected, return to charging station
 		_state = VacuumState.RETURNING
 		_nav_agent.target_position = _charge_position
-	else:
-		_current_target = _targets.pop_front()
-		if is_instance_valid(_current_target):
-			_nav_agent.target_position = _current_target.global_position
-		else:
-			# Target was already freed, try next
-			_consume_current_target()
+
+## Finds the nearest floor can, or null if none exist.
+func _find_next_can() -> Node2D:
+	var best: Node2D = null
+	var best_dist := INF
+	for node in get_tree().get_nodes_in_group("floor_item"):
+		if node is AnimatedSprite2D and node.has_method("drop") and node.current_state == 1:
+			var dist = global_position.distance_squared_to(node.global_position)
+			if dist < best_dist:
+				best_dist = dist
+				best = node
+	return best
 
 ## Finishes the cleaning cycle and returns to idle.
 func _finish_cleaning() -> void:

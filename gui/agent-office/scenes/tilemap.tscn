@@ -234,7 +234,7 @@ workstation_path = NodePath("../../../Locations/WorkStations/Desk7")
 
 [node name="Vacuum" parent="Things" unique_id=758709153 instance=ExtResource("8_18xon")]
 z_index = 2
-position = Vector2(119, 108)
+position = Vector2(118, 108)
 
 [node name="FloorItems" type="Node2D" parent="." unique_id=1003373778]
 z_index = 1
