@@ -221,7 +221,9 @@ export class ServerClient {
    */
   async createAgent(session: TrackedSession): Promise<boolean> {
     const activity = mapActivityToBackend(session.activity.type);
-    const displayName = generateName(session.agentId);
+    const displayName = session.isSidechain && session.parentSessionId
+      ? generateName(session.parentSessionId)
+      : generateName(session.agentId);
 
     // Use agentId as the unique identifier (same as sessionId for main sessions)
     const id = session.agentId;
