@@ -182,15 +182,24 @@ export interface ActiveUserSession {
 /**
  * Gets a map of active users with their session counts.
  * Groups tokens by user key and counts active sessions.
+ * Only counts tokens with recent activity (within inactivityTimeoutSeconds)
+ * to avoid showing stale sessions from disconnected CLIs.
  * @returns Map of user key to session info
  */
 export function getActiveUsers(): Map<string, ActiveUserSession> {
+  const config = getConfig();
   const now = Date.now();
+  const inactivityMs = config.inactivityTimeoutSeconds * 1000;
   const userMap = new Map<string, ActiveUserSession>();
 
   for (const token of tokens.values()) {
     // Skip expired tokens
     if (now > token.expiresAt) {
+      continue;
+    }
+
+    // Skip tokens that have been inactive too long
+    if (inactivityMs > 0 && (now - token.lastActivity) > inactivityMs) {
       continue;
     }
 
