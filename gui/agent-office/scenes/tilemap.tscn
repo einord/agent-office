@@ -108,6 +108,11 @@ position = Vector2(158, 123)
 [node name="Kitchen2" type="Marker2D" parent="Locations/BreakAreas" unique_id=1173296435 groups=["break_area"]]
 position = Vector2(136, 116)
 
+[node name="VendingMachines" type="Node2D" parent="Locations" unique_id=1181017914]
+
+[node name="VendingMachine1" type="Marker2D" parent="Locations/VendingMachines" unique_id=1263751021 groups=["vending_machine"]]
+position = Vector2(140, 65)
+
 [node name="Exits" type="Node2D" parent="Locations" unique_id=1526839096]
 
 [node name="MainExit" type="Marker2D" parent="Locations/Exits" unique_id=1732082379 groups=["exit"]]
@@ -225,3 +230,8 @@ workstation_path = NodePath("../../../Locations/WorkStations/Desk6")
 position = Vector2(164, 22)
 animation = &"down"
 workstation_path = NodePath("../../../Locations/WorkStations/Desk7")
+
+[node name="FloorItems" type="Node2D" parent="." unique_id=1003373778]
+z_index = 1
+z_as_relative = false
+y_sort_enabled = true

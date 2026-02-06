@@ -37,6 +37,7 @@ y_sort_enabled = true
 script = ExtResource("3_game")
 agent_scene = ExtResource("2_yqjtg")
 agent_variants = Array[SpriteFrames]([ExtResource("3_vtaks"), ExtResource("4_kvpfn"), ExtResource("5_dinhu"), ExtResource("6_kvuet"), ExtResource("7_trtic"), ExtResource("8_ir15t"), ExtResource("9_ca42v"), ExtResource("10_5newe"), ExtResource("11_37s47"), ExtResource("12_bt5mj"), ExtResource("13_e1j6l"), ExtResource("14_pl11u"), ExtResource("15_bhx41"), ExtResource("16_qnb83"), ExtResource("17_sww3w"), ExtResource("18_suyxu"), ExtResource("19_sgl2t"), ExtResource("20_qouja"), ExtResource("21_qouja"), ExtResource("22_wljb1"), ExtResource("23_v2yb1"), ExtResource("24_js0lu"), ExtResource("25_gxtfn"), ExtResource("26_twgab"), ExtResource("27_02fa5"), ExtResource("28_nepv3"), ExtResource("29_7025r"), ExtResource("30_m4url")])
+variant_left_handed = Array[bool]([false, false, false, false, false, false, false, false, false, false, false, false, true])
 
 [node name="Tilemap" parent="." unique_id=984404399 instance=ExtResource("1_uwrxv")]
 

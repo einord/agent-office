@@ -20,6 +20,15 @@ export type AgentActivity =
   | 'offline'
   | 'disconnected';
 
+/** Available idle action types */
+export type IdleActionType = 'get_drink';
+
+/** Idle action assignment for an agent */
+export interface IdleActionAssignment {
+  action: IdleActionType;
+  assignedAt: number;
+}
+
 /** WebSocket message types from backend to Godot */
 export type BackendMessageType = 'spawn_agent' | 'update_agent' | 'remove_agent' | 'sync_complete';
 
@@ -47,6 +56,8 @@ export interface SpawnAgentPayload {
   isSidechain: boolean;
   /** Context window usage percentage (0-100) */
   contextPercentage: number;
+  /** Currently assigned idle action */
+  idleAction: IdleActionAssignment | null;
 }
 
 /** Update agent payload */
@@ -57,6 +68,8 @@ export interface UpdateAgentPayload {
   activity: AgentActivity;
   /** Context window usage percentage (0-100) */
   contextPercentage: number;
+  /** Currently assigned idle action */
+  idleAction: IdleActionAssignment | null;
 }
 
 /** Remove agent payload */

@@ -45,6 +45,12 @@ var _is_sitting: bool = false
 var context_percentage: float = 0.0
 ## Current detailed activity (e.g. thinking, coding, reading)
 var current_activity: String = ""
+## Whether this agent holds items in the left hand
+var holds_left: bool = false
+## Current idle action handler (null if none)
+var _idle_action_handler: IdleActionHandler = null
+## Pending idle action data from backend (applied when entering IDLE)
+var _pending_idle_action: Variant = null
 
 func _ready() -> void:
 	add_to_group("agent")
@@ -104,6 +110,8 @@ func _get_label_text() -> String:
 	return name_text
 
 func _exit_tree() -> void:
+	# Clean up idle action
+	_interrupt_idle_action()
 	# Clean up UI elements when agent is removed
 	if _name_label and is_instance_valid(_name_label):
 		_name_label.queue_free()
@@ -153,7 +161,11 @@ func _enter_state(state: AgentState) -> void:
 		AgentState.WORKING:
 			_set_work_target()
 		AgentState.IDLE:
-			_set_idle_target()
+			# Check for pending idle action before defaulting to wander
+			if _pending_idle_action != null:
+				_start_idle_action()
+			else:
+				_set_idle_target()
 		AgentState.LEAVING:
 			_set_exit_target()
 
@@ -171,6 +183,7 @@ func _exit_state(state: AgentState) -> void:
 		AgentState.IDLE:
 			_idle_timer = 0.0
 			_is_idle_waiting = false
+			_interrupt_idle_action()
 		AgentState.LEAVING:
 			_exit_timer = 0.0
 			_is_exit_waiting = false
@@ -312,6 +325,10 @@ func _physics_process(delta):
 	if iteration == 0:
 		return
 
+	# Tick idle action handler every frame (handles both moving and arrived)
+	if current_state == AgentState.IDLE and _idle_action_handler != null and _idle_action_handler.is_running:
+		_idle_action_handler.physics_process(delta)
+
 	if navigation_agent.is_navigation_finished():
 		# Play standing animation when not moving (unless sitting in a chair)
 		if not _is_sitting and _anim_player.current_animation != "standing":
@@ -335,6 +352,9 @@ func _physics_process(delta):
 						_enter_state(AgentState.IDLE)
 				return
 			AgentState.IDLE:
+				# If idle action handler is active, let it drive behavior
+				if _idle_action_handler != null and _idle_action_handler.is_running:
+					return
 				# Wait for a random duration before wandering to a new point
 				if not _is_idle_waiting:
 					_is_idle_waiting = true
@@ -446,3 +466,41 @@ func _activate_workstation_computers(active: bool) -> void:
 				computer.turn_on()
 			else:
 				computer.turn_off()
+
+## Sets an idle action from backend data. Starts it if already in IDLE state.
+func set_idle_action(action_data) -> void:
+	if action_data == null:
+		_pending_idle_action = null
+		return
+	if action_data is Dictionary:
+		_pending_idle_action = action_data
+		# If already idle and not running an action, start it
+		if current_state == AgentState.IDLE and _idle_action_handler == null:
+			_start_idle_action()
+
+## Returns the offset for held items based on hand preference and facing direction.
+func get_hold_offset() -> Vector2:
+	if holds_left:
+		return offset + Vector2(4, 0) if not flip_h else offset + Vector2(-4, 0)
+	else:
+		return offset + Vector2(-4, 0) if not flip_h else offset + Vector2(4, 0)
+
+## Creates and starts the idle action handler based on pending action data.
+func _start_idle_action() -> void:
+	if _pending_idle_action == null or not _pending_idle_action is Dictionary:
+		return
+
+	var action_type = _pending_idle_action.get("action", "")
+	match action_type:
+		"get_drink":
+			_idle_action_handler = GetDrinkAction.new()
+			_idle_action_handler.start(self)
+		_:
+			push_warning("Unknown idle action type: " + str(action_type))
+
+## Interrupts and clears the current idle action handler.
+func _interrupt_idle_action() -> void:
+	if _idle_action_handler != null:
+		_idle_action_handler.interrupt()
+		_idle_action_handler = null
+	_pending_idle_action = null

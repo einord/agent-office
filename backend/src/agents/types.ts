@@ -1,4 +1,4 @@
-import type { AgentState, AgentActivity } from '../types.js';
+import type { AgentState, AgentActivity, IdleActionAssignment } from '../types.js';
 
 /**
  * Represents an agent in the system.
@@ -28,6 +28,8 @@ export interface Agent {
   isSidechain: boolean;
   /** Context window usage percentage (0-100) */
   contextPercentage: number;
+  /** Currently assigned idle action */
+  idleAction: IdleActionAssignment | null;
 }
 
 /**

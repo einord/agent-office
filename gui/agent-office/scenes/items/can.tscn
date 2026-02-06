@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://obq2lqp2qkb7"]
+
+[ext_resource type="SpriteFrames" uid="uid://8l24ti5icsxy" path="res://assets/sprites/can_frames.tres" id="1_frames"]
+[ext_resource type="Script" uid="uid://bomqn4jsnpqq0" path="res://scenes/items/can.gd" id="2_script"]
+
+[node name="Can" type="AnimatedSprite2D" unique_id=377354363]
+self_modulate = Color(0.6745098, 0.003921569, 0, 1)
+z_index = 2
+z_as_relative = false
+y_sort_enabled = true
+texture_filter = 1
+sprite_frames = ExtResource("1_frames")
+animation = &"on_floor"
+script = ExtResource("2_script")

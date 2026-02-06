@@ -83,6 +83,7 @@ export function createAgent(
     parentId: parentId ?? null,
     isSidechain: isSidechain ?? false,
     contextPercentage: contextPercentage ?? 0,
+    idleAction: null,
   };
 
   agents.set(id, agent);
@@ -123,6 +124,11 @@ export function updateAgentActivity(
   agent.activity = activity;
   agent.state = newState;
   agent.updatedAt = Date.now();
+
+  // Clear idle action when leaving IDLE state
+  if (newState !== 'IDLE' && agent.idleAction !== null) {
+    agent.idleAction = null;
+  }
 
   if (contextPercentage !== undefined) {
     agent.contextPercentage = contextPercentage;

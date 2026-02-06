@@ -10,6 +10,7 @@ import type {
 } from '../types.js';
 import type { Agent } from '../agents/types.js';
 import { onAgentChange, getAllAgents, confirmAgentRemoved, getAgentsByOwner } from '../agents/agent-manager.js';
+import { onIdleActionChange } from '../idle-actions/index.js';
 import { getActiveUsers } from '../auth/token-manager.js';
 import { getConfig } from '../config/config-loader.js';
 
@@ -80,6 +81,7 @@ function broadcastSpawnAgent(agent: Agent): number {
     parentId: agent.parentId,
     isSidechain: agent.isSidechain,
     contextPercentage: agent.contextPercentage,
+    idleAction: agent.idleAction,
   };
 
   return broadcastToClients({ type: 'spawn_agent', payload });
@@ -94,6 +96,7 @@ function broadcastUpdateAgent(agent: Agent): number {
     state: agent.state,
     activity: agent.activity,
     contextPercentage: agent.contextPercentage,
+    idleAction: agent.idleAction,
   };
 
   return broadcastToClients({ type: 'update_agent', payload });
@@ -221,6 +224,7 @@ function syncAgentsToClient(client: WebSocket): void {
       parentId: agent.parentId,
       isSidechain: agent.isSidechain,
       contextPercentage: agent.contextPercentage,
+      idleAction: agent.idleAction,
     };
     sendToClient(client, { type: 'spawn_agent', payload });
   }
@@ -299,6 +303,13 @@ export function initWebSocketServer(port: number): void {
   });
 
   console.log('[WebSocket] Agent change listener registered');
+
+  // Register for idle action changes
+  onIdleActionChange((agent) => {
+    broadcastUpdateAgent(agent);
+  });
+
+  console.log('[WebSocket] Idle action change listener registered');
 
   // Start periodic user stats broadcast (every 5 seconds)
   userStatsInterval = setInterval(() => {

@@ -1,0 +1,30 @@
+[gd_resource type="SpriteFrames" format=3 uid="uid://8l24ti5icsxy"]
+
+[ext_resource type="Texture2D" uid="uid://dtlvs5c8hnkan" path="res://assets/sprites/can.png" id="1_can"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ja0q1"]
+atlas = ExtResource("1_can")
+region = Rect2(2, 0, 2, 2)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3ftaw"]
+atlas = ExtResource("1_can")
+region = Rect2(0, 0, 2, 2)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ja0q1")
+}],
+"loop": false,
+"name": &"on_floor",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3ftaw")
+}],
+"loop": false,
+"name": &"standing",
+"speed": 1.0
+}]

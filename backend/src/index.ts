@@ -4,6 +4,7 @@ import { cleanupExpiredTokens, getInactiveUserKeys } from './auth/token-manager.
 import { removeAgentsByOwner } from './agents/agent-manager.js';
 import routes from './api/routes.js';
 import { initWebSocketServer, closeWebSocketServer } from './websocket/server.js';
+import { initIdleActionService } from './idle-actions/index.js';
 
 // Initialize configuration watcher for hot-reload
 initConfigWatcher();
@@ -43,6 +44,9 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 const httpServer = app.listen(config.server.httpPort, () => {
   console.log(`[HTTP] Server listening on port ${config.server.httpPort}`);
 });
+
+// Initialize idle action service
+initIdleActionService();
 
 // Start WebSocket server
 initWebSocketServer(config.server.wsPort);

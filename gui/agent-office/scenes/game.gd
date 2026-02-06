@@ -6,6 +6,9 @@ extends Node2D
 ## Available sprite variants for agents.
 @export var agent_variants: Array[SpriteFrames] = []
 
+## Whether each variant holds items in the left hand (parallel with agent_variants).
+@export var variant_left_handed: Array[bool] = []
+
 @onready var _agents_container: Node2D = $Tilemap/Agents
 var _agent_queue: Array = []  # FIFO queue of agents
 var _agents_by_id: Dictionary = {}  # Maps external ID to agent instance
@@ -42,6 +45,9 @@ func _ready() -> void:
 	# Clear all existing agents at startup
 	for child in _agents_container.get_children():
 		child.queue_free()
+
+	# Restore saved floor items
+	_restore_floor_items()
 
 	# Create status label
 	_create_status_label()
@@ -182,6 +188,10 @@ func _handle_spawn_agent(payload: Dictionary) -> void:
 		if activity == null:
 			activity = ""
 		agent.set_activity(activity)
+		# Apply idle action if present
+		var idle_action = payload.get("idleAction", null)
+		if idle_action != null and idle_action is Dictionary:
+			agent.call_deferred("set_idle_action", idle_action)
 		_send_ack("spawn_agent", agent_id, true)
 	else:
 		_send_ack("spawn_agent", agent_id, false)
@@ -226,6 +236,13 @@ func _handle_update_agent(payload: Dictionary) -> void:
 	if activity == null:
 		activity = ""
 	agent.set_activity(activity)
+
+	# Apply idle action if present
+	var idle_action = payload.get("idleAction", null)
+	if idle_action != null and idle_action is Dictionary:
+		agent.set_idle_action(idle_action)
+	elif idle_action == null:
+		agent.set_idle_action(null)
 
 ## Handles the remove_agent command from the backend.
 func _handle_remove_agent(payload: Dictionary) -> void:
@@ -333,6 +350,23 @@ func _unhandled_input(event: InputEvent) -> void:
 		# Q key decreases context percentage by one step for all test agents
 		elif event.keycode == KEY_Q:
 			_adjust_test_agents_context(-12.5)
+		# Z key triggers get_drink idle action on a random agent
+		elif event.keycode == KEY_Z:
+			_test_idle_action()
+
+## Triggers a get_drink idle action on a random non-leaving agent.
+func _test_idle_action() -> void:
+	var candidates: Array = []
+	for agent in _agent_queue:
+		if is_instance_valid(agent) and agent.current_state != agent.AgentState.LEAVING:
+			candidates.append(agent)
+	if candidates.size() == 0:
+		print("[Game] No agents available for idle action test")
+		return
+	var agent = candidates[randi() % candidates.size()]
+	agent.change_state(agent.AgentState.IDLE)
+	agent.set_idle_action({"action": "get_drink", "assignedAt": Time.get_unix_time_from_system()})
+	print("[Game] Triggered get_drink on agent: ", agent.display_name)
 
 ## Adjusts context percentage for all test agents by a delta value.
 func _adjust_test_agents_context(delta: float) -> void:
@@ -365,12 +399,19 @@ func _spawn_agent_with_params(agent_id: String, display_name: String, user_name:
 	agent.is_sidechain = is_sidechain
 
 	# Assign sprite variant by index, or deterministically based on agent ID
+	var resolved_variant_index := -1
 	if agent_variants.size() > 0 and variant_index >= 0 and variant_index < agent_variants.size():
 		agent.set_sprite_variant(agent_variants[variant_index])
+		resolved_variant_index = variant_index
 	elif agent_variants.size() > 0:
 		# Use agent ID as seed for deterministic variant selection
 		var variant_idx = _hash_string(agent_id) % agent_variants.size()
 		agent.set_sprite_variant(agent_variants[variant_idx])
+		resolved_variant_index = variant_idx
+
+	# Set hand preference based on variant
+	if resolved_variant_index >= 0 and resolved_variant_index < variant_left_handed.size():
+		agent.holds_left = variant_left_handed[resolved_variant_index]
 
 	agent.position = spawn_position
 	_agents_container.add_child(agent)
@@ -416,9 +457,14 @@ func _spawn_agent(is_sidechain: bool = false) -> void:
 	agent.is_sidechain = is_sidechain
 
 	# Assign random sprite variant
+	var variant_idx := -1
 	if agent_variants.size() > 0:
-		var random_variant = agent_variants[randi() % agent_variants.size()]
-		agent.set_sprite_variant(random_variant)
+		variant_idx = randi() % agent_variants.size()
+		agent.set_sprite_variant(agent_variants[variant_idx])
+
+	# Set hand preference based on variant
+	if variant_idx >= 0 and variant_idx < variant_left_handed.size():
+		agent.holds_left = variant_left_handed[variant_idx]
 
 	agent.position = spawn_position
 	_agents_container.add_child(agent)
@@ -453,6 +499,27 @@ func _on_agent_removed(agent: Node) -> void:
 	if agent.external_id != "":
 		_send_agent_removed(agent.external_id)
 		_agents_by_id.erase(agent.external_id)
+
+## Restores saved floor items from persistent storage.
+func _restore_floor_items() -> void:
+	var can_scene = preload("res://scenes/items/can.tscn")
+
+	# Clean up expired items first
+	FloorItemStore.remove_expired(7200.0)
+
+	var items = FloorItemStore.get_all_items()
+	var floor_container = $Tilemap/FloorItems
+	if floor_container == null:
+		push_warning("FloorItems container not found in tilemap")
+		return
+
+	for item in items:
+		var item_type = item.get("type", "")
+		var pos = Vector2(item.get("x", 0), item.get("y", 0))
+		if item_type == "can":
+			var can_instance = can_scene.instantiate()
+			floor_container.add_child(can_instance)
+			can_instance.spawn_on_floor(pos)
 
 ## Simple hash function for deterministic variant selection.
 func _hash_string(s: String) -> int:
