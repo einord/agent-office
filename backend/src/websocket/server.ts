@@ -11,6 +11,7 @@ import type {
 import type { Agent } from '../agents/types.js';
 import { onAgentChange, getAllAgents, confirmAgentRemoved, getAgentsByOwner } from '../agents/agent-manager.js';
 import { onIdleActionChange } from '../idle-actions/index.js';
+import { initCleaningService, getCanCount } from '../cleaning/index.js';
 import { getActiveUsers } from '../auth/token-manager.js';
 import { getConfig } from '../config/config-loader.js';
 
@@ -191,6 +192,7 @@ function handleGodotMessage(data: string): void {
 function sendSyncComplete(client: WebSocket, agentIds: string[]): boolean {
   const payload: SyncCompletePayload = {
     agentIds,
+    canCount: getCanCount(),
   };
 
   return sendToClient(client, { type: 'sync_complete', payload });
@@ -310,6 +312,11 @@ export function initWebSocketServer(port: number): void {
   });
 
   console.log('[WebSocket] Idle action change listener registered');
+
+  // Initialize cleaning service with broadcast callback
+  initCleaningService(() => {
+    broadcastToClients({ type: 'trigger_cleaning', payload: {} });
+  });
 
   // Start periodic user stats broadcast (every 5 seconds)
   userStatsInterval = setInterval(() => {

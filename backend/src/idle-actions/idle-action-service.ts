@@ -1,6 +1,7 @@
 import { onAgentChange, getAllAgents, getAgent } from '../agents/agent-manager.js';
 import type { Agent, AgentChangeCallback } from '../agents/types.js';
 import type { IdleActionType, IdleActionAssignment } from '../types.js';
+import { incrementCanCount } from '../cleaning/index.js';
 
 /** Callback for idle action changes */
 type IdleActionChangeCallback = (agent: Agent) => void;
@@ -104,6 +105,9 @@ function scheduleIdleAction(agentId: string): void {
       assignedAt: Date.now(),
     };
     agent.idleAction = action;
+    if (action.action === 'get_drink') {
+      incrementCanCount();
+    }
     console.log(`[IdleActions] Assigned "${action.action}" to agent ${agentId}`);
 
     notifyListeners(agent);

@@ -1,14 +1,15 @@
 [gd_scene format=3 uid="uid://d065djg3un8m1"]
 
 [ext_resource type="Texture2D" uid="uid://cdri4vqaxmh1" path="res://assets/sprites/vacuum.png" id="1_jawr6"]
+[ext_resource type="Script" uid="uid://w252ya14awqr" path="res://scenes/items/vacuum.gd" id="2_vacuum"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_7vxop"]
 atlas = ExtResource("1_jawr6")
-region = Rect2(0, 0, 8, 8)
+region = Rect2(0, 0, 4, 4)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_oo60p"]
 atlas = ExtResource("1_jawr6")
-region = Rect2(0, 8, 8, 8)
+region = Rect2(0, 4, 4, 4)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_dmq8p"]
 animations = [{
@@ -30,6 +31,14 @@ animations = [{
 }]
 
 [node name="Vacuum" type="AnimatedSprite2D" unique_id=758709153]
+z_index = 1
+z_as_relative = false
 texture_filter = 1
 sprite_frames = SubResource("SpriteFrames_dmq8p")
 animation = &"up"
+script = ExtResource("2_vacuum")
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="." unique_id=2108713725]
+path_desired_distance = 1.0
+target_desired_distance = 1.0
+path_max_distance = 24.0

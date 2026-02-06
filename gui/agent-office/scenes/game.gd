@@ -152,6 +152,8 @@ func _handle_ws_message(message_str: String) -> void:
 			_handle_sync_complete(payload)
 		"user_stats":
 			_handle_user_stats(payload)
+		"trigger_cleaning":
+			_handle_trigger_cleaning()
 		_:
 			push_warning("Unknown WebSocket message type: " + msg_type)
 
@@ -258,6 +260,7 @@ func _handle_remove_agent(payload: Dictionary) -> void:
 
 ## Handles the sync_complete message from the backend.
 ## Removes any local agents that are not in the backend's active agent list.
+## Also syncs can count with the backend.
 func _handle_sync_complete(payload: Dictionary) -> void:
 	var active_ids = payload.get("agentIds", [])
 	var active_ids_set: Dictionary = {}
@@ -278,6 +281,22 @@ func _handle_sync_complete(payload: Dictionary) -> void:
 		if is_instance_valid(agent) and agent.current_state != agent.AgentState.LEAVING:
 			print("sync_complete: Removing stale agent: ", agent_id)
 			agent.change_state(agent.AgentState.LEAVING)
+
+	# Sync can count - spawn missing cans if server has more than local
+	var server_can_count = payload.get("canCount", 0)
+	if server_can_count is float:
+		server_can_count = int(server_can_count)
+	var local_can_count = FloorItemStore.get_count()
+	if local_can_count < server_can_count:
+		var cans_to_spawn = server_can_count - local_can_count
+		print("sync_complete: Spawning ", cans_to_spawn, " missing cans (server=", server_can_count, " local=", local_can_count, ")")
+		_spawn_random_cans(cans_to_spawn)
+
+## Handles the trigger_cleaning command from the backend.
+func _handle_trigger_cleaning() -> void:
+	var vacuum = $Tilemap/Things/Vacuum
+	if vacuum != null and is_instance_valid(vacuum):
+		vacuum.start_cleaning()
 
 ## Handles the user_stats message from the backend.
 func _handle_user_stats(payload: Dictionary) -> void:
@@ -353,6 +372,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		# Z key triggers get_drink idle action on a random agent
 		elif event.keycode == KEY_Z:
 			_test_idle_action()
+		# V key triggers vacuum cleaning
+		elif event.keycode == KEY_V:
+			_handle_trigger_cleaning()
 
 ## Triggers a get_drink idle action on a random non-leaving agent.
 func _test_idle_action() -> void:
@@ -523,6 +545,32 @@ func _restore_floor_items() -> void:
 			if color_html != "":
 				can_instance.set_can_color(Color.from_string(color_html, Color.WHITE))
 			can_instance.spawn_on_floor(pos)
+
+## Spawns a number of cans at random navigable positions.
+func _spawn_random_cans(count: int) -> void:
+	var can_scene = preload("res://scenes/items/can.tscn")
+	var floor_container = $Tilemap/FloorItems
+	if floor_container == null:
+		push_warning("FloorItems container not found")
+		return
+
+	for i in range(count):
+		var pos = _get_random_navigable_position()
+		var color = Color.from_hsv(randf(), 0.5 + randf() * 0.3, 0.8 + randf() * 0.2)
+		var can_instance = can_scene.instantiate()
+		floor_container.add_child(can_instance)
+		can_instance.set_can_color(color)
+		can_instance.spawn_on_floor(pos)
+		FloorItemStore.save_item("can", pos, color)
+
+## Returns a random navigable position by picking a random break area and adding an offset.
+func _get_random_navigable_position() -> Vector2:
+	var break_areas = get_tree().get_nodes_in_group("break_area")
+	if break_areas.is_empty():
+		return Vector2(100, 80)  # Fallback
+	var area = break_areas[randi() % break_areas.size()]
+	var offset = Vector2(randf_range(-20, 20), randf_range(-10, 10))
+	return area.global_position + offset
 
 ## Simple hash function for deterministic variant selection.
 func _hash_string(s: String) -> int:

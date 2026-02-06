@@ -74,3 +74,12 @@ func _load_from_file() -> void:
 			_items = []
 	else:
 		_items = []
+
+## Removes all saved floor items.
+func clear_all() -> void:
+	_items = []
+	_write_to_file()
+
+## Returns the number of saved floor items.
+func get_count() -> int:
+	return _items.size()

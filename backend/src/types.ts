@@ -30,7 +30,7 @@ export interface IdleActionAssignment {
 }
 
 /** WebSocket message types from backend to Godot */
-export type BackendMessageType = 'spawn_agent' | 'update_agent' | 'remove_agent' | 'sync_complete';
+export type BackendMessageType = 'spawn_agent' | 'update_agent' | 'remove_agent' | 'sync_complete' | 'trigger_cleaning';
 
 /** WebSocket message types from Godot to backend */
 export type GodotMessageType = 'ack' | 'agent_removed';
@@ -77,10 +77,15 @@ export interface RemoveAgentPayload {
   id: string;
 }
 
+/** Trigger cleaning payload - signals Godot to start vacuum cleaning */
+export interface TriggerCleaningPayload {}
+
 /** Sync complete payload - sent after all spawn_agent messages during initial sync */
 export interface SyncCompletePayload {
   /** Array of all active agent IDs in the backend */
   agentIds: string[];
+  /** Number of cans dropped since last cleaning */
+  canCount: number;
 }
 
 /** Ack payload from Godot */
@@ -101,7 +106,8 @@ export type BackendToGodotMessage =
   | WebSocketMessage<'update_agent', UpdateAgentPayload>
   | WebSocketMessage<'remove_agent', RemoveAgentPayload>
   | WebSocketMessage<'sync_complete', SyncCompletePayload>
-  | WebSocketMessage<'user_stats', UserStatsPayload>;
+  | WebSocketMessage<'user_stats', UserStatsPayload>
+  | WebSocketMessage<'trigger_cleaning', TriggerCleaningPayload>;
 
 /** User stats for a single user */
 export interface UserStats {
