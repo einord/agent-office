@@ -86,6 +86,7 @@ interface AgentResponse {
 interface RequestResult<T> {
   data: T | null;
   notFound: boolean;
+  conflict: boolean;
 }
 
 /**
@@ -167,7 +168,7 @@ export class ServerClient {
     // Ensure we're authenticated
     const authenticated = await this.authenticate();
     if (!authenticated) {
-      return { data: null, notFound: false };
+      return { data: null, notFound: false, conflict: false };
     }
 
     try {
@@ -193,16 +194,21 @@ export class ServerClient {
 
         // Check for 404 (not found)
         if (response.status === 404) {
-          return { data: null, notFound: true };
+          return { data: null, notFound: true, conflict: false };
+        }
+
+        // Check for 409 (conflict / already exists)
+        if (response.status === 409) {
+          return { data: null, notFound: false, conflict: true };
         }
 
         const error = await response.json().catch(() => ({ error: 'Unknown error' }));
         const contextStr = context ? ` (${context})` : '';
         console.error(`[ServerClient] Request failed${contextStr} [${response.status}] ${endpoint}: ${error.error || response.statusText}`);
-        return { data: null, notFound: false };
+        return { data: null, notFound: false, conflict: false };
       }
 
-      return { data: (await response.json()) as T, notFound: false };
+      return { data: (await response.json()) as T, notFound: false, conflict: false };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (message.includes('fetch failed') || message.includes('ECONNREFUSED')) {
@@ -210,7 +216,7 @@ export class ServerClient {
       } else {
         console.error(`[ServerClient] Request error: ${message}`);
       }
-      return { data: null, notFound: false };
+      return { data: null, notFound: false, conflict: false };
     }
   }
 
@@ -248,6 +254,14 @@ export class ServerClient {
       this.lastContextMap.set(id, session.tokens.percentage);
       console.log(`[ServerClient] Created agent: ${id} (${session.slug})`);
       return true;
+    }
+
+    // Agent already exists on server (e.g. from a previous CLI session) -
+    // mark as synced and update instead of repeatedly trying to create
+    if (result.conflict) {
+      console.log(`[ServerClient] Agent already exists on server, switching to update: ${id}`);
+      this.syncedAgents.add(id);
+      return this.updateAgent(session);
     }
 
     return false;

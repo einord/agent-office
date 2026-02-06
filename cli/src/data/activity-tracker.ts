@@ -30,6 +30,13 @@ export function getLatestActivity(messages: ConversationMessage[], lastModified?
     const lastMsg = messages[messages.length - 1];
     if (lastMsg.type === 'user' && lastMsg.message?.role === 'user') {
       const content = lastMsg.message?.content;
+      // User sent a plain text message - Claude should be processing it
+      if (typeof content === 'string') {
+        if (isStale) {
+          return { type: 'done' };
+        }
+        return { type: 'thinking' };
+      }
       if (Array.isArray(content)) {
         const hasToolResult = content.some((block: { type: string }) => block.type === 'tool_result');
         if (hasToolResult) {
