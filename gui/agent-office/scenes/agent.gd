@@ -13,8 +13,9 @@ const SIDECHAIN_SCALE := 0.7
 @export var idle_grace_period: float = 5.0  # Seconds to wait at workstation before going idle
 @onready var navigation_agent: NavigationAgent2D = get_node("NavigationAgent2D")
 @onready var _anim_player: AnimationPlayer = $AnimationPlayer
+@onready var _context_bar: ColorRect = $ContextBar
+var _context_bar_init_length: float = 0.0
 var _name_label: Label = null
-var _progress_sprite: AnimatedSprite2D = null
 var _ui_layer: Control = null
 var movement_delta: float
 var current_state: AgentState = AgentState.IDLE
@@ -79,17 +80,10 @@ func _setup_name_label() -> void:
 
 	_ui_layer.add_child(_name_label)
 
-	# Create progress circle sprite
-	var progress_frames = load("res://assets/sprites/progress_circle_frames.tres") as SpriteFrames
-	if progress_frames:
-		_progress_sprite = AnimatedSprite2D.new()
-		_progress_sprite.sprite_frames = progress_frames
-		_progress_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		_progress_sprite.frame = 0
-		# Scale to match UI layer (same DPI scaling as label)
-		var sprite_scale = DisplayManager.get_scaled_size(8)
-		_progress_sprite.scale = Vector2(sprite_scale, sprite_scale)
-		_ui_layer.add_child(_progress_sprite)
+	# Create context progress bar (background + fill)
+	_context_bar_init_length = _context_bar.size.x
+	_context_bar.color = Color(0.2, 0.8, 0.2)
+	_context_bar.size.x = 0
 
 ## Returns the formatted label text with display name and optional user name.
 ## Sidechain agents get "jr" suffix.
@@ -102,11 +96,9 @@ func _get_label_text() -> String:
 	return name_text
 
 func _exit_tree() -> void:
-	# Clean up the label and progress sprite when agent is removed
+	# Clean up UI elements when agent is removed
 	if _name_label and is_instance_valid(_name_label):
 		_name_label.queue_free()
-	if _progress_sprite and is_instance_valid(_progress_sprite):
-		_progress_sprite.queue_free()
 
 func set_movement_target(movement_target: Vector2):
 	navigation_agent.set_target_position(movement_target)
@@ -294,16 +286,15 @@ func _update_label_position() -> void:
 	var label_offset = Vector2(0, -12) * scale_factor
 
 	# Center the label horizontally and round to nearest pixel
-	var final_pos = screen_pos + label_offset - Vector2(_name_label.size.x / 2, 0)
+	var final_pos
+	if is_sidechain:
+		final_pos = screen_pos + label_offset - Vector2(_name_label.size.x / 2, 0) + Vector2(0, 50)  # Slightly lower for sidechain agents
+	else:
+		final_pos = screen_pos + label_offset - Vector2(_name_label.size.x / 2, 0) # Center horizontally
 	_name_label.position = final_pos.round()
 
-	# Position progress circle to the right of the label
-	if _progress_sprite and is_instance_valid(_progress_sprite):
-		var circle_pos = Vector2(
-			final_pos.x + _name_label.size.x + 2 * scale_factor.x,
-			final_pos.y + _name_label.size.y / 2
-		)
-		_progress_sprite.position = circle_pos.round()
+	# Position progress bar below the label
+	_context_bar.size.x = _context_bar_init_length * (context_percentage / 100.0)
 
 func _physics_process(delta):
 	# Do not query when the map has never synchronized and is empty.
@@ -381,13 +372,17 @@ func _on_velocity_computed(safe_velocity: Vector2) -> void:
 
 	global_position = global_position.move_toward(global_position + safe_velocity, movement_delta)
 
-## Updates the context window percentage and the progress circle frame.
+## Updates the context window percentage and the progress bar color/width.
+## Color transitions: green (0%) → yellow (50%) → red (100%).
 func set_context_percentage(percentage: float) -> void:
 	context_percentage = clampf(percentage, 0.0, 100.0)
-	if _progress_sprite and is_instance_valid(_progress_sprite):
-		# Map 0-100% to frames 0-8 (each step = 12.5%)
-		var frame_index = clampi(roundi(context_percentage / 12.5), 0, 8)
-		_progress_sprite.frame = frame_index
+	var t = context_percentage / 100.0
+	if t <= 0.5:
+		# Green → Yellow (0-50%)
+		_context_bar.color = Color(0.2, 0.8, 0.2).lerp(Color(0.9, 0.9, 0.2), t * 2.0)
+	else:
+		# Yellow → Red (50-100%)
+		_context_bar.color = Color(0.9, 0.9, 0.2).lerp(Color(0.9, 0.2, 0.2), (t - 0.5) * 2.0)
 
 ## Activates or deactivates all computers linked to the current workstation.
 func _activate_workstation_computers(active: bool) -> void:
