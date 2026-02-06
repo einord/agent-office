@@ -38,6 +38,8 @@ var current_workstation: Marker2D = null
 var _preferred_workstation: Marker2D = null
 ## Flag to only trigger computer activation once per work session
 var _has_arrived_at_work: bool = false
+## Whether the agent is currently sitting (chair animation playing)
+var _is_sitting: bool = false
 ## Context window usage percentage (0-100)
 var context_percentage: float = 0.0
 
@@ -157,6 +159,7 @@ func _exit_state(state: AgentState) -> void:
 			_preferred_workstation = current_workstation
 			current_workstation = null
 			_has_arrived_at_work = false
+			_is_sitting = false
 			_is_idle_grace_waiting = false
 			_idle_grace_timer = 0.0
 		AgentState.IDLE:
@@ -304,17 +307,18 @@ func _physics_process(delta):
 		return
 
 	if navigation_agent.is_navigation_finished():
-		# Play standing animation when not moving
-		if _anim_player.current_animation != "standing":
+		# Play standing animation when not moving (unless sitting in a chair)
+		if not _is_sitting and _anim_player.current_animation != "standing":
 			_anim_player.play("standing")
 
 		# Handle state-specific behavior when navigation is complete
 		match current_state:
 			AgentState.WORKING:
-				# Activate computers when first arriving at workstation
+				# Activate computers and sit in chair when first arriving at workstation
 				if not _has_arrived_at_work:
 					_has_arrived_at_work = true
 					_activate_workstation_computers(true)
+					_sit_in_chair()
 				# Handle grace period countdown before transitioning to IDLE
 				if _is_idle_grace_waiting:
 					_idle_grace_timer -= delta
@@ -347,6 +351,11 @@ func _physics_process(delta):
 				return
 		return
 
+	# Start chair animation early when close to workstation
+	if current_state == AgentState.WORKING and not _is_sitting and current_workstation != null:
+		if global_position.distance_to(current_workstation.global_position) < 6.0:
+			_sit_in_chair()
+
 	movement_delta = movement_speed * delta
 	var next_path_position: Vector2 = navigation_agent.get_next_path_position()
 	var new_velocity: Vector2 = global_position.direction_to(next_path_position) * movement_speed
@@ -362,13 +371,14 @@ func _on_velocity_computed(safe_velocity: Vector2) -> void:
 	elif safe_velocity.x > 0:
 		flip_h = false
 
-	# Play walking animation when moving
-	if safe_velocity.length() > 0.1:
-		if _anim_player.current_animation != "walking":
-			_anim_player.play("walking")
-	else:
-		if _anim_player.current_animation != "standing":
-			_anim_player.play("standing")
+	# Play walking animation when moving (unless sitting in a chair)
+	if not _is_sitting:
+		if safe_velocity.length() > 0.1:
+			if _anim_player.current_animation != "walking":
+				_anim_player.play("walking")
+		else:
+			if _anim_player.current_animation != "standing":
+				_anim_player.play("standing")
 
 	global_position = global_position.move_toward(global_position + safe_velocity, movement_delta)
 
@@ -383,6 +393,21 @@ func set_context_percentage(percentage: float) -> void:
 	else:
 		# Yellow → Red (50-100%)
 		_context_bar.color = Color(0.9, 0.9, 0.2).lerp(Color(0.9, 0.2, 0.2), (t - 0.5) * 2.0)
+
+## Plays a chair animation on the agent based on the linked chair's direction.
+func _sit_in_chair() -> void:
+	if current_workstation == null:
+		return
+	for chair in get_tree().get_nodes_in_group("chair"):
+		if chair.workstation == current_workstation:
+			var is_up = chair.animation == &"up"
+			var anim_name = "chair_up" if is_up else "chair_down"
+			var y_offset = -1.0 if is_up else 1.0
+			global_position.y = chair.global_position.y + y_offset
+			_is_sitting = true
+			if _anim_player.has_animation(anim_name):
+				_anim_player.play(anim_name)
+			return
 
 ## Activates or deactivates all computers linked to the current workstation.
 func _activate_workstation_computers(active: bool) -> void:

@@ -1,0 +1,38 @@
+[gd_scene format=3 uid="uid://62r4520hditx"]
+
+[ext_resource type="Texture2D" uid="uid://c0eumcv4np4gj" path="res://assets/sprites/chair.png" id="1_i2o7u"]
+[ext_resource type="Script" path="res://scenes/chair.gd" id="2_script"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_v2yb1"]
+atlas = ExtResource("1_i2o7u")
+region = Rect2(0, 0, 7, 8)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_js0lu"]
+atlas = ExtResource("1_i2o7u")
+region = Rect2(7, 0, 7, 8)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_gxtfn"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_v2yb1")
+}],
+"loop": true,
+"name": &"down",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_js0lu")
+}],
+"loop": true,
+"name": &"up",
+"speed": 5.0
+}]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" unique_id=683404785]
+texture_filter = 1
+sprite_frames = SubResource("SpriteFrames_gxtfn")
+animation = &"up"
+offset = Vector2(0, -3)
+script = ExtResource("2_script")

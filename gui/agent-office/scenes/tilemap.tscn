@@ -6,6 +6,7 @@
 [ext_resource type="SpriteFrames" uid="uid://gdkgo3he1qiw" path="res://assets/sprites/small_screen_frames.tres" id="4_ssf"]
 [ext_resource type="SpriteFrames" uid="uid://hhjtphwf2jll" path="res://assets/sprites/laptop_down_frames.tres" id="5_ldf"]
 [ext_resource type="SpriteFrames" uid="uid://dqdn74l3gk8qq" path="res://assets/sprites/laptop_up_frames.tres" id="6_luf"]
+[ext_resource type="PackedScene" uid="uid://62r4520hditx" path="res://scenes/chair.tscn" id="7_xjbjy"]
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_55lsm"]
 vertices = PackedVector2Array(101, 35, 101, 19, 131, 19, 131, 43, 99, 43, 99, 37, 91, 35, 61, 37, 61, 59, 91, 59, 91, 75, 85, 91, 75, 91, 43, 67, 155, 91, 101, 75, 101, 63, 107, 63, 133, 65, 107, 59, 133, 59, 147, 65, 147, 59, 155, 59, 141, 43, 141, 23, 149, 23, 149, 35, 155, 43, 179, 35, 179, 21, 155, 21, 155, 19, 195, 19, 195, 43, 165, 43, 165, 59, 183, 59, 183, 65, 181, 91, 193, 65, 193, 59, 195, 59, 195, 91, 195, 107, 195, 113, 191, 113, 191, 111, 181, 107, 183, 111, 183, 113, 165, 113, 155, 107, 165, 139, 195, 139, 195, 142, 117, 142, 117, 107, 85, 107, 93, 107, 93, 115, 89, 119, 79, 119, 75, 111, 107, 115, 107, 142, 91, 139, 91, 125, 61, 142, 61, 139, 89, 125, 79, 125, 61, 125, 61, 111, 45, 107, 51, 107, 51, 131, 37, 131, 35, 115, 37, 142, 5, 142, 5, 115, 45, 91, 35, 91, 5, 91, 5, 75, 19, 75, 19, 67, 13, 53, 13, 65, 5, 65, 5, 35, 43, 53, 35, 35, 35, 21, 5, 21, 5, 19, 91, 19)
@@ -180,3 +181,47 @@ position = Vector2(35, 63)
 offset = Vector2(0, -12)
 sprite_frames_resource = ExtResource("4_ssf")
 workstation_path = NodePath("../../Locations/WorkStations/Desk8")
+
+[node name="Things" type="Node2D" parent="." unique_id=1979474886]
+z_index = 2
+z_as_relative = false
+y_sort_enabled = true
+
+[node name="Chairs" type="Node2D" parent="Things" unique_id=917747196]
+z_index = 2
+z_as_relative = false
+y_sort_enabled = true
+
+[node name="Chair_1" parent="Things/Chairs" unique_id=683404785 instance=ExtResource("7_xjbjy")]
+position = Vector2(76, 57)
+workstation_path = NodePath("../../../Locations/WorkStations/Desk3")
+
+[node name="Chair_2" parent="Things/Chairs" unique_id=1077488267 instance=ExtResource("7_xjbjy")]
+position = Vector2(69, 38)
+animation = &"down"
+workstation_path = NodePath("../../../Locations/WorkStations/Desk4")
+
+[node name="Chair_3" parent="Things/Chairs" unique_id=417396982 instance=ExtResource("7_xjbjy")]
+position = Vector2(20, 33)
+workstation_path = NodePath("../../../Locations/WorkStations/Desk1")
+
+[node name="Chair_4" parent="Things/Chairs" unique_id=645184294 instance=ExtResource("7_xjbjy")]
+position = Vector2(20, 66)
+workstation_path = NodePath("../../../Locations/WorkStations/Desk2")
+
+[node name="Chair_5" parent="Things/Chairs" unique_id=1686436601 instance=ExtResource("7_xjbjy")]
+position = Vector2(36, 66)
+workstation_path = NodePath("../../../Locations/WorkStations/Desk8")
+
+[node name="Chair_6" parent="Things/Chairs" unique_id=671063070 instance=ExtResource("7_xjbjy")]
+position = Vector2(20, 113)
+workstation_path = NodePath("../../../Locations/WorkStations/Desk5")
+
+[node name="Chair_7" parent="Things/Chairs" unique_id=1570688374 instance=ExtResource("7_xjbjy")]
+position = Vector2(76, 137)
+workstation_path = NodePath("../../../Locations/WorkStations/Desk6")
+
+[node name="Chair_8" parent="Things/Chairs" unique_id=1131609852 instance=ExtResource("7_xjbjy")]
+position = Vector2(164, 22)
+animation = &"down"
+workstation_path = NodePath("../../../Locations/WorkStations/Desk7")
