@@ -10,6 +10,7 @@ const SIDECHAIN_SCALE := 0.7
 @export var idle_wait_min: float = 5.0  # Minimum wait time in idle state (seconds)
 @export var idle_wait_max: float = 10.0  # Maximum wait time in idle state (seconds)
 @export var exit_wait_time: float = 2.0  # Time to wait at exit before despawning (seconds)
+@export var idle_grace_period: float = 5.0  # Seconds to wait at workstation before going idle
 @onready var navigation_agent: NavigationAgent2D = get_node("NavigationAgent2D")
 @onready var _anim_player: AnimationPlayer = $AnimationPlayer
 var _name_label: Label = null
@@ -21,6 +22,8 @@ var _idle_timer: float = 0.0
 var _is_idle_waiting: bool = false
 var _exit_timer: float = 0.0
 var _is_exit_waiting: bool = false
+var _idle_grace_timer: float = 0.0
+var _is_idle_grace_waiting: bool = false
 var external_id: String = ""
 var display_name: String = ""
 var user_name: String = ""
@@ -115,9 +118,29 @@ func set_sprite_variant(frames: SpriteFrames) -> void:
 
 ## Changes the agent's state and triggers exit/enter callbacks.
 ## If already WORKING and receiving WORKING again, stays at current workstation.
+## Transitions from WORKING to IDLE have a grace period to avoid immediate wandering.
 func change_state(new_state: AgentState) -> void:
+	# If we're in grace period waiting to go idle...
+	if _is_idle_grace_waiting:
+		if new_state == AgentState.WORKING:
+			# Got work again — cancel the grace period, stay at workstation
+			_is_idle_grace_waiting = false
+			_idle_grace_timer = 0.0
+			return
+		if new_state == AgentState.LEAVING:
+			# Must leave — cancel grace period and transition immediately
+			_is_idle_grace_waiting = false
+			_idle_grace_timer = 0.0
+
 	if current_state == new_state:
 		return
+
+	# Delay WORKING → IDLE transition with a grace period
+	if current_state == AgentState.WORKING and new_state == AgentState.IDLE:
+		_is_idle_grace_waiting = true
+		_idle_grace_timer = idle_grace_period
+		return
+
 	_exit_state(current_state)
 	current_state = new_state
 	_enter_state(new_state)
@@ -139,6 +162,8 @@ func _exit_state(state: AgentState) -> void:
 			_activate_workstation_computers(false)
 			current_workstation = null
 			_has_arrived_at_work = false
+			_is_idle_grace_waiting = false
+			_idle_grace_timer = 0.0
 		AgentState.IDLE:
 			_idle_timer = 0.0
 			_is_idle_waiting = false
@@ -290,6 +315,14 @@ func _physics_process(delta):
 				if not _has_arrived_at_work:
 					_has_arrived_at_work = true
 					_activate_workstation_computers(true)
+				# Handle grace period countdown before transitioning to IDLE
+				if _is_idle_grace_waiting:
+					_idle_grace_timer -= delta
+					if _idle_grace_timer <= 0.0:
+						_is_idle_grace_waiting = false
+						_exit_state(AgentState.WORKING)
+						current_state = AgentState.IDLE
+						_enter_state(AgentState.IDLE)
 				return
 			AgentState.IDLE:
 				# Wait for a random duration before wandering to a new point
