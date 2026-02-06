@@ -204,6 +204,23 @@ export function calculateTokenUsage(messages: ConversationMessage[]): TokenUsage
 }
 
 /**
+ * Gets the current context window usage from the most recent assistant message.
+ * Each API response's input_tokens already includes the full conversation history,
+ * so the last message's input_tokens + output_tokens represents the actual context size.
+ * @param messages Conversation messages
+ * @returns Current context window token count
+ */
+export function getContextWindowUsage(messages: ConversationMessage[]): number {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const usage = messages[i].message?.usage;
+    if (usage) {
+      return (usage.input_tokens || 0) + (usage.output_tokens || 0);
+    }
+  }
+  return 0;
+}
+
+/**
  * Gets the session file path for a session ID in a project directory
  * @param projectDir Project directory path
  * @param sessionId Session ID

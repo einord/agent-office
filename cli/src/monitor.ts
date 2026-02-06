@@ -4,7 +4,7 @@ import { homedir } from 'os';
 import type { TrackedSession, SessionIndex, TokenUsage } from './types.js';
 import { MAX_CONTEXT_TOKENS } from './types.js';
 import { scanClaudeProcesses, getOpenSessionFiles, matchProcessesToSessions } from './data/process-scanner.js';
-import { getAllSessions, readConversationTail, calculateTokenUsage, setClaudeDir, getClaudeDir } from './data/session-reader.js';
+import { getAllSessions, readConversationTail, calculateTokenUsage, getContextWindowUsage, setClaudeDir, getClaudeDir } from './data/session-reader.js';
 import { getLatestActivity, isSessionActive, detectSidechain } from './data/activity-tracker.js';
 import { getSessionColor } from './ui/renderer.js';
 import { LogRenderer } from './ui/log-renderer.js';
@@ -300,9 +300,8 @@ export class ClaudeMonitor {
         return null;
       }
 
-      // Calculate token usage
-      const usage = calculateTokenUsage(messages);
-      const totalTokens = usage.input_tokens + usage.output_tokens;
+      // Get current context window usage (last API response's input + output tokens)
+      const contextTokens = getContextWindowUsage(messages);
 
       // Get activity (pass lastModified for timeout detection)
       const activity = getLatestActivity(messages, lastModified);
@@ -330,9 +329,9 @@ export class ClaudeMonitor {
         pid,
         color: getSessionColor(agentId),
         tokens: {
-          used: totalTokens,
+          used: contextTokens,
           max: MAX_CONTEXT_TOKENS,
-          percentage: Math.round((totalTokens / MAX_CONTEXT_TOKENS) * 100),
+          percentage: Math.round((contextTokens / MAX_CONTEXT_TOKENS) * 100),
         },
         activity,
         lastUpdate: new Date(lastModified),
