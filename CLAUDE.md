@@ -38,6 +38,7 @@ gui/       - Godot 4.x client, 2D office visualization
 
 - `cli/src/monitor.ts` - Core session scanning logic
 - `cli/src/data/` - Process scanning, session reading, activity tracking
+- `cli/src/sync/server-client.ts` - Backend sync (activity + context percentage)
 - `backend/src/index.ts` - Server entry, auth + WS setup
 - `backend/src/api/routes.ts` - All REST API route definitions
 - `backend/config.json` - API keys and port config (not in src/)

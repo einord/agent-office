@@ -24,7 +24,8 @@ npm start        # Run compiled CLI (no server sync)
 1. Scans for `claude` processes via `ps`
 2. Reads session data from `~/.claude/projects/`
 3. Detects activity from tool usage in conversation
-4. Optionally syncs state to backend via REST API
+4. Calculates context window usage from latest API response tokens
+5. Optionally syncs state (activity + context percentage) to backend via REST API
 
 ## Environment
 
