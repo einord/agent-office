@@ -5,6 +5,10 @@ import { getConfig } from '../config/config-loader.js';
 /** In-memory storage for active tokens */
 const tokens = new Map<string, Token>();
 
+function isExpired(token: Token, now: number): boolean {
+  return now > token.expiresAt;
+}
+
 /**
  * Generates a new session token for an authenticated user.
  * @param user - The authenticated user
@@ -14,14 +18,6 @@ export function generateToken(user: AuthUser): Token {
   const config = getConfig();
   const now = Date.now();
   const expiresAt = now + config.tokenExpirySeconds * 1000;
-
-  // Remove any existing tokens for this user to prevent stale inactivity tracking
-  for (const [tokenString, existingToken] of tokens.entries()) {
-    if (existingToken.user.key === user.key) {
-      tokens.delete(tokenString);
-      console.log(`[TokenManager] Removed old token for user: ${user.displayName}`);
-    }
-  }
 
   const token: Token = {
     token: uuidv4(),
@@ -50,15 +46,15 @@ export function validateToken(tokenString: string): Token | null {
     return null;
   }
 
-  // Check if token has expired
-  if (Date.now() > token.expiresAt) {
+  const now = Date.now();
+
+  if (isExpired(token, now)) {
     tokens.delete(tokenString);
     console.log(`[TokenManager] Token expired for user: ${token.user.displayName}`);
     return null;
   }
 
-  // Update last activity
-  token.lastActivity = Date.now();
+  token.lastActivity = now;
 
   return token;
 }
@@ -97,7 +93,7 @@ export function cleanupExpiredTokens(): void {
   let cleaned = 0;
 
   for (const [tokenString, token] of tokens.entries()) {
-    if (now > token.expiresAt) {
+    if (isExpired(token, now)) {
       tokens.delete(tokenString);
       cleaned++;
     }
@@ -117,7 +113,7 @@ export function getActiveTokenCount(): number {
   let count = 0;
 
   for (const token of tokens.values()) {
-    if (now <= token.expiresAt) {
+    if (!isExpired(token, now)) {
       count++;
     }
   }
@@ -140,8 +136,7 @@ export function getInactiveUserKeys(timeoutSeconds: number): string[] {
   const inactiveKeys: string[] = [];
 
   for (const token of tokens.values()) {
-    // Skip expired tokens
-    if (now > token.expiresAt) {
+    if (isExpired(token, now)) {
       continue;
     }
 
@@ -165,8 +160,9 @@ export function getInactiveUserKeys(timeoutSeconds: number): string[] {
  */
 export function touchToken(tokenString: string): boolean {
   const token = tokens.get(tokenString);
-  if (token && Date.now() <= token.expiresAt) {
-    token.lastActivity = Date.now();
+  const now = Date.now();
+  if (token && !isExpired(token, now)) {
+    token.lastActivity = now;
     return true;
   }
   return false;
@@ -182,15 +178,21 @@ export interface ActiveUserSession {
 /**
  * Gets a map of active users with their session counts.
  * Groups tokens by user key and counts active sessions.
+ * Only counts tokens with recent activity (within inactivityTimeoutSeconds)
+ * to avoid showing stale sessions from disconnected CLIs.
  * @returns Map of user key to session info
  */
 export function getActiveUsers(): Map<string, ActiveUserSession> {
+  const config = getConfig();
   const now = Date.now();
+  const inactivityMs = config.inactivityTimeoutSeconds * 1000;
   const userMap = new Map<string, ActiveUserSession>();
 
   for (const token of tokens.values()) {
-    // Skip expired tokens
-    if (now > token.expiresAt) {
+    if (isExpired(token, now)) {
+      continue;
+    }
+    if (inactivityMs > 0 && (now - token.lastActivity) > inactivityMs) {
       continue;
     }
 
