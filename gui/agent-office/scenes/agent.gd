@@ -371,6 +371,13 @@ func _on_velocity_computed(safe_velocity: Vector2) -> void:
 	elif safe_velocity.x > 0:
 		flip_h = false
 
+	# Switch sprite facing based on vertical movement
+	if not _is_sitting:
+		if safe_velocity.y < -0.1 and animation != &"up":
+			play(&"up")
+		elif safe_velocity.y >= 0.0 and animation != &"down":
+			play(&"down")
+
 	# Play walking animation when moving (unless sitting in a chair)
 	if not _is_sitting:
 		if safe_velocity.length() > 0.1:
@@ -402,6 +409,7 @@ func _sit_in_chair() -> void:
 		if chair.workstation == current_workstation:
 			var is_up = chair.animation == &"up"
 			var anim_name = "chair_up" if is_up else "chair_down"
+			play(&"up" if is_up else &"down")
 			var y_offset = -1.0 if is_up else 1.0
 			global_position.y = chair.global_position.y + y_offset
 			_is_sitting = true
