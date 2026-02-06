@@ -178,6 +178,10 @@ func _handle_spawn_agent(payload: Dictionary) -> void:
 		if context_pct is float:
 			context_pct = int(context_pct)
 		agent.set_context_percentage(context_pct)
+		var activity = payload.get("activity", "")
+		if activity == null:
+			activity = ""
+		agent.set_activity(activity)
 		_send_ack("spawn_agent", agent_id, true)
 	else:
 		_send_ack("spawn_agent", agent_id, false)
@@ -216,6 +220,12 @@ func _handle_update_agent(payload: Dictionary) -> void:
 		context_pct = int(context_pct)
 	if context_pct >= 0:
 		agent.set_context_percentage(context_pct)
+
+	# Update activity bubble
+	var activity = payload.get("activity", "")
+	if activity == null:
+		activity = ""
+	agent.set_activity(activity)
 
 ## Handles the remove_agent command from the backend.
 func _handle_remove_agent(payload: Dictionary) -> void:
@@ -413,6 +423,10 @@ func _spawn_agent(is_sidechain: bool = false) -> void:
 	agent.position = spawn_position
 	_agents_container.add_child(agent)
 	_agent_queue.append(agent)
+
+	# Assign a random activity for testing
+	var test_activities = ["thinking", "working", "coding", "reading", "writing"]
+	agent.set_activity(test_activities[randi() % test_activities.size()])
 
 	# Connect to agent's removal signal
 	agent.tree_exiting.connect(_on_agent_removed.bind(agent))

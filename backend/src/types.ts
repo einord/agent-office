@@ -39,6 +39,8 @@ export interface SpawnAgentPayload {
   userName: string;
   variantIndex: number;
   state: AgentState;
+  /** Detailed activity (e.g. thinking, reading, coding) */
+  activity: AgentActivity;
   /** Parent agent ID if this is a sub-agent */
   parentId: string | null;
   /** Whether this is a sidechain (sub-agent) */
@@ -51,6 +53,8 @@ export interface SpawnAgentPayload {
 export interface UpdateAgentPayload {
   id: string;
   state: AgentState;
+  /** Detailed activity (e.g. thinking, reading, coding) */
+  activity: AgentActivity;
   /** Context window usage percentage (0-100) */
   contextPercentage: number;
 }

@@ -2,6 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://csn3uduealrwr" path="res://assets/sprites/template.png" id="1_b2pv0"]
 [ext_resource type="Script" uid="uid://f01bugove64e" path="res://scenes/agent.gd" id="2_umeaf"]
+[ext_resource type="Texture2D" uid="uid://dbp0dlxt4h3sw" path="res://assets/sprites/activity_sheet.png" id="3_yc63n"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_umeaf"]
 atlas = ExtResource("1_b2pv0")
@@ -109,6 +110,109 @@ _data = {
 &"walking": SubResource("Animation_lug0u")
 }
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_lug0u"]
+atlas = ExtResource("3_yc63n")
+region = Rect2(0, 32, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_dg1j7"]
+atlas = ExtResource("3_yc63n")
+region = Rect2(16, 32, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qeyy3"]
+atlas = ExtResource("3_yc63n")
+region = Rect2(0, 48, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nkfwj"]
+atlas = ExtResource("3_yc63n")
+region = Rect2(16, 48, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_iuhnp"]
+atlas = ExtResource("3_yc63n")
+region = Rect2(0, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_52ahs"]
+atlas = ExtResource("3_yc63n")
+region = Rect2(16, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_y08pw"]
+atlas = ExtResource("3_yc63n")
+region = Rect2(0, 16, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_q3gef"]
+atlas = ExtResource("3_yc63n")
+region = Rect2(16, 16, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_f14ir"]
+atlas = ExtResource("3_yc63n")
+region = Rect2(0, 32, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_tduqk"]
+atlas = ExtResource("3_yc63n")
+region = Rect2(16, 32, 16, 16)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_2rugh"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_lug0u")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_dg1j7")
+}],
+"loop": true,
+"name": &"coding",
+"speed": 1.0
+}, {
+"frames": [],
+"loop": true,
+"name": &"default",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qeyy3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nkfwj")
+}],
+"loop": true,
+"name": &"reading",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_iuhnp")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_52ahs")
+}],
+"loop": true,
+"name": &"thinking",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_y08pw")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_q3gef")
+}],
+"loop": true,
+"name": &"working",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_f14ir")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_tduqk")
+}],
+"loop": true,
+"name": &"writing",
+"speed": 1.0
+}]
+
 [node name="Agent" type="AnimatedSprite2D" unique_id=1212106709]
 z_index = 2
 z_as_relative = false
@@ -136,6 +240,7 @@ autoplay = &"standing"
 
 [node name="ContextBar" type="ColorRect" parent="." unique_id=1759184112]
 z_index = 10
+z_as_relative = false
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -145,3 +250,12 @@ offset_right = -5.0
 offset_bottom = -17.75
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="ActivityBubble" type="AnimatedSprite2D" parent="." unique_id=122485424]
+z_index = 11
+z_as_relative = false
+position = Vector2(4, -9)
+scale = Vector2(0.25, 0.25)
+sprite_frames = SubResource("SpriteFrames_2rugh")
+animation = &"working"
+frame_progress = 0.39999592

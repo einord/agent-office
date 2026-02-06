@@ -76,6 +76,7 @@ function broadcastSpawnAgent(agent: Agent): number {
     userName: agent.ownerDisplayName,
     variantIndex: agent.variantIndex,
     state: agent.state,
+    activity: agent.activity,
     parentId: agent.parentId,
     isSidechain: agent.isSidechain,
     contextPercentage: agent.contextPercentage,
@@ -91,6 +92,7 @@ function broadcastUpdateAgent(agent: Agent): number {
   const payload: UpdateAgentPayload = {
     id: agent.id,
     state: agent.state,
+    activity: agent.activity,
     contextPercentage: agent.contextPercentage,
   };
 
@@ -215,6 +217,7 @@ function syncAgentsToClient(client: WebSocket): void {
       userName: agent.ownerDisplayName,
       variantIndex: agent.variantIndex,
       state: agent.state,
+      activity: agent.activity,
       parentId: agent.parentId,
       isSidechain: agent.isSidechain,
       contextPercentage: agent.contextPercentage,

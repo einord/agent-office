@@ -14,6 +14,7 @@ const SIDECHAIN_SCALE := 0.7
 @onready var navigation_agent: NavigationAgent2D = get_node("NavigationAgent2D")
 @onready var _anim_player: AnimationPlayer = $AnimationPlayer
 @onready var _context_bar: ColorRect = $ContextBar
+@onready var _activity_bubble: AnimatedSprite2D = $ActivityBubble
 var _context_bar_init_length: float = 0.0
 var _name_label: Label = null
 var _ui_layer: Control = null
@@ -42,11 +43,16 @@ var _has_arrived_at_work: bool = false
 var _is_sitting: bool = false
 ## Context window usage percentage (0-100)
 var context_percentage: float = 0.0
+## Current detailed activity (e.g. thinking, coding, reading)
+var current_activity: String = ""
 
 func _ready() -> void:
 	add_to_group("agent")
 	navigation_agent.velocity_computed.connect(Callable(_on_velocity_computed))
 	_setup_name_label()
+	# Hide activity bubble until an activity is set
+	if _activity_bubble:
+		_activity_bubble.visible = false
 	# Vänta en frame så att navigationskartan hinner synkroniseras
 	await get_tree().physics_frame
 	_enter_state(current_state)
@@ -416,6 +422,19 @@ func _sit_in_chair() -> void:
 			if _anim_player.has_animation(anim_name):
 				_anim_player.play(anim_name)
 			return
+
+## Updates the activity bubble to show the given activity animation.
+## Hides the bubble if no matching animation exists.
+func set_activity(activity: String) -> void:
+	current_activity = activity
+	if _activity_bubble == null:
+		return
+	if activity != "" and _activity_bubble.sprite_frames.has_animation(activity):
+		_activity_bubble.visible = true
+		_activity_bubble.play(activity)
+	else:
+		_activity_bubble.visible = false
+		_activity_bubble.stop()
 
 ## Activates or deactivates all computers linked to the current workstation.
 func _activate_workstation_computers(active: bool) -> void:
