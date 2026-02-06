@@ -1,0 +1,35 @@
+[gd_scene format=3 uid="uid://d065djg3un8m1"]
+
+[ext_resource type="Texture2D" uid="uid://cdri4vqaxmh1" path="res://assets/sprites/vacuum.png" id="1_jawr6"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7vxop"]
+atlas = ExtResource("1_jawr6")
+region = Rect2(0, 0, 8, 8)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_oo60p"]
+atlas = ExtResource("1_jawr6")
+region = Rect2(0, 8, 8, 8)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_dmq8p"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_7vxop")
+}],
+"loop": true,
+"name": &"down",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_oo60p")
+}],
+"loop": true,
+"name": &"up",
+"speed": 5.0
+}]
+
+[node name="Vacuum" type="AnimatedSprite2D" unique_id=758709153]
+texture_filter = 1
+sprite_frames = SubResource("SpriteFrames_dmq8p")
+animation = &"up"

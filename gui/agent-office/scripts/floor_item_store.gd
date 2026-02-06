@@ -10,11 +10,12 @@ func _ready() -> void:
 	_load_from_file()
 
 ## Saves a dropped item to persistent storage.
-func save_item(type: String, pos: Vector2) -> void:
+func save_item(type: String, pos: Vector2, color: Color = Color.WHITE) -> void:
 	_items.append({
 		"type": type,
 		"x": pos.x,
 		"y": pos.y,
+		"color": color.to_html(),
 		"dropped_at": Time.get_unix_time_from_system()
 	})
 	_write_to_file()

@@ -74,10 +74,11 @@ func _navigate_to_vending_machine() -> void:
 		_phase = Phase.WANDERING
 		_set_wander_target()
 
-## Spawns a can and attaches it to the agent.
+## Spawns a can with a random color and attaches it to the agent.
 func _spawn_can() -> void:
 	_can_instance = CAN_SCENE.instantiate()
 	agent.add_child(_can_instance)
+	_can_instance.set_can_color(Color.from_hsv(randf(), randf_range(0.5, 1.0), randf_range(0.7, 1.0)))
 	_can_instance.hold(agent)
 
 ## Sets a random break area as the next wander target.

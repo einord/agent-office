@@ -480,10 +480,11 @@ func set_idle_action(action_data) -> void:
 
 ## Returns the offset for held items based on hand preference and facing direction.
 func get_hold_offset() -> Vector2:
+	var offset_horizontal = 4 if is_sidechain else 3
 	if holds_left:
-		return offset + Vector2(4, 0) if not flip_h else offset + Vector2(-4, 0)
+		return offset + Vector2(offset_horizontal, 0) if not flip_h else offset + Vector2(-offset_horizontal, 0)
 	else:
-		return offset + Vector2(-4, 0) if not flip_h else offset + Vector2(4, 0)
+		return offset + Vector2(-offset_horizontal, 0) if not flip_h else offset + Vector2(offset_horizontal, 0)
 
 ## Creates and starts the idle action handler based on pending action data.
 func _start_idle_action() -> void:

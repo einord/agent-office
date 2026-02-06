@@ -519,6 +519,9 @@ func _restore_floor_items() -> void:
 		if item_type == "can":
 			var can_instance = can_scene.instantiate()
 			floor_container.add_child(can_instance)
+			var color_html = item.get("color", "")
+			if color_html != "":
+				can_instance.set_can_color(Color.from_string(color_html, Color.WHITE))
 			can_instance.spawn_on_floor(pos)
 
 ## Simple hash function for deterministic variant selection.

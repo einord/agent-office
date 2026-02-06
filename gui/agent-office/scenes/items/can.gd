@@ -8,6 +8,8 @@ const FLOOR_LIFETIME := 7200.0
 var current_state: CanState = CanState.HELD
 var _floor_timer: float = 0.0
 var _held_by_agent: Node2D = null
+## The tint color of this can (applied via self_modulate).
+var can_color: Color = Color.WHITE
 
 func _ready() -> void:
 	add_to_group("floor_item")
@@ -25,6 +27,11 @@ func _process(delta: float) -> void:
 			if _floor_timer >= FLOOR_LIFETIME:
 				FloorItemStore.remove_item_at(global_position)
 				queue_free()
+
+## Sets the can color and applies it as self_modulate.
+func set_can_color(color: Color) -> void:
+	can_color = color
+	self_modulate = color
 
 ## Attaches the can to an agent's hand.
 func hold(agent: Node2D) -> void:
@@ -47,7 +54,7 @@ func drop(drop_position: Vector2) -> void:
 
 	global_position = drop_position
 	play(&"on_floor")
-	FloorItemStore.save_item("can", drop_position)
+	FloorItemStore.save_item("can", drop_position, can_color)
 
 ## Spawns the can directly on the floor (for restoring saved items).
 func spawn_on_floor(floor_position: Vector2) -> void:
