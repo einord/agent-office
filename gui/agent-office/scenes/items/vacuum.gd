@@ -3,18 +3,19 @@ extends AnimatedSprite2D
 enum VacuumState { IDLE, CLEANING, RETURNING }
 
 const MOVEMENT_SPEED := 20.0
+const PICKUP_PAUSE := 1.0
 
 var _state: VacuumState = VacuumState.IDLE
 var _charge_position: Vector2
 var _targets: Array = []
 var _current_target: Node2D = null
+var _pause_timer: float = 0.0
 
 @onready var _nav_agent: NavigationAgent2D = $NavigationAgent2D
 
 func _ready() -> void:
 	_charge_position = global_position
 	_nav_agent.max_speed = MOVEMENT_SPEED
-	visible = false
 
 ## Starts the cleaning cycle by collecting all floor cans.
 func start_cleaning() -> void:
@@ -33,6 +34,10 @@ func start_cleaning() -> void:
 
 func _physics_process(delta: float) -> void:
 	if _state == VacuumState.IDLE:
+		return
+
+	if _pause_timer > 0.0:
+		_pause_timer -= delta
 		return
 
 	if _nav_agent.is_navigation_finished():
@@ -62,6 +67,7 @@ func _consume_current_target() -> void:
 	if _current_target != null and is_instance_valid(_current_target):
 		FloorItemStore.remove_item_at(_current_target.global_position)
 		_current_target.queue_free()
+		_pause_timer = PICKUP_PAUSE
 	_current_target = null
 
 	if _targets.is_empty():
@@ -80,4 +86,3 @@ func _consume_current_target() -> void:
 func _finish_cleaning() -> void:
 	FloorItemStore.clear_all()
 	_state = VacuumState.IDLE
-	visible = false
