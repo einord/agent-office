@@ -30,6 +30,8 @@ var parent_agent_id: String = ""
 var is_sidechain: bool = false
 ## Reference to the chosen workstation Marker2D
 var current_workstation: Marker2D = null
+## Remembered workstation from last work session (preferred for next time)
+var _preferred_workstation: Marker2D = null
 ## Flag to only trigger computer activation once per work session
 var _has_arrived_at_work: bool = false
 ## Context window usage percentage (0-100)
@@ -137,6 +139,7 @@ func _exit_state(state: AgentState) -> void:
 	match state:
 		AgentState.WORKING:
 			_activate_workstation_computers(false)
+			_preferred_workstation = current_workstation
 			current_workstation = null
 			_has_arrived_at_work = false
 		AgentState.IDLE:
@@ -159,6 +162,12 @@ func _set_work_target() -> void:
 	for other in get_tree().get_nodes_in_group("agent"):
 		if other != self and other.current_workstation != null:
 			occupied[other.current_workstation] = true
+
+	# Try preferred workstation first if it's free
+	if _preferred_workstation != null and not occupied.has(_preferred_workstation):
+		current_workstation = _preferred_workstation
+		set_movement_target(current_workstation.global_position)
+		return
 
 	# Prefer unoccupied stations
 	var free_stations: Array = []
