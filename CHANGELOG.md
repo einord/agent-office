@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.16](https://github.com/einord/agent-office/compare/agent-office-v0.1.15...agent-office-v0.1.16) (2026-02-06)
+
+
+### Features
+
+* update documentation to reflect new backend sync logic and enhanced workstation system ([3dba492](https://github.com/einord/agent-office/commit/3dba4927dd0b2845797af635fd767ab3b8165561))
+
+
+### Bug Fixes
+
+* update inactivity timeout to 180 seconds in config.json ([7d9893a](https://github.com/einord/agent-office/commit/7d9893a06058580e6326ccf4b5a5dc0e8eeeff84))
+
+
+### Code Refactoring
+
+* improve token management and session handling logic ([38d953a](https://github.com/einord/agent-office/commit/38d953a29c260628e70dcc0ae341236a3049ef78))
+
 ## [0.1.15](https://github.com/einord/agent-office/compare/agent-office-v0.1.14...agent-office-v0.1.15) (2026-02-06)
 
 
