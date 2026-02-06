@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.17](https://github.com/einord/agent-office/compare/agent-office-v0.1.16...agent-office-v0.1.17) (2026-02-06)
+
+
+### Features
+
+* add activity tracking to agents and integrate activity bubble animations ([fba8d29](https://github.com/einord/agent-office/commit/fba8d29b85b06fe64c10a405d5b65bd35c55087d))
+
+
+### Bug Fixes
+
+* add conflict handling to RequestResult and update response structure in ServerClient ([a7befa3](https://github.com/einord/agent-office/commit/a7befa3b638a152a54c3af8cb02312fcf5ca20fa))
+* enhance token usage calculation by including cache token metrics ([6d5def3](https://github.com/einord/agent-office/commit/6d5def36f0339f6892119a4032ca69bea2c42e1c))
+
 ## [0.1.16](https://github.com/einord/agent-office/compare/agent-office-v0.1.15...agent-office-v0.1.16) (2026-02-06)
 
 
