@@ -48,14 +48,21 @@ export async function scanClaudeProcesses(): Promise<ClaudeProcess[]> {
 }
 
 /**
- * Gets open files for Claude processes using lsof
+ * Gets open files for Claude processes using lsof.
+ * Accepts PIDs from scanClaudeProcesses() to query by PID instead of command name,
+ * since Claude Code runs as a node process and `lsof -c claude` won't match.
+ * @param pids Optional list of PIDs to query (from scanClaudeProcesses)
  * @returns Map of PID to array of open file paths
  */
-export async function getOpenSessionFiles(): Promise<Map<number, string[]>> {
+export async function getOpenSessionFiles(pids?: number[]): Promise<Map<number, string[]>> {
   const fileMap = new Map<number, string[]>();
 
   try {
-    const { stdout } = await execAsync('lsof -c claude 2>/dev/null || true');
+    // Use PIDs if available (more reliable), fall back to command name match
+    const lsofArg = pids && pids.length > 0
+      ? `-p ${pids.join(',')}`
+      : '-c claude';
+    const { stdout } = await execAsync(`lsof ${lsofArg} 2>/dev/null || true`);
     const lines = stdout.trim().split('\n').filter(line => line.length > 0);
 
     for (const line of lines) {

@@ -133,18 +133,32 @@ export function getInactiveUserKeys(timeoutSeconds: number): string[] {
 
   const now = Date.now();
   const timeoutMs = timeoutSeconds * 1000;
-  const inactiveKeys: string[] = [];
+
+  // Find the most recent activity per user (across all their tokens)
+  const userLatestActivity = new Map<string, { lastActivity: number; displayName: string }>();
 
   for (const token of tokens.values()) {
     if (isExpired(token, now)) {
       continue;
     }
 
-    const inactiveFor = now - token.lastActivity;
+    const existing = userLatestActivity.get(token.user.key);
+    if (!existing || token.lastActivity > existing.lastActivity) {
+      userLatestActivity.set(token.user.key, {
+        lastActivity: token.lastActivity,
+        displayName: token.user.displayName,
+      });
+    }
+  }
+
+  // Only flag users whose most recent token is inactive
+  const inactiveKeys: string[] = [];
+  for (const [key, info] of userLatestActivity) {
+    const inactiveFor = now - info.lastActivity;
     if (inactiveFor > timeoutMs) {
-      inactiveKeys.push(token.user.key);
+      inactiveKeys.push(key);
       console.log(
-        `[TokenManager] User ${token.user.displayName} inactive for ${Math.round(inactiveFor / 1000)}s`
+        `[TokenManager] User ${info.displayName} inactive for ${Math.round(inactiveFor / 1000)}s`
       );
     }
   }

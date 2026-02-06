@@ -32,13 +32,15 @@ export function getLatestActivity(messages: ConversationMessage[], lastModified?
       const content = lastMsg.message?.content;
       if (Array.isArray(content)) {
         const hasToolResult = content.some((block: { type: string }) => block.type === 'tool_result');
-        // User sent a message that's not a tool_result - they answered a question
-        if (!hasToolResult) {
-          if (isStale) {
-            return { type: 'done' };
-          }
+        if (hasToolResult) {
+          // Last message is a tool_result - Claude hasn't responded yet, must still be processing
           return { type: 'thinking' };
         }
+        // User sent a message that's not a tool_result - they answered a question
+        if (isStale) {
+          return { type: 'done' };
+        }
+        return { type: 'thinking' };
       }
     }
   }

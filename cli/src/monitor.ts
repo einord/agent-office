@@ -221,8 +221,14 @@ export class ClaudeMonitor {
       }
 
       // Remove any session that hasn't been updated within SESSION_TTL
-      // (except those waiting for input, which can be idle longer)
-      if (session.activity.type !== 'waiting_input' && age > SESSION_TTL_MS) {
+      // Skip "done" sessions (handled above with DONE_TIMEOUT) and "waiting_input" (can idle longer)
+      // Skip sessions with an active PID - the process is still running
+      if (
+        session.activity.type !== 'waiting_input' &&
+        session.activity.type !== 'done' &&
+        !session.pid &&
+        age > SESSION_TTL_MS
+      ) {
         sessionsToRemove.push(agentId);
       }
     }
@@ -249,9 +255,10 @@ export class ClaudeMonitor {
    */
   async refresh(): Promise<void> {
     try {
-      // Get process info
+      // Get process info (pass PIDs to lsof since Claude runs as node, not "claude")
       const processes = await scanClaudeProcesses();
-      const openFiles = await getOpenSessionFiles();
+      const pids = processes.map(p => p.pid);
+      const openFiles = await getOpenSessionFiles(pids);
       const sessionToPid = matchProcessesToSessions(processes, openFiles);
 
       // Get all sessions (includes sub-agents)
@@ -303,11 +310,17 @@ export class ClaudeMonitor {
       // Get current context window usage (last API response's input + output tokens)
       const contextTokens = getContextWindowUsage(messages);
 
-      // Get activity (pass lastModified for timeout detection)
-      const activity = getLatestActivity(messages, lastModified);
-
       // Get PID if known
       const pid = sessionToPid.get(sessionInfo.filePath);
+
+      // Get activity (pass lastModified for timeout detection)
+      let activity = getLatestActivity(messages, lastModified);
+
+      // If process is still running but activity was marked "done" due to stale file,
+      // the assistant is likely still thinking — override to "thinking"
+      if (pid && activity.type === 'done') {
+        activity = { type: 'thinking' };
+      }
 
       // Determine if this is a sidechain - use sessionInfo.isSidechain if set (from subagent file),
       // otherwise fall back to detecting from messages

@@ -284,12 +284,15 @@ export class ServerClient {
       return true;
     }
 
-    // If agent not found on server, recreate it
+    // If agent not found on server, recreate it (unless it's done - no point spawning a finished agent)
     if (result.notFound) {
-      console.log(`[ServerClient] Agent not found on server, recreating: ${id}`);
       this.syncedAgents.delete(id);
       this.lastActivityMap.delete(id);
       this.lastContextMap.delete(id);
+      if (activity === 'done') {
+        return true;
+      }
+      console.log(`[ServerClient] Agent not found on server, recreating: ${id}`);
       return this.createAgent(session);
     }
 
