@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.1.15](https://github.com/einord/agent-office/compare/agent-office-v0.1.14...agent-office-v0.1.15) (2026-02-06)
+
+
+### Features
+
+* add context progress bar to agent scene and update related logic ([333f7b2](https://github.com/einord/agent-office/commit/333f7b28b77ac17b90b49b517d8d9f6a3647a8b1))
+* add getContextWindowUsage function and update token usage calculation in ClaudeMonitor ([7f56a38](https://github.com/einord/agent-office/commit/7f56a38309f0464593998550a92c1b68a0e87903))
+* add viewer count functionality and UI overlay ([8ac8f47](https://github.com/einord/agent-office/commit/8ac8f47ce03b59c893c5435dd73466b9a55717e7))
+* add viewer count functionality and UI overlay ([423c7a0](https://github.com/einord/agent-office/commit/423c7a0945d7890c4ed2ea97e384464273e9f363))
+* **gui:** add grace period before agent transitions to idle ([5dea258](https://github.com/einord/agent-office/commit/5dea258fd6ec97e35ee9e6890d090de092390eed))
+* **gui:** add grace period before agent transitions to idle ([4df9b9d](https://github.com/einord/agent-office/commit/4df9b9d4bc4ca7805c860e0802ee696fd65a4e7d))
+* implement chair animations and integrate chair objects into the agent scene ([02760ff](https://github.com/einord/agent-office/commit/02760ff8dfae70d5077c30c8c247a23c2ebb79a7))
+* implement preferred workstation logic for agents ([a31f8d1](https://github.com/einord/agent-office/commit/a31f8d11b5e7c92254e3de8aa0a846e3bb33647f))
+* update agent animations to include 'up' and 'down' states for improved movement responsiveness ([b269dd7](https://github.com/einord/agent-office/commit/b269dd730f9336a20e6f4d0d982b0d6c2d214f9a))
+
+
+### Bug Fixes
+
+* allow multiple concurrent sessions per user in stats overlay ([70c3e67](https://github.com/einord/agent-office/commit/70c3e67398652e1f5067556026b9a532d9c28829))
+* filter stale sessions from user stats overlay ([83a9dbb](https://github.com/einord/agent-office/commit/83a9dbb1249791ddd2693671b763e2850e782fad))
+* filter stale sessions from user stats overlay ([ee47574](https://github.com/einord/agent-office/commit/ee47574b58d2c0f0705db1907f741e71a0ec4d17))
+* use parent name for junior agents ([cdc4904](https://github.com/einord/agent-office/commit/cdc4904dfd0e8033e5b60c2067828ffb87baccb0))
+* use parent name for junior agents instead of unique name ([51fe95a](https://github.com/einord/agent-office/commit/51fe95a226d453145664d3bd85759ae8b633e860))
+
+
+### Documentation
+
+* update CLAUDE.md files with missing key files and sections ([b4dfb92](https://github.com/einord/agent-office/commit/b4dfb9261c80ff3f1d315284d47eac976fbc5d15))
+
 ## [0.1.14](https://github.com/einord/agent-office/compare/agent-office-v0.1.13...agent-office-v0.1.14) (2026-02-05)
 
 
