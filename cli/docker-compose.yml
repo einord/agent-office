@@ -1,13 +1,14 @@
 # CLI client - runs on developer machines
 # Reports to a central Agent Office backend server
+#
+# Auto-updates: Watchtower polls GHCR every 5 minutes and
+# recreates the CLI container when a new image is available.
 
 name: agent-office-client
 services:
   cli:
     container_name: agent-office-cli
-    build:
-      context: ..
-      dockerfile: cli/Dockerfile
+    image: ghcr.io/einord/agent-office/cli:latest
     volumes:
       - ~/.claude:/root/.claude:ro
     environment:
@@ -15,4 +16,18 @@ services:
       - AGENT_OFFICE_API_KEY=${AGENT_OFFICE_API_KEY}
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.scope=agent-office-client"
+
+  watchtower:
+    image: nickfedor/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_SCOPE=agent-office-client
+    labels:
+      - "com.centurylinklabs.watchtower.scope=agent-office-client"
     restart: unless-stopped

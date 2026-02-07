@@ -97,12 +97,12 @@ docker run -d \
   ghcr.io/einord/agent-office/cli:latest
 ```
 
-### Option 2: Using docker-compose
+### Option 2: Using docker-compose (recommended, with auto-updates)
 
 Create a `docker-compose.yml` on the developer machine:
 
 ```yaml
-name: agent-office-cli
+name: agent-office-client
 
 services:
   cli:
@@ -114,6 +114,20 @@ services:
       - AGENT_OFFICE_SERVER_URL=http://your-server:3100
       - AGENT_OFFICE_API_KEY=your-api-key
     restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.scope=agent-office-client"
+
+  watchtower:
+    image: nickfedor/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_SCOPE=agent-office-client
+    labels:
+      - "com.centurylinklabs.watchtower.scope=agent-office-client"
+    restart: unless-stopped
 ```
 
 Then run:
@@ -121,6 +135,8 @@ Then run:
 ```bash
 docker compose up -d
 ```
+
+Watchtower automatically checks for new CLI images every 5 minutes and updates the container in-place. The scope label ensures it only manages Agent Office containers.
 
 ## Configuration
 
@@ -152,14 +168,20 @@ docker compose up -d
 
 ## Updating
 
-```bash
-# On server
-docker compose pull
-docker compose up -d
+**CLI clients with Watchtower (docker-compose option):** Updates are automatic. Watchtower polls for new images every 5 minutes and restarts the container when a new version is available.
 
-# On client machines
+**CLI clients without Watchtower (docker run option):**
+
+```bash
 docker pull ghcr.io/einord/agent-office/cli:latest
 docker restart agent-office-cli
+```
+
+**Server:**
+
+```bash
+docker compose pull
+docker compose up -d
 ```
 
 ## License
