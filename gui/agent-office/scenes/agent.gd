@@ -307,12 +307,15 @@ func _physics_process(delta):
 		return
 
 	if navigation_agent.is_navigation_finished():
-		# Play typing animation when working at a station, standing otherwise
-		if current_state == AgentState.WORKING and _has_arrived_at_work:
-			if _anim_player.current_animation != "typing":
+		var current_anim := _anim_player.current_animation
+		# Play typing animation when working at a station, seated, and not during chair transition
+		if current_state == AgentState.WORKING and _has_arrived_at_work and _is_sitting \
+				and current_anim != "chair_up" and current_anim != "chair_down":
+			if current_anim != "typing":
 				_anim_player.play("typing")
-		elif not _is_sitting:
-			if _anim_player.current_animation != "standing":
+		# Only play standing when not sitting and not during chair transition
+		elif not _is_sitting and current_anim != "chair_up" and current_anim != "chair_down":
+			if current_anim != "standing":
 				_anim_player.play("standing")
 
 		# Handle state-specific behavior when navigation is complete
@@ -388,12 +391,8 @@ func _on_velocity_computed(safe_velocity: Vector2) -> void:
 			if _anim_player.current_animation != "walking":
 				_anim_player.play("walking")
 		else:
-			if current_state == AgentState.WORKING and _has_arrived_at_work:
-				if _anim_player.current_animation != "typing":
-					_anim_player.play("typing")
-			else:
-				if _anim_player.current_animation != "standing":
-					_anim_player.play("standing")
+			if _anim_player.current_animation != "standing":
+				_anim_player.play("standing")
 
 	global_position = global_position.move_toward(global_position + safe_velocity, movement_delta)
 
