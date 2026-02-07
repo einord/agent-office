@@ -598,8 +598,9 @@ func _setup_version_checker() -> void:
 	_version_request.request_completed.connect(_on_version_check_completed)
 	add_child(_version_request)
 
-	# Fetch initial version
-	_version_request.request("/version.txt")
+	# Fetch initial version with cache-busting query parameter
+	var url = "/version.txt?t=" + str(Time.get_ticks_msec())
+	_version_request.request(url)
 
 	# Start periodic check timer
 	_version_check_timer = Timer.new()
@@ -610,12 +611,21 @@ func _setup_version_checker() -> void:
 
 ## Timer callback that triggers a version check.
 func _on_version_check_timeout() -> void:
-	if _version_request and not _version_request.get_http_client_status():
-		_version_request.request("/version.txt")
+	if _version_request and _version_request.get_http_client_status() == HTTPClient.STATUS_DISCONNECTED:
+		# Add cache-busting query parameter to prevent browser caching
+		var url = "/version.txt?t=" + str(Time.get_ticks_msec())
+		_version_request.request(url)
 
 ## Handles the version check HTTP response.
-func _on_version_check_completed(_result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+func _on_version_check_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	# Handle transport-level or other request errors.
+	if result != OK:
+		push_warning("[Game] Version check request failed with error code: " + str(result))
+		return
+
+	# Only proceed on successful HTTP response.
 	if response_code != 200:
+		push_warning("[Game] Version check returned non-OK HTTP status: " + str(response_code))
 		return
 
 	var version = body.get_string_from_utf8().strip_edges()
