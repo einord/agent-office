@@ -32,6 +32,9 @@ RUN godot --headless --verbose --export-release "Web" /build/web/index.html || \
 # Verify export succeeded
 RUN test -f /build/web/index.html || (echo "Export did not produce index.html" && exit 1)
 
+# Generate build version stamp for auto-reload detection
+RUN date +%s > /build/web/version.txt
+
 # =============================================================================
 # Stage 2: Serve with nginx
 # =============================================================================
