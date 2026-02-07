@@ -22,6 +22,14 @@ var _viewer_count_overlay: Node = null
 var _socket: WebSocketPeer = WebSocketPeer.new()
 var _ws_connected: bool = false
 
+# Auto-reload: periodically check for new build version (Web only)
+var _build_version: String = ""
+var _version_check_timer: Timer = null
+var _version_request: HTTPRequest = null
+
+## Version check interval in seconds (5 minutes).
+const VERSION_CHECK_INTERVAL := 300.0
+
 ## Returns the WebSocket URL based on platform.
 ## - Web: Uses current page host with /ws path (proxied via nginx)
 ## - Desktop: Uses localhost:3101 for local development
@@ -61,6 +69,10 @@ func _ready() -> void:
 	if err != OK:
 		push_error("WebSocket connection failed: " + str(err))
 	_update_status_label()
+
+	# Set up auto-reload version check (Web only)
+	if OS.get_name() == "Web":
+		_setup_version_checker()
 
 ## Creates a status label at the bottom of the screen.
 func _create_status_label() -> void:
@@ -579,3 +591,52 @@ func _hash_string(s: String) -> int:
 		hash_value = ((hash_value << 5) - hash_value) + s.unicode_at(i)
 		hash_value = hash_value & 0x7FFFFFFF  # Keep positive
 	return hash_value
+
+## Sets up periodic version checking for auto-reload (Web only).
+func _setup_version_checker() -> void:
+	_version_request = HTTPRequest.new()
+	_version_request.request_completed.connect(_on_version_check_completed)
+	add_child(_version_request)
+
+	# Fetch initial version with cache-busting query parameter
+	var url = "/version.txt?t=" + str(Time.get_ticks_msec())
+	_version_request.request(url)
+
+	# Start periodic check timer
+	_version_check_timer = Timer.new()
+	_version_check_timer.wait_time = VERSION_CHECK_INTERVAL
+	_version_check_timer.timeout.connect(_on_version_check_timeout)
+	add_child(_version_check_timer)
+	_version_check_timer.start()
+
+## Timer callback that triggers a version check.
+func _on_version_check_timeout() -> void:
+	if _version_request and _version_request.get_http_client_status() == HTTPClient.STATUS_DISCONNECTED:
+		# Add cache-busting query parameter to prevent browser caching
+		var url = "/version.txt?t=" + str(Time.get_ticks_msec())
+		_version_request.request(url)
+
+## Handles the version check HTTP response.
+func _on_version_check_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	# Handle transport-level or other request errors.
+	if result != OK:
+		push_warning("[Game] Version check request failed with error code: " + str(result))
+		return
+
+	# Only proceed on successful HTTP response.
+	if response_code != 200:
+		push_warning("[Game] Version check returned non-OK HTTP status: " + str(response_code))
+		return
+
+	var version = body.get_string_from_utf8().strip_edges()
+	if version.is_empty():
+		return
+
+	if _build_version.is_empty():
+		# First check — store the current version
+		_build_version = version
+		print("[Game] Build version: ", version)
+	elif version != _build_version:
+		# Version changed — reload the page
+		print("[Game] New version detected: ", version, " (was ", _build_version, "). Reloading...")
+		JavaScriptBridge.eval("location.reload()")

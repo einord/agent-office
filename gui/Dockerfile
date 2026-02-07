@@ -3,10 +3,12 @@
 #
 # Build args:
 #   GODOT_VERSION - Godot version to use (default: 4.3)
+#   BUILD_TIMESTAMP - Build timestamp for version.txt (auto-generated if not set)
 #
 # Usage:
 #   docker build -t agent-office-web ./gui
 #   docker build --build-arg GODOT_VERSION=4.4 -t agent-office-web ./gui
+#   docker build --build-arg BUILD_TIMESTAMP=$(date +%s) -t agent-office-web ./gui
 
 # =============================================================================
 # Stage 1: Export Godot project to Web
@@ -15,6 +17,7 @@ ARG GODOT_VERSION=4.6
 FROM barichello/godot-ci:${GODOT_VERSION} AS godot-export
 
 ARG GODOT_VERSION=4.6
+ARG BUILD_TIMESTAMP
 
 # Create directories
 RUN mkdir -p /project /build/web
@@ -31,6 +34,11 @@ RUN godot --headless --verbose --export-release "Web" /build/web/index.html || \
 
 # Verify export succeeded
 RUN test -f /build/web/index.html || (echo "Export did not produce index.html" && exit 1)
+
+# Generate build version stamp for auto-reload detection
+# Use BUILD_TIMESTAMP if provided, otherwise generate current timestamp
+# The ARG ensures this layer is not cached when BUILD_TIMESTAMP changes
+RUN echo "${BUILD_TIMESTAMP:-$(date +%s)}" > /build/web/version.txt
 
 # =============================================================================
 # Stage 2: Serve with nginx
