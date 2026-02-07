@@ -231,6 +231,19 @@ export class IncrementalReader {
   }
 
   /**
+   * Removes cached data for files not in the provided set.
+   * @param activeFilePaths Set of file paths that are still active
+   */
+  retainOnly(activeFilePaths: Set<string>): void {
+    for (const filePath of this.filePositions.keys()) {
+      if (!activeFilePaths.has(filePath)) {
+        this.filePositions.delete(filePath);
+        this.messageCache.delete(filePath);
+      }
+    }
+  }
+
+  /**
    * Clears all cached data.
    */
   clearAll(): void {

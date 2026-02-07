@@ -11,7 +11,7 @@ const execAsync = promisify(exec);
 export async function scanClaudeProcesses(): Promise<ClaudeProcess[]> {
   try {
     // Use ps to find claude processes
-    const { stdout } = await execAsync('ps aux | grep -i "[c]laude" || true');
+    const { stdout } = await execAsync('ps aux | grep -i "[c]laude" || true', { timeout: 10_000 });
 
     const processes: ClaudeProcess[] = [];
     const lines = stdout.trim().split('\n').filter(line => line.length > 0);
@@ -62,7 +62,7 @@ export async function getOpenSessionFiles(pids?: number[]): Promise<Map<number, 
     const lsofArg = pids && pids.length > 0
       ? `-p ${pids.join(',')}`
       : '-c claude';
-    const { stdout } = await execAsync(`lsof ${lsofArg} 2>/dev/null || true`);
+    const { stdout } = await execAsync(`lsof ${lsofArg} 2>/dev/null || true`, { timeout: 10_000 });
     const lines = stdout.trim().split('\n').filter(line => line.length > 0);
 
     for (const line of lines) {

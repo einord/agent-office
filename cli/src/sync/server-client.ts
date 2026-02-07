@@ -123,6 +123,7 @@ export class ServerClient {
     try {
       const response = await fetch(`${this.config.serverUrl}/auth`, {
         method: 'POST',
+        signal: AbortSignal.timeout(10_000),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -163,7 +164,8 @@ export class ServerClient {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
-    context?: string
+    context?: string,
+    retryCount: number = 0
   ): Promise<RequestResult<T>> {
     // Ensure we're authenticated
     const authenticated = await this.authenticate();
@@ -174,6 +176,7 @@ export class ServerClient {
     try {
       const response = await fetch(`${this.config.serverUrl}${endpoint}`, {
         ...options,
+        signal: AbortSignal.timeout(10_000),
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${this.token}`,
@@ -182,13 +185,13 @@ export class ServerClient {
       });
 
       if (!response.ok) {
-        // If unauthorized, clear token and retry once
-        if (response.status === 401) {
+        // If unauthorized, clear token and retry (max 3 attempts)
+        if (response.status === 401 && retryCount < 3) {
           this.token = null;
           this.tokenExpiresAt = null;
           const reauthenticated = await this.authenticate();
           if (reauthenticated) {
-            return this.request<T>(endpoint, options, context);
+            return this.request<T>(endpoint, options, context, retryCount + 1);
           }
         }
 
@@ -225,7 +228,7 @@ export class ServerClient {
    * @param session - The tracked session to create an agent for
    * @returns True if the agent was created successfully
    */
-  async createAgent(session: TrackedSession): Promise<boolean> {
+  async createAgent(session: TrackedSession, depth: number = 0): Promise<boolean> {
     const activity = mapActivityToBackend(session.activity.type);
     const displayName = session.isSidechain && session.parentSessionId
       ? generateName(session.parentSessionId)
@@ -258,10 +261,10 @@ export class ServerClient {
 
     // Agent already exists on server (e.g. from a previous CLI session) -
     // mark as synced and update instead of repeatedly trying to create
-    if (result.conflict) {
+    if (result.conflict && depth < 3) {
       console.log(`[ServerClient] Agent already exists on server, switching to update: ${id}`);
       this.syncedAgents.add(id);
-      return this.updateAgent(session);
+      return this.updateAgent(session, depth + 1);
     }
 
     return false;
@@ -273,7 +276,7 @@ export class ServerClient {
    * @param session - The tracked session to update
    * @returns True if the agent was updated successfully
    */
-  async updateAgent(session: TrackedSession): Promise<boolean> {
+  async updateAgent(session: TrackedSession, depth: number = 0): Promise<boolean> {
     const activity = mapActivityToBackend(session.activity.type);
     const id = session.agentId;
 
@@ -299,7 +302,7 @@ export class ServerClient {
     }
 
     // If agent not found on server, recreate it (unless it's done - no point spawning a finished agent)
-    if (result.notFound) {
+    if (result.notFound && depth < 3) {
       this.syncedAgents.delete(id);
       this.lastActivityMap.delete(id);
       this.lastContextMap.delete(id);
@@ -307,7 +310,7 @@ export class ServerClient {
         return true;
       }
       console.log(`[ServerClient] Agent not found on server, recreating: ${id}`);
-      return this.createAgent(session);
+      return this.createAgent(session, depth + 1);
     }
 
     return false;

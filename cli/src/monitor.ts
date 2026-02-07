@@ -9,13 +9,16 @@ import { getLatestActivity, isSessionActive, detectSidechain } from './data/acti
 import { getSessionColor } from './ui/renderer.js';
 import { LogRenderer } from './ui/log-renderer.js';
 import { ServerClient, type ServerClientConfig } from './sync/server-client.js';
-import { resetIncrementalReader } from './data/incremental-reader.js';
+import { resetIncrementalReader, getIncrementalReader } from './data/incremental-reader.js';
 
 /** Session reaping interval in milliseconds (30 seconds) */
 const REAP_INTERVAL_MS = 30_000;
 
 /** Session time-to-live in milliseconds (2 minutes after last update) */
 const SESSION_TTL_MS = 2 * 60 * 1000;
+
+/** Debounce delay for file watcher events in milliseconds */
+const DEBOUNCE_MS = 500;
 
 /** Timeout for "done" sessions before removing from display (5 minutes) */
 const DONE_TIMEOUT_MS = 5 * 60 * 1000;
@@ -41,7 +44,10 @@ export class ClaudeMonitor {
   private watcher: chokidar.FSWatcher | null = null;
   private updateTimer: NodeJS.Timeout | null = null;
   private reapTimer: NodeJS.Timeout | null = null;
+  private debounceTimer: NodeJS.Timeout | null = null;
   private isRunning = false;
+  private isRefreshing = false;
+  private refreshPending = false;
   private ui: LogRenderer | null = null;
   private serverClient: ServerClient | null = null;
   private claudeDir: string;
@@ -89,11 +95,8 @@ export class ClaudeMonitor {
 
     // Periodic refresh as fallback if file watching misses changes
     this.updateTimer = setInterval(() => {
-      this.refresh().then(() => {
-        this.render();
-        if (this.serverClient) {
-          this.syncToServer();
-        }
+      this.debouncedRefreshCycle().catch(() => {
+        // Errors handled internally
       });
     }, 60_000);
 
@@ -122,6 +125,11 @@ export class ClaudeMonitor {
     if (this.reapTimer) {
       clearInterval(this.reapTimer);
       this.reapTimer = null;
+    }
+
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
     }
 
     if (this.ui) {
@@ -156,21 +164,17 @@ export class ClaudeMonitor {
       },
     });
 
-    this.watcher.on('change', async (path) => {
-      await this.refresh();
-      this.render();
-      if (this.serverClient) {
-        await this.syncToServer();
+    const debouncedRefresh = () => {
+      if (this.debounceTimer) {
+        clearTimeout(this.debounceTimer);
       }
-    });
+      this.debounceTimer = setTimeout(async () => {
+        await this.debouncedRefreshCycle();
+      }, DEBOUNCE_MS);
+    };
 
-    this.watcher.on('add', async (path) => {
-      await this.refresh();
-      this.render();
-      if (this.serverClient) {
-        await this.syncToServer();
-      }
-    });
+    this.watcher.on('change', debouncedRefresh);
+    this.watcher.on('add', debouncedRefresh);
   }
 
   /**
@@ -251,6 +255,35 @@ export class ClaudeMonitor {
   }
 
   /**
+   * Runs a debounced refresh cycle: refresh, render, and sync.
+   * Uses a mutex to prevent overlapping cycles — if a cycle is already
+   * running, it marks one pending re-run instead of stacking up.
+   */
+  private async debouncedRefreshCycle(): Promise<void> {
+    if (this.isRefreshing) {
+      this.refreshPending = true;
+      return;
+    }
+
+    this.isRefreshing = true;
+    try {
+      await this.refresh();
+      this.render();
+      if (this.serverClient) {
+        await this.syncToServer();
+      }
+    } finally {
+      this.isRefreshing = false;
+
+      // If another event came in while we were refreshing, run once more
+      if (this.refreshPending) {
+        this.refreshPending = false;
+        await this.debouncedRefreshCycle();
+      }
+    }
+  }
+
+  /**
    * Refreshes session data.
    */
   async refresh(): Promise<void> {
@@ -269,8 +302,11 @@ export class ClaudeMonitor {
 
       // Build tracked sessions
       const newSessions = new Map<string, TrackedSession>();
+      const activeFilePaths = new Set<string>();
 
       for (const [uniqueId, sessionInfo] of allSessions) {
+        activeFilePaths.add(sessionInfo.filePath);
+
         const tracked = await this.buildTrackedSession(
           uniqueId,
           sessionInfo,
@@ -282,6 +318,9 @@ export class ClaudeMonitor {
           newSessions.set(tracked.agentId, tracked);
         }
       }
+
+      // Clean up incremental reader cache for files no longer active
+      getIncrementalReader().retainOnly(activeFilePaths);
 
       this.sessions = newSessions;
     } catch (error) {
