@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.19](https://github.com/einord/agent-office/compare/agent-office-v0.1.18...agent-office-v0.1.19) (2026-02-07)
+
+
+### Bug Fixes
+
+* Prevent CPU spikes from unbounded file-watcher refresh cycles ([f99bf62](https://github.com/einord/agent-office/commit/f99bf626796f6d9cedb62fdaac3bb8998773a00f))
+
 ## [0.1.18](https://github.com/einord/agent-office/compare/agent-office-v0.1.17...agent-office-v0.1.18) (2026-02-06)
 
 
