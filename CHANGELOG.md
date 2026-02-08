@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.1.20](https://github.com/einord/agent-office/compare/agent-office-v0.1.19...agent-office-v0.1.20) (2026-02-08)
+
+
+### Features
+
+* Add Watchtower auto-updates for CLI Docker client ([2681f8f](https://github.com/einord/agent-office/commit/2681f8fe818bf44d8e763bc776126fa13d519133))
+* **gui:** Add auto-reload on new version detection for web client ([e3fa4b1](https://github.com/einord/agent-office/commit/e3fa4b1335e47461265cc3a5e44b15ce7ab45751))
+* **gui:** Add auto-reload on new version detection for web client ([ddf2882](https://github.com/einord/agent-office/commit/ddf288273b7eee803301f6f675c70f436af3f6b7))
+* **gui:** add typing animation for agents at workstations ([87c88f8](https://github.com/einord/agent-office/commit/87c88f88e916aae200262012554e601e28e57e29))
+
+
+### Bug Fixes
+
+* **gui:** address code review feedback for auto-reload feature ([4fb7a6f](https://github.com/einord/agent-office/commit/4fb7a6ffebc24c7d0eb237f4e68f4b71f5c2a097))
+* **gui:** Address code review feedback for auto-reload feature ([cef352c](https://github.com/einord/agent-office/commit/cef352c4fe1f83b622c37bdfb3b0bf8aed64d474))
+* **gui:** defer typing animation until chair transition completes ([fccb3b4](https://github.com/einord/agent-office/commit/fccb3b46eeb58ebcb9cb5b4c43a4f5c42634cce9))
+* **gui:** ensure typing animation plays only when seated after chair transition ([2832b3d](https://github.com/einord/agent-office/commit/2832b3ddc6315d63e126212980b616940997892a))
+* session lifecycle and stats counting ([ec1dee0](https://github.com/einord/agent-office/commit/ec1dee01e02e8c66ad2bed7942b05340b393c9c7))
+* session lifecycle and stats counting ([273e422](https://github.com/einord/agent-office/commit/273e422703ccd1b5c3023c04b3cd55d1836c4e04))
+
+
+### Miscellaneous
+
+* add BUILD_TIMESTAMP to CI and docker-compose ([92154b5](https://github.com/einord/agent-office/commit/92154b5959e0f8e84ae91633ff6a97255276ee6c))
+
 ## [0.1.19](https://github.com/einord/agent-office/compare/agent-office-v0.1.18...agent-office-v0.1.19) (2026-02-07)
 
 
