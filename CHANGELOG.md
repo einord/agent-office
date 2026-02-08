@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.21](https://github.com/einord/agent-office/compare/agent-office-v0.1.20...agent-office-v0.1.21) (2026-02-08)
+
+
+### Bug Fixes
+
+* correct stats counting and prevent zombie sub-agent re-discovery ([33c6b68](https://github.com/einord/agent-office/commit/33c6b6829e59ae41b70147cad1a8d3336bae3274))
+
 ## [0.1.20](https://github.com/einord/agent-office/compare/agent-office-v0.1.19...agent-office-v0.1.20) (2026-02-08)
 
 
