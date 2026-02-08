@@ -56,7 +56,10 @@ const tokenCleanupInterval = setInterval(() => {
   cleanupExpiredTokens();
 }, 5 * 60 * 1000);
 
-const DONE_AGENT_TIMEOUT_MS = 5 * 60 * 1000;
+/** Sidechain (sub-agent) done timeout: 5 minutes */
+const DONE_SIDECHAIN_TIMEOUT_MS = 5 * 60 * 1000;
+/** Main session done timeout: 15 minutes (stay visible longer on screen) */
+const DONE_SESSION_TIMEOUT_MS = 15 * 60 * 1000;
 
 /**
  * Removes all agents belonging to users who have exceeded the inactivity timeout.
@@ -76,14 +79,18 @@ function removeInactiveOwnerAgents(): void {
 
 /**
  * Removes individual agents that have been in the "done" state
- * longer than DONE_AGENT_TIMEOUT_MS.
+ * longer than their respective timeout.
+ * Sidechains are ephemeral and reap faster (5 min).
+ * Main sessions stay visible longer (15 min).
  */
 function reapDoneAgents(): void {
   const now = Date.now();
   for (const agent of getAllAgents()) {
-    if (agent.activity === 'done' && now - agent.updatedAt > DONE_AGENT_TIMEOUT_MS) {
+    if (agent.activity !== 'done') continue;
+    const timeout = agent.isSidechain ? DONE_SIDECHAIN_TIMEOUT_MS : DONE_SESSION_TIMEOUT_MS;
+    if (now - agent.updatedAt > timeout) {
       removeAgent(agent.id, agent.ownerKey);
-      console.log(`[Server] Reaped done agent: ${agent.id}`);
+      console.log(`[Server] Reaped done ${agent.isSidechain ? 'sidechain' : 'session'}: ${agent.id}`);
     }
   }
 }
