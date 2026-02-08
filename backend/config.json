@@ -8,5 +8,5 @@
     "wsPort": 3101
   },
   "tokenExpirySeconds": 86400,
-  "inactivityTimeoutSeconds": 180
+  "inactivityTimeoutSeconds": 1800
 }

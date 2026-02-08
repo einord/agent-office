@@ -343,11 +343,22 @@ export class ServerClient {
   }
 
   /**
+   * Sends a heartbeat to the backend to keep the session alive.
+   * Used when no other API calls were made during a sync cycle.
+   */
+  private async heartbeat(): Promise<void> {
+    await this.request('/heartbeat', { method: 'POST' });
+  }
+
+  /**
    * Synchronizes all tracked sessions with the backend server.
    * Creates new agents, updates existing ones, and removes stale ones.
+   * Sends a heartbeat if no API calls were made but agents are synced.
    * @param sessions - Map of agent IDs to tracked sessions
    */
   async syncAll(sessions: Map<string, TrackedSession>): Promise<void> {
+    let madeApiCall = false;
+
     // Find agents to remove (synced but no longer in sessions)
     const agentsToRemove = new Set<string>();
     for (const syncedId of this.syncedAgents) {
@@ -359,17 +370,30 @@ export class ServerClient {
     // Remove stale agents
     for (const agentId of agentsToRemove) {
       await this.removeAgent(agentId);
+      madeApiCall = true;
     }
 
     // Create or update agents (keyed by agentId)
     for (const [agentId, session] of sessions) {
       if (this.syncedAgents.has(agentId)) {
-        // Update existing agent
-        await this.updateAgent(session);
+        // Update existing agent (returns true even if skipped due to no change)
+        const activity = mapActivityToBackend(session.activity.type);
+        const lastActivity = this.lastActivityMap.get(agentId);
+        const lastContext = this.lastContextMap.get(agentId);
+        if (lastActivity !== activity || lastContext !== session.tokens.percentage) {
+          await this.updateAgent(session);
+          madeApiCall = true;
+        }
       } else {
         // Create new agent
         await this.createAgent(session);
+        madeApiCall = true;
       }
+    }
+
+    // If no API calls were made but we have synced agents, send heartbeat
+    if (!madeApiCall && this.syncedAgents.size > 0) {
+      await this.heartbeat();
     }
   }
 

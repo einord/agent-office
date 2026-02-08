@@ -185,22 +185,8 @@ export class ClaudeMonitor {
     if (!this.serverClient) return;
 
     try {
-      // Get visible sessions (same filter as render)
-      const visibleSessions = new Map<string, TrackedSession>();
-
-      for (const [id, session] of this.sessions) {
-        if (session.activity.type === 'done') {
-          const age = Date.now() - session.lastUpdate.getTime();
-          if (age < DONE_TIMEOUT_MS) {
-            visibleSessions.set(id, session);
-          }
-        } else {
-          visibleSessions.set(id, session);
-        }
-      }
-
-      // Sync all sessions
-      await this.serverClient.syncAll(visibleSessions);
+      // Sync all sessions (lifecycle is managed by reapStaleSessions)
+      await this.serverClient.syncAll(this.sessions);
     } catch (error) {
       // Log but don't crash - sync failures shouldn't stop the monitor
       console.error('[Monitor] Sync error:', error instanceof Error ? error.message : error);
@@ -218,16 +204,18 @@ export class ClaudeMonitor {
     for (const [agentId, session] of this.sessions) {
       const age = now - session.lastUpdate.getTime();
 
-      // Remove sessions that are "done" and older than DONE_TIMEOUT
-      if (session.activity.type === 'done' && age > DONE_TIMEOUT_MS) {
+      // Remove sidechain sessions that are "done" and older than DONE_TIMEOUT
+      // Main sessions are only removed when refresh() no longer discovers them
+      if (session.isSidechain && session.activity.type === 'done' && age > DONE_TIMEOUT_MS) {
         sessionsToRemove.push(agentId);
         continue;
       }
 
-      // Remove any session that hasn't been updated within SESSION_TTL
+      // Remove sidechain sessions that haven't been updated within SESSION_TTL
       // Skip "done" sessions (handled above with DONE_TIMEOUT) and "waiting_input" (can idle longer)
       // Skip sessions with an active PID - the process is still running
       if (
+        session.isSidechain &&
         session.activity.type !== 'waiting_input' &&
         session.activity.type !== 'done' &&
         !session.pid &&
@@ -352,14 +340,8 @@ export class ClaudeMonitor {
       // Get PID if known
       const pid = sessionToPid.get(sessionInfo.filePath);
 
-      // Get activity (pass lastModified for timeout detection)
-      let activity = getLatestActivity(messages, lastModified);
-
-      // If process is still running but activity was marked "done" due to stale file,
-      // the assistant is likely still thinking — override to "thinking"
-      if (pid && activity.type === 'done') {
-        activity = { type: 'thinking' };
-      }
+      // Get activity (pass lastModified for timeout detection, and PID for idle vs done)
+      const activity = getLatestActivity(messages, lastModified, !!pid);
 
       // Determine if this is a sidechain - use sessionInfo.isSidechain if set (from subagent file),
       // otherwise fall back to detecting from messages
@@ -403,16 +385,6 @@ export class ClaudeMonitor {
     if (!this.isRunning || !this.ui) return;
 
     const sessionsArray = Array.from(this.sessions.values());
-
-    // Filter out done sessions older than the timeout
-    const visibleSessions = sessionsArray.filter(session => {
-      if (session.activity.type === 'done') {
-        const age = Date.now() - session.lastUpdate.getTime();
-        return age < DONE_TIMEOUT_MS;
-      }
-      return true;
-    });
-
-    this.ui.update(visibleSessions);
+    this.ui.update(sessionsArray);
   }
 }
