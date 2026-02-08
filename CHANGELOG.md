@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.22](https://github.com/einord/agent-office/compare/agent-office-v0.1.21...agent-office-v0.1.22) (2026-02-08)
+
+
+### Bug Fixes
+
+* tighten session discovery window and exclude done agents from stats ([61c1cc8](https://github.com/einord/agent-office/commit/61c1cc8f87f254b602b30bd7f2a5e121c9828c6f))
+
 ## [0.1.21](https://github.com/einord/agent-office/compare/agent-office-v0.1.20...agent-office-v0.1.21) (2026-02-08)
 
 
