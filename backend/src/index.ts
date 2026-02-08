@@ -1,7 +1,7 @@
 import express from 'express';
 import { getConfig, initConfigWatcher } from './config/config-loader.js';
 import { cleanupExpiredTokens, getInactiveUserKeys } from './auth/token-manager.js';
-import { removeAgentsByOwner } from './agents/agent-manager.js';
+import { getAllAgents, removeAgent, removeAgentsByOwner } from './agents/agent-manager.js';
 import routes from './api/routes.js';
 import { initWebSocketServer, closeWebSocketServer } from './websocket/server.js';
 import { initIdleActionService } from './idle-actions/index.js';
@@ -56,20 +56,42 @@ const tokenCleanupInterval = setInterval(() => {
   cleanupExpiredTokens();
 }, 5 * 60 * 1000);
 
-// Periodic inactivity check (every 10 seconds)
-const inactivityCheckInterval = setInterval(() => {
-  const currentConfig = getConfig();
-  if (currentConfig.inactivityTimeoutSeconds <= 0) {
-    return; // Disabled
-  }
+const DONE_AGENT_TIMEOUT_MS = 5 * 60 * 1000;
 
-  const inactiveKeys = getInactiveUserKeys(currentConfig.inactivityTimeoutSeconds);
+/**
+ * Removes all agents belonging to users who have exceeded the inactivity timeout.
+ */
+function removeInactiveOwnerAgents(): void {
+  const { inactivityTimeoutSeconds } = getConfig();
+  if (inactivityTimeoutSeconds <= 0) return;
+
+  const inactiveKeys = getInactiveUserKeys(inactivityTimeoutSeconds);
   for (const key of inactiveKeys) {
     const removed = removeAgentsByOwner(key);
     if (removed > 0) {
       console.log(`[Server] Removed ${removed} agent(s) due to inactivity`);
     }
   }
+}
+
+/**
+ * Removes individual agents that have been in the "done" state
+ * longer than DONE_AGENT_TIMEOUT_MS.
+ */
+function reapDoneAgents(): void {
+  const now = Date.now();
+  for (const agent of getAllAgents()) {
+    if (agent.activity === 'done' && now - agent.updatedAt > DONE_AGENT_TIMEOUT_MS) {
+      removeAgent(agent.id, agent.ownerKey);
+      console.log(`[Server] Reaped done agent: ${agent.id}`);
+    }
+  }
+}
+
+// Periodic agent cleanup (every 10 seconds)
+const agentCleanupInterval = setInterval(() => {
+  removeInactiveOwnerAgents();
+  reapDoneAgents();
 }, 10 * 1000);
 
 // Graceful shutdown
@@ -77,7 +99,7 @@ function shutdown(signal: string): void {
   console.log(`\n[Server] Received ${signal}, shutting down gracefully...`);
 
   clearInterval(tokenCleanupInterval);
-  clearInterval(inactivityCheckInterval);
+  clearInterval(agentCleanupInterval);
 
   httpServer.close(() => {
     console.log('[HTTP] Server closed');
