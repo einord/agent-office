@@ -205,7 +205,8 @@ export class ClaudeMonitor {
       const age = now - session.lastUpdate.getTime();
 
       // Remove sidechain sessions that are "done" and older than DONE_TIMEOUT
-      // Main sessions are only removed when refresh() no longer discovers them
+      // Main sessions stay visible longer - they are removed when refresh()
+      // no longer discovers them (15-min file discovery window)
       if (session.isSidechain && session.activity.type === 'done' && age > DONE_TIMEOUT_MS) {
         sessionsToRemove.push(agentId);
         continue;

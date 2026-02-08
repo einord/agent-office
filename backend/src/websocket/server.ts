@@ -122,9 +122,11 @@ function buildUserStatsPayload(): UserStatsPayload {
   const activeUsers = getActiveUsers();
   const allAgents = getAllAgents();
 
+  // Stats reflect what's visible on screen - count all agents that exist
+  // (agents are removed by reapDoneAgents when they should no longer be visible)
   const users: UserStatsPayload['users'] = config.users.map((configUser) => {
     const activeSession = activeUsers.get(configUser.key);
-    const ownerAgents = getAgentsByOwner(configUser.key).filter(a => a.activity !== 'done');
+    const ownerAgents = getAgentsByOwner(configUser.key);
 
     return {
       displayName: configUser.displayName,
