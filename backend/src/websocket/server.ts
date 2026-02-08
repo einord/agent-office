@@ -124,7 +124,7 @@ function buildUserStatsPayload(): UserStatsPayload {
 
   const users: UserStatsPayload['users'] = config.users.map((configUser) => {
     const activeSession = activeUsers.get(configUser.key);
-    const userAgents = getAgentsByOwner(configUser.key);
+    const userAgents = getAgentsByOwner(configUser.key).filter(a => a.isSidechain);
 
     return {
       displayName: configUser.displayName,
@@ -136,7 +136,7 @@ function buildUserStatsPayload(): UserStatsPayload {
 
   const activeUserCount = users.filter((u) => u.isActive).length;
   const totalSessions = users.reduce((sum, u) => sum + u.sessionCount, 0);
-  const totalAgents = allAgents.length;
+  const totalAgents = allAgents.filter(a => a.isSidechain).length;
 
   return {
     users,
