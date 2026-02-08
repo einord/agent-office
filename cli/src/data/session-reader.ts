@@ -430,8 +430,8 @@ export async function getAllSessions(): Promise<Map<string, SessionIndex & { pro
 
       const ageMinutes = (Date.now() - subagentInfo.lastModified) / (1000 * 60);
 
-      // Only include sub-agents modified in the last 12 hours
-      if (ageMinutes <= 720) {
+      // Only include sub-agents modified in the last 5 minutes (they live seconds to minutes)
+      if (ageMinutes <= 5) {
         // Use agentId as the unique key for sub-agents
         sessions.set(subagentInfo.agentId, {
           sessionId: subagentInfo.parentSessionId,  // Parent's session ID

@@ -385,6 +385,10 @@ export class ServerClient {
           madeApiCall = true;
         }
       } else {
+        // Don't create agents that are already done (prevents zombie re-discovery from disk)
+        const activity = mapActivityToBackend(session.activity.type);
+        if (activity === 'done') continue;
+
         // Create new agent
         await this.createAgent(session);
         madeApiCall = true;

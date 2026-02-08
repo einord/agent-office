@@ -124,12 +124,12 @@ function buildUserStatsPayload(): UserStatsPayload {
 
   const users: UserStatsPayload['users'] = config.users.map((configUser) => {
     const activeSession = activeUsers.get(configUser.key);
-    const userAgents = getAgentsByOwner(configUser.key).filter(a => a.isSidechain);
+    const ownerAgents = getAgentsByOwner(configUser.key);
 
     return {
       displayName: configUser.displayName,
-      sessionCount: activeSession?.sessionCount ?? 0,
-      agentCount: userAgents.length,
+      sessionCount: ownerAgents.filter(a => !a.isSidechain).length,
+      agentCount: ownerAgents.filter(a => a.isSidechain).length,
       isActive: activeSession !== undefined,
     };
   });
