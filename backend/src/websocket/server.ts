@@ -124,7 +124,7 @@ function buildUserStatsPayload(): UserStatsPayload {
 
   const users: UserStatsPayload['users'] = config.users.map((configUser) => {
     const activeSession = activeUsers.get(configUser.key);
-    const ownerAgents = getAgentsByOwner(configUser.key);
+    const ownerAgents = getAgentsByOwner(configUser.key).filter(a => a.activity !== 'done');
 
     return {
       displayName: configUser.displayName,

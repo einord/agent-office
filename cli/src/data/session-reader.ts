@@ -398,8 +398,8 @@ export async function getAllSessions(): Promise<Map<string, SessionIndex & { pro
         const stats = await stat(filePath);
         const ageMinutes = (Date.now() - stats.mtime.getTime()) / (1000 * 60);
 
-        // Only include sessions modified in the last 12 hours
-        if (ageMinutes <= 720) {
+        // Only include sessions modified in the last 15 minutes (re-discovered if they wake up)
+        if (ageMinutes <= 15) {
           // Use index entry if available, otherwise use originalPath from index
           const indexEntry = indexMap.get(sessionId);
           const projectPath = indexEntry?.projectPath || originalPath || projectDir;
