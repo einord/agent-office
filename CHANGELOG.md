@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.23](https://github.com/einord/agent-office/compare/agent-office-v0.1.22...agent-office-v0.1.23) (2026-02-08)
+
+
+### Bug Fixes
+
+* differentiate reap timeouts and align stats with visible agents ([c0550e8](https://github.com/einord/agent-office/commit/c0550e83bdf52da21f0b360f9c1dd010f70fcf4d))
+* reap done agents after 5-minute timeout ([267dcf8](https://github.com/einord/agent-office/commit/267dcf8cdfd73fb0ad21b2c4d230d5bdf66dd6f3))
+* reap done agents after 5-minute timeout ([b68d982](https://github.com/einord/agent-office/commit/b68d982f113e75283222183fff0571edf409c8cf))
+
 ## [0.1.22](https://github.com/einord/agent-office/compare/agent-office-v0.1.21...agent-office-v0.1.22) (2026-02-08)
 
 
