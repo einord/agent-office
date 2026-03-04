@@ -1,6 +1,7 @@
 import { stat, open } from 'fs/promises';
 import { createReadStream } from 'fs';
-import type { ConversationMessage } from '../types.js';
+import type { ConversationMessage, TokenUsage } from '../types.js';
+import { calculateTokenUsage } from './session-reader.js';
 
 /**
  * Tracks file read positions for incremental reading of JSONL files.
@@ -13,6 +14,9 @@ export class IncrementalReader {
 
   /** Map of file path to cached messages (accumulated over time) */
   private messageCache: Map<string, ConversationMessage[]> = new Map();
+
+  /** Map of file path to accumulated token usage */
+  private tokenAccumulator: Map<string, TokenUsage> = new Map();
 
   /** Maximum number of messages to keep in cache per file */
   private maxCachedMessages: number;
@@ -43,6 +47,7 @@ export class IncrementalReader {
         if (currentSize < lastPosition) {
           this.filePositions.set(filePath, 0);
           this.messageCache.delete(filePath);
+          this.tokenAccumulator.delete(filePath);
           return this.readNewLines(filePath);
         }
         return [];
@@ -219,15 +224,31 @@ export class IncrementalReader {
     // Keep only the most recent messages
     const trimmed = combined.slice(-this.maxCachedMessages);
     this.messageCache.set(filePath, trimmed);
+
+    // Accumulate token usage from new messages
+    const accumulated = this.tokenAccumulator.get(filePath) || {
+      input_tokens: 0,
+      output_tokens: 0,
+    };
+    const newUsage = calculateTokenUsage(newMessages);
+    accumulated.input_tokens += newUsage.input_tokens;
+    accumulated.output_tokens += newUsage.output_tokens;
+    this.tokenAccumulator.set(filePath, accumulated);
   }
 
   /**
-   * Clears the cache and position tracking for a specific file.
+   * Gets the accumulated token usage for a file.
    * @param filePath Path to the file
+   * @returns Accumulated token usage or zeroes if not tracked
    */
+  getAccumulatedTokens(filePath: string): TokenUsage {
+    return this.tokenAccumulator.get(filePath) || { input_tokens: 0, output_tokens: 0 };
+  }
+
   clearFile(filePath: string): void {
     this.filePositions.delete(filePath);
     this.messageCache.delete(filePath);
+    this.tokenAccumulator.delete(filePath);
   }
 
   /**
@@ -239,6 +260,7 @@ export class IncrementalReader {
       if (!activeFilePaths.has(filePath)) {
         this.filePositions.delete(filePath);
         this.messageCache.delete(filePath);
+        this.tokenAccumulator.delete(filePath);
       }
     }
   }
@@ -249,6 +271,7 @@ export class IncrementalReader {
   clearAll(): void {
     this.filePositions.clear();
     this.messageCache.clear();
+    this.tokenAccumulator.clear();
   }
 
   /**

@@ -9,7 +9,7 @@ import type {
   UserStatsPayload,
 } from '../types.js';
 import type { Agent } from '../agents/types.js';
-import { onAgentChange, getAllAgents, confirmAgentRemoved, getAgentsByOwner } from '../agents/agent-manager.js';
+import { onAgentChange, getAllAgents, confirmAgentRemoved, getAgentsByOwner, getUserTokenStats } from '../agents/agent-manager.js';
 import { onIdleActionChange } from '../idle-actions/index.js';
 import { initCleaningService, getCanCount } from '../cleaning/index.js';
 import { getActiveUsers } from '../auth/token-manager.js';
@@ -128,11 +128,14 @@ function buildUserStatsPayload(): UserStatsPayload {
     const activeSession = activeUsers.get(configUser.key);
     const ownerAgents = getAgentsByOwner(configUser.key);
 
+    const tokenStats = getUserTokenStats(configUser.key);
+
     return {
       displayName: configUser.displayName,
       sessionCount: ownerAgents.filter(a => !a.isSidechain).length,
       agentCount: ownerAgents.filter(a => a.isSidechain).length,
       isActive: activeSession !== undefined,
+      ...tokenStats,
     };
   });
 

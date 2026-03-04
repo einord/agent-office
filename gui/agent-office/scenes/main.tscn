@@ -1,9 +1,10 @@
-[gd_scene load_steps=4 format=3 uid="uid://t4epysr54odf"]
+[gd_scene load_steps=5 format=3 uid="uid://t4epysr54odf"]
 
 [ext_resource type="PackedScene" uid="uid://b88kgwuugd6if" path="res://scenes/game.tscn" id="1_game"]
 [ext_resource type="PackedScene" uid="uid://cuser_stats_overlay" path="res://scenes/user_stats_overlay.tscn" id="2_overlay"]
 [ext_resource type="Script" path="res://scenes/main.gd" id="3_main"]
 [ext_resource type="PackedScene" uid="uid://dvc_scene_001" path="res://scenes/viewer_count.tscn" id="4_viewer"]
+[ext_resource type="PackedScene" uid="uid://cleaderboard_overlay" path="res://scenes/leaderboard_overlay.tscn" id="5_leaderboard"]
 
 [node name="Main" type="Control" unique_id=52458885]
 layout_mode = 3
@@ -50,5 +51,21 @@ mouse_filter = 2
 [node name="ViewerCount" parent="UILayer" instance=ExtResource("4_viewer")]
 layout_mode = 1
 
-[node name="UserStatsOverlay" parent="UILayer" instance=ExtResource("2_overlay")]
+[node name="TopRightPanels" type="HBoxContainer" parent="UILayer"]
 layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -24.0
+offset_top = 24.0
+offset_right = -24.0
+grow_horizontal = 0
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="LeaderboardOverlay" parent="UILayer/TopRightPanels" instance=ExtResource("5_leaderboard")]
+layout_mode = 2
+
+[node name="UserStatsOverlay" parent="UILayer/TopRightPanels" instance=ExtResource("2_overlay")]
+layout_mode = 2

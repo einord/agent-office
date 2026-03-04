@@ -115,6 +115,10 @@ export interface UserStats {
   sessionCount: number;
   agentCount: number;
   isActive: boolean;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  outputTokensPerHour: number;
+  dailyAgentSpawns: number;
 }
 
 /** User stats payload sent to clients */

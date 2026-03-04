@@ -338,6 +338,9 @@ export class ClaudeMonitor {
       // Get current context window usage (last API response's input + output tokens)
       const contextTokens = getContextWindowUsage(messages);
 
+      // Get accumulated total tokens for this file
+      const accumulatedTokens = getIncrementalReader().getAccumulatedTokens(sessionInfo.filePath);
+
       // Get PID if known
       const pid = sessionToPid.get(sessionInfo.filePath);
 
@@ -367,6 +370,10 @@ export class ClaudeMonitor {
           used: contextTokens,
           max: MAX_CONTEXT_TOKENS,
           percentage: Math.round((contextTokens / MAX_CONTEXT_TOKENS) * 100),
+        },
+        totalTokens: {
+          input: accumulatedTokens.input_tokens,
+          output: accumulatedTokens.output_tokens,
         },
         activity,
         lastUpdate: new Date(lastModified),

@@ -90,6 +90,16 @@ interface RequestResult<T> {
 }
 
 /**
+ * Snapshot of last-synced state for an agent, used for change detection.
+ */
+interface SyncedAgentState {
+  activity: BackendActivity;
+  contextPercentage: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+}
+
+/**
  * HTTP client for synchronizing agent status with the backend server.
  * Handles authentication, agent creation, updates, and removal.
  */
@@ -97,9 +107,7 @@ export class ServerClient {
   private config: ServerClientConfig;
   private token: string | null = null;
   private tokenExpiresAt: Date | null = null;
-  private syncedAgents: Set<string> = new Set();
-  private lastActivityMap: Map<string, BackendActivity> = new Map();
-  private lastContextMap: Map<string, number> = new Map();
+  private lastStateMap: Map<string, SyncedAgentState> = new Map();
 
   /**
    * Creates a new ServerClient instance.
@@ -248,13 +256,15 @@ export class ServerClient {
         parentId: session.parentSessionId || null,
         isSidechain: session.isSidechain,
         contextPercentage: session.tokens.percentage,
+        totalInputTokens: session.totalTokens.input,
+        totalOutputTokens: session.totalTokens.output,
       }),
     });
 
+    const stateSnapshot: SyncedAgentState = { activity, contextPercentage: session.tokens.percentage, totalInputTokens: session.totalTokens.input, totalOutputTokens: session.totalTokens.output };
+
     if (result.data) {
-      this.syncedAgents.add(id);
-      this.lastActivityMap.set(id, activity);
-      this.lastContextMap.set(id, session.tokens.percentage);
+      this.lastStateMap.set(id, stateSnapshot);
       console.log(`[ServerClient] Created agent: ${id} (${session.slug})`);
       return true;
     }
@@ -263,7 +273,7 @@ export class ServerClient {
     // mark as synced and update instead of repeatedly trying to create
     if (result.conflict && depth < 3) {
       console.log(`[ServerClient] Agent already exists on server, switching to update: ${id}`);
-      this.syncedAgents.add(id);
+      this.lastStateMap.set(id, stateSnapshot);
       return this.updateAgent(session, depth + 1);
     }
 
@@ -280,32 +290,30 @@ export class ServerClient {
     const activity = mapActivityToBackend(session.activity.type);
     const id = session.agentId;
 
-    // Skip if neither activity nor context percentage have changed
-    const lastActivity = this.lastActivityMap.get(id);
+    // Skip if nothing has changed
     const contextPercentage = session.tokens.percentage;
-    const lastContext = this.lastContextMap.get(id);
-    if (lastActivity === activity && lastContext === contextPercentage) {
+    const totalInputTokens = session.totalTokens.input;
+    const totalOutputTokens = session.totalTokens.output;
+    const last = this.lastStateMap.get(id);
+    if (last && last.activity === activity && last.contextPercentage === contextPercentage && last.totalInputTokens === totalInputTokens && last.totalOutputTokens === totalOutputTokens) {
       return true;
     }
 
     const result = await this.request<AgentResponse>(
       `/agents/${id}`,
-      { method: 'PUT', body: JSON.stringify({ activity, contextPercentage }) },
+      { method: 'PUT', body: JSON.stringify({ activity, contextPercentage, totalInputTokens, totalOutputTokens }) },
       `agent: ${id}`
     );
 
     if (result.data) {
-      this.lastActivityMap.set(id, activity);
-      this.lastContextMap.set(id, contextPercentage);
+      this.lastStateMap.set(id, { activity, contextPercentage, totalInputTokens, totalOutputTokens });
       console.log(`[ServerClient] Updated agent: ${id} -> ${activity}`);
       return true;
     }
 
     // If agent not found on server, recreate it (unless it's done - no point spawning a finished agent)
     if (result.notFound && depth < 3) {
-      this.syncedAgents.delete(id);
-      this.lastActivityMap.delete(id);
-      this.lastContextMap.delete(id);
+      this.lastStateMap.delete(id);
       if (activity === 'done') {
         return true;
       }
@@ -330,9 +338,7 @@ export class ServerClient {
 
     // Consider it successful if agent was deleted or didn't exist
     if (result.data || result.notFound) {
-      this.syncedAgents.delete(sessionId);
-      this.lastActivityMap.delete(sessionId);
-      this.lastContextMap.delete(sessionId);
+      this.lastStateMap.delete(sessionId);
       if (result.data) {
         console.log(`[ServerClient] Removed agent: ${sessionId}`);
       }
@@ -361,7 +367,7 @@ export class ServerClient {
 
     // Find agents to remove (synced but no longer in sessions)
     const agentsToRemove = new Set<string>();
-    for (const syncedId of this.syncedAgents) {
+    for (const syncedId of this.lastStateMap.keys()) {
       if (!sessions.has(syncedId)) {
         agentsToRemove.add(syncedId);
       }
@@ -375,15 +381,10 @@ export class ServerClient {
 
     // Create or update agents (keyed by agentId)
     for (const [agentId, session] of sessions) {
-      if (this.syncedAgents.has(agentId)) {
-        // Update existing agent (returns true even if skipped due to no change)
-        const activity = mapActivityToBackend(session.activity.type);
-        const lastActivity = this.lastActivityMap.get(agentId);
-        const lastContext = this.lastContextMap.get(agentId);
-        if (lastActivity !== activity || lastContext !== session.tokens.percentage) {
-          await this.updateAgent(session);
-          madeApiCall = true;
-        }
+      if (this.lastStateMap.has(agentId)) {
+        // Update existing agent (updateAgent skips if nothing changed)
+        const changed = await this.updateAgent(session);
+        if (changed) madeApiCall = true;
       } else {
         // Don't create agents that are already done (prevents zombie re-discovery from disk)
         const activity = mapActivityToBackend(session.activity.type);
@@ -396,7 +397,7 @@ export class ServerClient {
     }
 
     // If no API calls were made but we have synced agents, send heartbeat
-    if (!madeApiCall && this.syncedAgents.size > 0) {
+    if (!madeApiCall && this.lastStateMap.size > 0) {
       await this.heartbeat();
     }
   }
@@ -407,7 +408,7 @@ export class ServerClient {
    * @returns True if the agent is synced
    */
   isSynced(sessionId: string): boolean {
-    return this.syncedAgents.has(sessionId);
+    return this.lastStateMap.has(sessionId);
   }
 
   /**
@@ -415,6 +416,6 @@ export class ServerClient {
    * @returns Set of synced session IDs
    */
   getSyncedAgents(): Set<string> {
-    return new Set(this.syncedAgents);
+    return new Set(this.lastStateMap.keys());
   }
 }
