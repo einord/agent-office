@@ -119,6 +119,7 @@ export interface UserStats {
   totalOutputTokens: number;
   outputTokensPerHour: number;
   dailyAgentSpawns: number;
+  dailySycophancyCount: number;
 }
 
 /** User stats payload sent to clients */

@@ -81,16 +81,20 @@ func _render_collapsed() -> void:
 	var total_tokens: int = 0
 	var total_per_hour: int = 0
 	var total_spawns: int = 0
+	var total_sycophancy: int = 0
 	for user in _current_users:
 		total_tokens += int(user.get("totalOutputTokens", 0))
 		total_per_hour += int(user.get("outputTokensPerHour", 0))
 		total_spawns += int(user.get("dailyAgentSpawns", 0))
+		total_sycophancy += int(user.get("dailySycophancyCount", 0))
 
 	if total_tokens > 0 or total_spawns > 0:
 		var parts: Array[String] = [_format_tokens(total_tokens)]
 		if total_per_hour > 0:
 			parts.append(_format_tokens_per_hour(total_per_hour))
 		parts.append("%da" % total_spawns)
+		if total_sycophancy > 0:
+			parts.append("%dar" % total_sycophancy)
 		_stats_label.text = "  ".join(parts) + " \u25BC"
 	else:
 		_stats_label.text = "-  \u25BC"
@@ -118,7 +122,7 @@ func _render_expanded() -> void:
 
 	_stats_label.visible = false
 	_stats_grid.visible = true
-	_stats_grid.columns = 4
+	_stats_grid.columns = 5
 
 	var rank := 1
 	for user in users_with_tokens:
@@ -126,30 +130,31 @@ func _render_expanded() -> void:
 		var output_tokens = int(user.get("totalOutputTokens", 0))
 		var tokens_per_hour = int(user.get("outputTokensPerHour", 0))
 		var spawns = int(user.get("dailyAgentSpawns", 0))
+		var sycophancy = int(user.get("dailySycophancyCount", 0))
 
 		_stats_grid.add_child(_create_grid_label("%d. %s" % [rank, display_name]))
 		_stats_grid.add_child(_create_grid_label(_format_tokens(output_tokens)))
 		_stats_grid.add_child(_create_grid_label(_format_tokens_per_hour(tokens_per_hour), DIM_COLOR))
 		_stats_grid.add_child(_create_grid_label("%da" % spawns, DIM_COLOR))
+		_stats_grid.add_child(_create_grid_label("%dar" % sycophancy, DIM_COLOR))
 		rank += 1
-
-	# Spacer row
-	for i in 4:
-		_stats_grid.add_child(_create_grid_label(""))
 
 	# Summary row
 	var total_output: int = 0
 	var total_per_hour: int = 0
 	var total_spawns: int = 0
+	var total_sycophancy: int = 0
 	for user in users_with_tokens:
 		total_output += int(user.get("totalOutputTokens", 0))
 		total_per_hour += int(user.get("outputTokensPerHour", 0))
 		total_spawns += int(user.get("dailyAgentSpawns", 0))
+		total_sycophancy += int(user.get("dailySycophancyCount", 0))
 
 	_stats_grid.add_child(_create_grid_label(""))
 	_stats_grid.add_child(_create_grid_label(_format_tokens(total_output)))
 	_stats_grid.add_child(_create_grid_label(_format_tokens_per_hour(total_per_hour), DIM_COLOR))
 	_stats_grid.add_child(_create_grid_label("%da" % total_spawns, DIM_COLOR))
+	_stats_grid.add_child(_create_grid_label("%dar" % total_sycophancy, DIM_COLOR))
 
 ## Formats token count for display: <1K raw, >=1K as "1.2K", >=1M as "1.2M"
 static func _format_tokens(count: int) -> String:

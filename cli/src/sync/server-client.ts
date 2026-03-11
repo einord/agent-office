@@ -97,6 +97,7 @@ interface SyncedAgentState {
   contextPercentage: number;
   totalInputTokens: number;
   totalOutputTokens: number;
+  sycophancyCount: number;
 }
 
 /**
@@ -258,10 +259,11 @@ export class ServerClient {
         contextPercentage: session.tokens.percentage,
         totalInputTokens: session.totalTokens.input,
         totalOutputTokens: session.totalTokens.output,
+        sycophancyCount: session.sycophancyCount,
       }),
     });
 
-    const stateSnapshot: SyncedAgentState = { activity, contextPercentage: session.tokens.percentage, totalInputTokens: session.totalTokens.input, totalOutputTokens: session.totalTokens.output };
+    const stateSnapshot: SyncedAgentState = { activity, contextPercentage: session.tokens.percentage, totalInputTokens: session.totalTokens.input, totalOutputTokens: session.totalTokens.output, sycophancyCount: session.sycophancyCount };
 
     if (result.data) {
       this.lastStateMap.set(id, stateSnapshot);
@@ -294,19 +296,20 @@ export class ServerClient {
     const contextPercentage = session.tokens.percentage;
     const totalInputTokens = session.totalTokens.input;
     const totalOutputTokens = session.totalTokens.output;
+    const sycophancyCount = session.sycophancyCount;
     const last = this.lastStateMap.get(id);
-    if (last && last.activity === activity && last.contextPercentage === contextPercentage && last.totalInputTokens === totalInputTokens && last.totalOutputTokens === totalOutputTokens) {
+    if (last && last.activity === activity && last.contextPercentage === contextPercentage && last.totalInputTokens === totalInputTokens && last.totalOutputTokens === totalOutputTokens && last.sycophancyCount === sycophancyCount) {
       return true;
     }
 
     const result = await this.request<AgentResponse>(
       `/agents/${id}`,
-      { method: 'PUT', body: JSON.stringify({ activity, contextPercentage, totalInputTokens, totalOutputTokens }) },
+      { method: 'PUT', body: JSON.stringify({ activity, contextPercentage, totalInputTokens, totalOutputTokens, sycophancyCount }) },
       `agent: ${id}`
     );
 
     if (result.data) {
-      this.lastStateMap.set(id, { activity, contextPercentage, totalInputTokens, totalOutputTokens });
+      this.lastStateMap.set(id, { activity, contextPercentage, totalInputTokens, totalOutputTokens, sycophancyCount });
       console.log(`[ServerClient] Updated agent: ${id} -> ${activity}`);
       return true;
     }

@@ -115,6 +115,7 @@ export interface TrackedSession {
     input: number;
     output: number;
   };
+  sycophancyCount: number;
   activity: ActivityInfo;
   lastUpdate: Date;
   isSidechain: boolean;

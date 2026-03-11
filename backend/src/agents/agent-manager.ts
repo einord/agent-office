@@ -8,6 +8,9 @@ const agents = new Map<string, Agent>();
 /** Accumulated tokens for users whose agents have been removed */
 const userTokenAccumulator = new Map<string, { input: number; output: number }>();
 
+/** Accumulated sycophancy counts for users whose agents have been removed */
+const userSycophancyAccumulator = new Map<string, number>();
+
 /** Rolling token history per user for computing tokens/hour */
 const userTokenHistory = new Map<string, Array<{ timestamp: number; tokens: number }>>();
 
@@ -16,6 +19,9 @@ const TOKEN_HISTORY_MAX_AGE_MS = 60 * 60 * 1000;
 
 /** Per-user token offset recorded at midnight, subtracted from raw totals to get daily usage */
 const userDailyOffset = new Map<string, { input: number; output: number }>();
+
+/** Per-user sycophancy offset recorded at midnight */
+const userDailySycophancyOffset = new Map<string, number>();
 
 /** Total agents spawned per user today */
 const userDailySpawnCount = new Map<string, number>();
@@ -44,6 +50,7 @@ function checkDailyReset(): void {
     }
     for (const ownerKey of allOwnerKeys) {
       userDailyOffset.set(ownerKey, getRawUserTokens(ownerKey));
+      userDailySycophancyOffset.set(ownerKey, getRawUserSycophancy(ownerKey));
     }
     userTokenHistory.clear();
     userDailySpawnCount.clear();
@@ -64,6 +71,15 @@ function getRawUserTokens(ownerKey: string): { input: number; output: number } {
 }
 
 /**
+ * Gets the raw (all-time) total sycophancy count for a user.
+ */
+function getRawUserSycophancy(ownerKey: string): number {
+  const accumulated = userSycophancyAccumulator.get(ownerKey) || 0;
+  const ownerAgents = getAgentsByOwner(ownerKey);
+  return accumulated + ownerAgents.reduce((sum, a) => sum + a.sycophancyCount, 0);
+}
+
+/**
  * Removes an agent from the map and accumulates its tokens for the owner.
  */
 function deleteAgentAndAccumulate(agent: Agent): void {
@@ -72,6 +88,8 @@ function deleteAgentAndAccumulate(agent: Agent): void {
     input: current.input + agent.totalInputTokens,
     output: current.output + agent.totalOutputTokens,
   });
+  const currentSycophancy = userSycophancyAccumulator.get(agent.ownerKey) || 0;
+  userSycophancyAccumulator.set(agent.ownerKey, currentSycophancy + agent.sycophancyCount);
   agents.delete(agent.id);
 }
 
@@ -131,7 +149,8 @@ export function createAgent(
   isSidechain?: boolean,
   contextPercentage?: number,
   totalInputTokens?: number,
-  totalOutputTokens?: number
+  totalOutputTokens?: number,
+  sycophancyCount?: number
 ): Agent | null {
   if (agents.has(id)) {
     console.warn(`[AgentManager] Agent with ID "${id}" already exists`);
@@ -154,6 +173,7 @@ export function createAgent(
     contextPercentage: contextPercentage ?? 0,
     totalInputTokens: totalInputTokens ?? 0,
     totalOutputTokens: totalOutputTokens ?? 0,
+    sycophancyCount: sycophancyCount ?? 0,
     idleAction: null,
   };
 
@@ -178,7 +198,8 @@ export function updateAgentActivity(
   ownerKey: string,
   contextPercentage?: number,
   totalInputTokens?: number,
-  totalOutputTokens?: number
+  totalOutputTokens?: number,
+  sycophancyCount?: number
 ): Agent | null {
   const agent = agents.get(id);
 
@@ -214,6 +235,10 @@ export function updateAgentActivity(
 
   if (totalOutputTokens !== undefined) {
     agent.totalOutputTokens = totalOutputTokens;
+  }
+
+  if (sycophancyCount !== undefined) {
+    agent.sycophancyCount = sycophancyCount;
   }
 
   console.log(`[AgentManager] Updated agent: ${id} -> activity: ${activity}, state: ${newState} (was: ${oldState})`);
@@ -343,13 +368,16 @@ function getUserTokensPerHour(ownerKey: string): number {
  * Also records a snapshot for rate calculation and checks for daily reset.
  * @param ownerKey - The owner's API key
  */
-export function getUserTokenStats(ownerKey: string): { totalInputTokens: number; totalOutputTokens: number; outputTokensPerHour: number; dailyAgentSpawns: number } {
+export function getUserTokenStats(ownerKey: string): { totalInputTokens: number; totalOutputTokens: number; outputTokensPerHour: number; dailyAgentSpawns: number; dailySycophancyCount: number } {
   checkDailyReset();
   const daily = getUserDailyTokens(ownerKey);
   recordTokenSnapshot(ownerKey, daily.output);
   const outputTokensPerHour = getUserTokensPerHour(ownerKey);
   const dailyAgentSpawns = userDailySpawnCount.get(ownerKey) || 0;
-  return { totalInputTokens: daily.input, totalOutputTokens: daily.output, outputTokensPerHour, dailyAgentSpawns };
+  const rawSycophancy = getRawUserSycophancy(ownerKey);
+  const sycophancyOffset = userDailySycophancyOffset.get(ownerKey) || 0;
+  const dailySycophancyCount = Math.max(0, rawSycophancy - sycophancyOffset);
+  return { totalInputTokens: daily.input, totalOutputTokens: daily.output, outputTokensPerHour, dailyAgentSpawns, dailySycophancyCount };
 }
 
 /**

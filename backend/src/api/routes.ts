@@ -106,7 +106,8 @@ router.post('/agents', authMiddleware, (req: AuthenticatedRequest, res: Response
     body.isSidechain,
     body.contextPercentage,
     body.totalInputTokens,
-    body.totalOutputTokens
+    body.totalOutputTokens,
+    body.sycophancyCount
   );
 
   if (!agent) {
@@ -164,7 +165,7 @@ router.put('/agents/:id', authMiddleware, (req: AuthenticatedRequest, res: Respo
     return;
   }
 
-  const agent = updateAgentActivity(id, body.activity, user.key, body.contextPercentage, body.totalInputTokens, body.totalOutputTokens);
+  const agent = updateAgentActivity(id, body.activity, user.key, body.contextPercentage, body.totalInputTokens, body.totalOutputTokens, body.sycophancyCount);
 
   if (!agent) {
     res.status(500).json({ error: 'Failed to update agent' });
