@@ -88,6 +88,7 @@ export class IncrementalReader {
           this.filePositions.set(filePath, 0);
           this.messageCache.delete(filePath);
           this.tokenAccumulator.delete(filePath);
+          this.sycophancyAccumulator.delete(filePath);
           return this.readNewLines(filePath);
         }
         return [];

@@ -286,7 +286,7 @@ export class ServerClient {
    * Updates an agent's activity on the backend server.
    * If the agent is not found (404), it will be recreated automatically.
    * @param session - The tracked session to update
-   * @returns True if the agent was updated successfully
+   * @returns True if an API call was made, false if skipped (no change) or on error
    */
   async updateAgent(session: TrackedSession, depth: number = 0): Promise<boolean> {
     const activity = mapActivityToBackend(session.activity.type);
@@ -299,7 +299,7 @@ export class ServerClient {
     const sycophancyCount = session.sycophancyCount;
     const last = this.lastStateMap.get(id);
     if (last && last.activity === activity && last.contextPercentage === contextPercentage && last.totalInputTokens === totalInputTokens && last.totalOutputTokens === totalOutputTokens && last.sycophancyCount === sycophancyCount) {
-      return true;
+      return false;
     }
 
     const result = await this.request<AgentResponse>(
