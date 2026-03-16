@@ -299,7 +299,7 @@ export class ServerClient {
     const sycophancyCount = session.sycophancyCount;
     const last = this.lastStateMap.get(id);
     if (last && last.activity === activity && last.contextPercentage === contextPercentage && last.totalInputTokens === totalInputTokens && last.totalOutputTokens === totalOutputTokens && last.sycophancyCount === sycophancyCount) {
-      return true;
+      return false;
     }
 
     const result = await this.request<AgentResponse>(
