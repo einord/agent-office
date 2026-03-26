@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.24](https://github.com/einord/agent-office/compare/agent-office-v0.1.23...agent-office-v0.1.24) (2026-03-26)
+
+
+### Features
+
+* add token usage leaderboard overlay ([bb91116](https://github.com/einord/agent-office/commit/bb9111641ae5bbcbdb70295a56e1e21b0618281b))
+* add token usage leaderboard overlay ([308489a](https://github.com/einord/agent-office/commit/308489ac36ed372ecb8bfe9928790c003efd1c63))
+* track sycophancy count in leaderboard stats ([78226dd](https://github.com/einord/agent-office/commit/78226dd5f4c2be5eb60cabe146eafc89c4190475))
+
+
+### Bug Fixes
+
+* correct updateAgent no-change return value and missing sycophancyAccumulator reset ([6e97085](https://github.com/einord/agent-office/commit/6e9708587559a17bf066c0c0c1933fc930aa235f))
+* correct updateAgent no-change return value and missing sycophancyAccumulator reset ([ae3d976](https://github.com/einord/agent-office/commit/ae3d976de14772fafc9359a11bd93e536ebff7bf))
+* correct updateAgent skip return value and reset sycophancy on truncation ([6c451dc](https://github.com/einord/agent-office/commit/6c451dc7f1935d180130bdf60ad211a50f1bf825))
+
 ## [0.1.23](https://github.com/einord/agent-office/compare/agent-office-v0.1.22...agent-office-v0.1.23) (2026-02-08)
 
 
