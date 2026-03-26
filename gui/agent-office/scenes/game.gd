@@ -15,6 +15,8 @@ var _agents_by_id: Dictionary = {}  # Maps external ID to agent instance
 
 ## Reference to the user stats overlay (set via set_user_stats_overlay)
 var _user_stats_overlay: Node = null
+## Reference to the leaderboard overlay (set via set_leaderboard_overlay)
+var _leaderboard_overlay: Node = null
 ## Reference to the viewer count overlay (set via set_viewer_count_overlay)
 var _viewer_count_overlay: Node = null
 
@@ -314,6 +316,8 @@ func _handle_trigger_cleaning() -> void:
 func _handle_user_stats(payload: Dictionary) -> void:
 	if _user_stats_overlay != null and is_instance_valid(_user_stats_overlay):
 		_user_stats_overlay.update_stats(payload)
+	if _leaderboard_overlay != null and is_instance_valid(_leaderboard_overlay):
+		_leaderboard_overlay.update_leaderboard(payload)
 	# Update viewer count from totals
 	var totals = payload.get("totals", {})
 	var viewer_count = totals.get("viewerCount", 0)
@@ -323,6 +327,10 @@ func _handle_user_stats(payload: Dictionary) -> void:
 ## Sets the reference to the user stats overlay node.
 func set_user_stats_overlay(overlay: Node) -> void:
 	_user_stats_overlay = overlay
+
+## Sets the reference to the leaderboard overlay node.
+func set_leaderboard_overlay(overlay: Node) -> void:
+	_leaderboard_overlay = overlay
 
 ## Sets the reference to the viewer count overlay node.
 func set_viewer_count_overlay(overlay: Node) -> void:

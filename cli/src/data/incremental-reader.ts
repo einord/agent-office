@@ -1,6 +1,44 @@
 import { stat, open } from 'fs/promises';
 import { createReadStream } from 'fs';
-import type { ConversationMessage } from '../types.js';
+import type { ConversationMessage, TokenUsage } from '../types.js';
+import { calculateTokenUsage } from './session-reader.js';
+
+/**
+ * Regex patterns for detecting sycophantic agreement phrases in assistant messages.
+ * Covers both English and Swedish variants.
+ */
+const SYCOPHANCY_PATTERNS: RegExp[] = [
+  /you(?:'re| are) absolutely right/i,
+  /you(?:'re| are) absolutely correct/i,
+  /you(?:'re| are) right/i,
+  /du har helt rätt/i,
+  /du har rätt/i,
+  /helt rätt/i,
+];
+
+/**
+ * Counts sycophantic agreement phrases in assistant messages.
+ * Only counts messages where the role is 'assistant' and content contains text blocks.
+ */
+function countSycophancy(messages: ConversationMessage[]): number {
+  let count = 0;
+  for (const msg of messages) {
+    if (msg.type !== 'assistant' && msg.message?.role !== 'assistant') continue;
+    const content = msg.message?.content;
+    if (!Array.isArray(content)) continue;
+    for (const block of content) {
+      if (block.type === 'text' && block.text) {
+        for (const pattern of SYCOPHANCY_PATTERNS) {
+          if (pattern.test(block.text)) {
+            count++;
+            break; // One match per text block is enough
+          }
+        }
+      }
+    }
+  }
+  return count;
+}
 
 /**
  * Tracks file read positions for incremental reading of JSONL files.
@@ -13,6 +51,12 @@ export class IncrementalReader {
 
   /** Map of file path to cached messages (accumulated over time) */
   private messageCache: Map<string, ConversationMessage[]> = new Map();
+
+  /** Map of file path to accumulated token usage */
+  private tokenAccumulator: Map<string, TokenUsage> = new Map();
+
+  /** Map of file path to accumulated sycophancy phrase count */
+  private sycophancyAccumulator: Map<string, number> = new Map();
 
   /** Maximum number of messages to keep in cache per file */
   private maxCachedMessages: number;
@@ -43,6 +87,8 @@ export class IncrementalReader {
         if (currentSize < lastPosition) {
           this.filePositions.set(filePath, 0);
           this.messageCache.delete(filePath);
+          this.tokenAccumulator.delete(filePath);
+          this.sycophancyAccumulator.delete(filePath);
           return this.readNewLines(filePath);
         }
         return [];
@@ -219,15 +265,43 @@ export class IncrementalReader {
     // Keep only the most recent messages
     const trimmed = combined.slice(-this.maxCachedMessages);
     this.messageCache.set(filePath, trimmed);
+
+    // Accumulate token usage from new messages
+    const accumulated = this.tokenAccumulator.get(filePath) || {
+      input_tokens: 0,
+      output_tokens: 0,
+    };
+    const newUsage = calculateTokenUsage(newMessages);
+    accumulated.input_tokens += newUsage.input_tokens;
+    accumulated.output_tokens += newUsage.output_tokens;
+    this.tokenAccumulator.set(filePath, accumulated);
+
+    // Accumulate sycophancy count from new messages
+    const newSycophancy = countSycophancy(newMessages);
+    if (newSycophancy > 0) {
+      const current = this.sycophancyAccumulator.get(filePath) || 0;
+      this.sycophancyAccumulator.set(filePath, current + newSycophancy);
+    }
   }
 
   /**
-   * Clears the cache and position tracking for a specific file.
+   * Gets the accumulated token usage for a file.
    * @param filePath Path to the file
+   * @returns Accumulated token usage or zeroes if not tracked
    */
+  getAccumulatedTokens(filePath: string): TokenUsage {
+    return this.tokenAccumulator.get(filePath) || { input_tokens: 0, output_tokens: 0 };
+  }
+
+  getAccumulatedSycophancy(filePath: string): number {
+    return this.sycophancyAccumulator.get(filePath) || 0;
+  }
+
   clearFile(filePath: string): void {
     this.filePositions.delete(filePath);
     this.messageCache.delete(filePath);
+    this.tokenAccumulator.delete(filePath);
+    this.sycophancyAccumulator.delete(filePath);
   }
 
   /**
@@ -239,6 +313,8 @@ export class IncrementalReader {
       if (!activeFilePaths.has(filePath)) {
         this.filePositions.delete(filePath);
         this.messageCache.delete(filePath);
+        this.tokenAccumulator.delete(filePath);
+        this.sycophancyAccumulator.delete(filePath);
       }
     }
   }
@@ -249,6 +325,8 @@ export class IncrementalReader {
   clearAll(): void {
     this.filePositions.clear();
     this.messageCache.clear();
+    this.tokenAccumulator.clear();
+    this.sycophancyAccumulator.clear();
   }
 
   /**
