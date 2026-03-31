@@ -398,8 +398,8 @@ export async function getAllSessions(): Promise<Map<string, SessionIndex & { pro
         const stats = await stat(filePath);
         const ageMinutes = (Date.now() - stats.mtime.getTime()) / (1000 * 60);
 
-        // Only include sessions modified in the last 60 minutes
-        if (ageMinutes <= 60) {
+        // Only include sessions modified in the last 15 minutes (re-discovered if they wake up)
+        if (ageMinutes <= 15) {
           // Use index entry if available, otherwise use originalPath from index
           const indexEntry = indexMap.get(sessionId);
           const projectPath = indexEntry?.projectPath || originalPath || projectDir;
@@ -430,8 +430,8 @@ export async function getAllSessions(): Promise<Map<string, SessionIndex & { pro
 
       const ageMinutes = (Date.now() - subagentInfo.lastModified) / (1000 * 60);
 
-      // Only include sub-agents modified in the last 60 minutes
-      if (ageMinutes <= 60) {
+      // Only include sub-agents modified in the last 5 minutes (they live seconds to minutes)
+      if (ageMinutes <= 5) {
         // Use agentId as the unique key for sub-agents
         sessions.set(subagentInfo.agentId, {
           sessionId: subagentInfo.parentSessionId,  // Parent's session ID

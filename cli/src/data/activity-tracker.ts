@@ -20,9 +20,10 @@ const USER_INPUT_TOOLS = new Set([
  * @param lastModified Optional timestamp of last file modification
  * @returns Current activity info
  */
-export function getLatestActivity(messages: ConversationMessage[], lastModified?: number): ActivityInfo {
+export function getLatestActivity(messages: ConversationMessage[], lastModified?: number, hasPid?: boolean): ActivityInfo {
   const timeSinceModified = lastModified ? Date.now() - lastModified : 0;
   const isStale = timeSinceModified > ACTIVITY_TIMEOUT_MS;
+  const staleType: ActivityType = hasPid ? 'idle' : 'done';
 
   // First, check if the very last message is a user response (not tool_result)
   // This means user has answered a question and Claude should be processing
@@ -33,7 +34,7 @@ export function getLatestActivity(messages: ConversationMessage[], lastModified?
       // User sent a plain text message - Claude should be processing it
       if (typeof content === 'string') {
         if (isStale) {
-          return { type: 'done' };
+          return { type: staleType };
         }
         return { type: 'thinking' };
       }
@@ -45,7 +46,7 @@ export function getLatestActivity(messages: ConversationMessage[], lastModified?
         }
         // User sent a message that's not a tool_result - they answered a question
         if (isStale) {
-          return { type: 'done' };
+          return { type: staleType };
         }
         return { type: 'thinking' };
       }
@@ -73,7 +74,7 @@ export function getLatestActivity(messages: ConversationMessage[], lastModified?
           if (hasUserResponseAfter) {
             // User already responded, Claude should be processing
             if (isStale) {
-              return { type: 'done' };
+              return { type: staleType };
             }
             return { type: 'thinking' };
           }
@@ -92,7 +93,7 @@ export function getLatestActivity(messages: ConversationMessage[], lastModified?
 
         // If stale and has tool_use, it might be waiting for result or done
         if (isStale) {
-          return { type: 'done' };
+          return { type: staleType };
         }
 
         const activity = TOOL_ACTIVITY_MAP[toolUseBlock.name];
@@ -116,17 +117,13 @@ export function getLatestActivity(messages: ConversationMessage[], lastModified?
 
         if (hasText && !hasToolUse) {
           // Assistant responded with text only - session is done or waiting for user
-          if (isStale) {
-            return { type: 'done' };
-          }
-          // Recently finished, still show as done
-          return { type: 'done' };
+          return { type: staleType };
         }
 
         if (hasText) {
           // Has text but also tool_use - still thinking
           if (isStale) {
-            return { type: 'done' };
+            return { type: staleType };
           }
           return { type: 'thinking' };
         }
@@ -141,7 +138,7 @@ export function getLatestActivity(messages: ConversationMessage[], lastModified?
         if (hasToolResult) {
           // Tool result received, Claude should be processing
           if (isStale) {
-            return { type: 'done' };
+            return { type: staleType };
           }
           return { type: 'thinking' };
         }
@@ -270,9 +267,9 @@ export function isSessionActive(messages: ConversationMessage[], lastModified: n
   const now = Date.now();
   const ageMs = now - lastModified;
 
-  // Consider active if modified in the last 60 minutes
-  const sixtyMinutesMs = 60 * 60 * 1000;
-  if (ageMs < sixtyMinutesMs) {
+  // Consider active if modified in the last 12 hours
+  const twelveHoursMs = 12 * 60 * 60 * 1000;
+  if (ageMs < twelveHoursMs) {
     return true;
   }
 

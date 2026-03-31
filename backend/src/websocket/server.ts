@@ -9,7 +9,7 @@ import type {
   UserStatsPayload,
 } from '../types.js';
 import type { Agent } from '../agents/types.js';
-import { onAgentChange, getAllAgents, confirmAgentRemoved, getAgentsByOwner } from '../agents/agent-manager.js';
+import { onAgentChange, getAllAgents, confirmAgentRemoved, getAgentsByOwner, getUserTokenStats } from '../agents/agent-manager.js';
 import { onIdleActionChange } from '../idle-actions/index.js';
 import { initCleaningService, getCanCount } from '../cleaning/index.js';
 import { getActiveUsers } from '../auth/token-manager.js';
@@ -122,21 +122,26 @@ function buildUserStatsPayload(): UserStatsPayload {
   const activeUsers = getActiveUsers();
   const allAgents = getAllAgents();
 
+  // Stats reflect what's visible on screen - count all agents that exist
+  // (agents are removed by reapDoneAgents when they should no longer be visible)
   const users: UserStatsPayload['users'] = config.users.map((configUser) => {
     const activeSession = activeUsers.get(configUser.key);
-    const userAgents = getAgentsByOwner(configUser.key);
+    const ownerAgents = getAgentsByOwner(configUser.key);
+
+    const tokenStats = getUserTokenStats(configUser.key);
 
     return {
       displayName: configUser.displayName,
-      sessionCount: activeSession?.sessionCount ?? 0,
-      agentCount: userAgents.length,
+      sessionCount: ownerAgents.filter(a => !a.isSidechain).length,
+      agentCount: ownerAgents.filter(a => a.isSidechain).length,
       isActive: activeSession !== undefined,
+      ...tokenStats,
     };
   });
 
   const activeUserCount = users.filter((u) => u.isActive).length;
   const totalSessions = users.reduce((sum, u) => sum + u.sessionCount, 0);
-  const totalAgents = allAgents.length;
+  const totalAgents = allAgents.filter(a => a.isSidechain).length;
 
   return {
     users,

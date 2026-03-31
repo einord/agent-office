@@ -330,9 +330,16 @@ func _physics_process(delta):
 		_idle_action_handler.physics_process(delta)
 
 	if navigation_agent.is_navigation_finished():
-		# Play standing animation when not moving (unless sitting in a chair)
-		if not _is_sitting and _anim_player.current_animation != "standing":
-			_anim_player.play("standing")
+		var current_anim := _anim_player.current_animation
+		# Play typing animation when working at a station, seated, and not during chair transition
+		if current_state == AgentState.WORKING and _has_arrived_at_work and _is_sitting \
+				and current_anim != "chair_up" and current_anim != "chair_down":
+			if current_anim != "typing":
+				_anim_player.play("typing")
+		# Only play standing when not sitting and not during chair transition
+		elif not _is_sitting and current_anim != "chair_up" and current_anim != "chair_down":
+			if current_anim != "standing":
+				_anim_player.play("standing")
 
 		# Handle state-specific behavior when navigation is complete
 		match current_state:

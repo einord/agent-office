@@ -1,12 +1,13 @@
 {
   "users": [
     { "key": "glxblt2026", "displayName": "Jonte" },
-    { "key": "bitterboy", "displayName": "Samuel" }
+    { "key": "bitterboy", "displayName": "Samuel" },
+    { "key": "hereforthelolz", "displayName": "Erik" }
   ],
   "server": {
     "httpPort": 3100,
     "wsPort": 3101
   },
   "tokenExpirySeconds": 86400,
-  "inactivityTimeoutSeconds": 180
+  "inactivityTimeoutSeconds": 1800
 }

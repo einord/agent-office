@@ -111,6 +111,11 @@ export interface TrackedSession {
     max: number;
     percentage: number;
   };
+  totalTokens: {
+    input: number;
+    output: number;
+  };
+  sycophancyCount: number;
   activity: ActivityInfo;
   lastUpdate: Date;
   isSidechain: boolean;

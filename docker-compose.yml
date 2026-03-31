@@ -46,6 +46,7 @@ services:
       dockerfile: Dockerfile
       args:
         GODOT_VERSION: "4.6"
+        BUILD_TIMESTAMP: "${BUILD_TIMESTAMP:-}"
     ports:
       - "8080:80"
     depends_on:

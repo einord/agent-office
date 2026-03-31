@@ -176,6 +176,7 @@ jobs:
           push: true
           build-args: |
             GODOT_VERSION=4.6
+            BUILD_TIMESTAMP=${{ github.run_number }}-${{ github.sha }}
           tags: |
             ghcr.io/${{ github.repository }}/web-ui:latest
             ghcr.io/${{ github.repository }}/web-ui:${{ steps.version.outputs.version }}

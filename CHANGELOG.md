@@ -1,5 +1,69 @@
 # Changelog
 
+## [0.1.24](https://github.com/einord/agent-office/compare/agent-office-v0.1.23...agent-office-v0.1.24) (2026-03-26)
+
+
+### Features
+
+* add token usage leaderboard overlay ([bb91116](https://github.com/einord/agent-office/commit/bb9111641ae5bbcbdb70295a56e1e21b0618281b))
+* add token usage leaderboard overlay ([308489a](https://github.com/einord/agent-office/commit/308489ac36ed372ecb8bfe9928790c003efd1c63))
+* track sycophancy count in leaderboard stats ([78226dd](https://github.com/einord/agent-office/commit/78226dd5f4c2be5eb60cabe146eafc89c4190475))
+
+
+### Bug Fixes
+
+* correct updateAgent no-change return value and missing sycophancyAccumulator reset ([6e97085](https://github.com/einord/agent-office/commit/6e9708587559a17bf066c0c0c1933fc930aa235f))
+* correct updateAgent no-change return value and missing sycophancyAccumulator reset ([ae3d976](https://github.com/einord/agent-office/commit/ae3d976de14772fafc9359a11bd93e536ebff7bf))
+* correct updateAgent skip return value and reset sycophancy on truncation ([6c451dc](https://github.com/einord/agent-office/commit/6c451dc7f1935d180130bdf60ad211a50f1bf825))
+
+## [0.1.23](https://github.com/einord/agent-office/compare/agent-office-v0.1.22...agent-office-v0.1.23) (2026-02-08)
+
+
+### Bug Fixes
+
+* differentiate reap timeouts and align stats with visible agents ([c0550e8](https://github.com/einord/agent-office/commit/c0550e83bdf52da21f0b360f9c1dd010f70fcf4d))
+* reap done agents after 5-minute timeout ([267dcf8](https://github.com/einord/agent-office/commit/267dcf8cdfd73fb0ad21b2c4d230d5bdf66dd6f3))
+* reap done agents after 5-minute timeout ([b68d982](https://github.com/einord/agent-office/commit/b68d982f113e75283222183fff0571edf409c8cf))
+
+## [0.1.22](https://github.com/einord/agent-office/compare/agent-office-v0.1.21...agent-office-v0.1.22) (2026-02-08)
+
+
+### Bug Fixes
+
+* tighten session discovery window and exclude done agents from stats ([61c1cc8](https://github.com/einord/agent-office/commit/61c1cc8f87f254b602b30bd7f2a5e121c9828c6f))
+
+## [0.1.21](https://github.com/einord/agent-office/compare/agent-office-v0.1.20...agent-office-v0.1.21) (2026-02-08)
+
+
+### Bug Fixes
+
+* correct stats counting and prevent zombie sub-agent re-discovery ([33c6b68](https://github.com/einord/agent-office/commit/33c6b6829e59ae41b70147cad1a8d3336bae3274))
+
+## [0.1.20](https://github.com/einord/agent-office/compare/agent-office-v0.1.19...agent-office-v0.1.20) (2026-02-08)
+
+
+### Features
+
+* Add Watchtower auto-updates for CLI Docker client ([2681f8f](https://github.com/einord/agent-office/commit/2681f8fe818bf44d8e763bc776126fa13d519133))
+* **gui:** Add auto-reload on new version detection for web client ([e3fa4b1](https://github.com/einord/agent-office/commit/e3fa4b1335e47461265cc3a5e44b15ce7ab45751))
+* **gui:** Add auto-reload on new version detection for web client ([ddf2882](https://github.com/einord/agent-office/commit/ddf288273b7eee803301f6f675c70f436af3f6b7))
+* **gui:** add typing animation for agents at workstations ([87c88f8](https://github.com/einord/agent-office/commit/87c88f88e916aae200262012554e601e28e57e29))
+
+
+### Bug Fixes
+
+* **gui:** address code review feedback for auto-reload feature ([4fb7a6f](https://github.com/einord/agent-office/commit/4fb7a6ffebc24c7d0eb237f4e68f4b71f5c2a097))
+* **gui:** Address code review feedback for auto-reload feature ([cef352c](https://github.com/einord/agent-office/commit/cef352c4fe1f83b622c37bdfb3b0bf8aed64d474))
+* **gui:** defer typing animation until chair transition completes ([fccb3b4](https://github.com/einord/agent-office/commit/fccb3b46eeb58ebcb9cb5b4c43a4f5c42634cce9))
+* **gui:** ensure typing animation plays only when seated after chair transition ([2832b3d](https://github.com/einord/agent-office/commit/2832b3ddc6315d63e126212980b616940997892a))
+* session lifecycle and stats counting ([ec1dee0](https://github.com/einord/agent-office/commit/ec1dee01e02e8c66ad2bed7942b05340b393c9c7))
+* session lifecycle and stats counting ([273e422](https://github.com/einord/agent-office/commit/273e422703ccd1b5c3023c04b3cd55d1836c4e04))
+
+
+### Miscellaneous
+
+* add BUILD_TIMESTAMP to CI and docker-compose ([92154b5](https://github.com/einord/agent-office/commit/92154b5959e0f8e84ae91633ff6a97255276ee6c))
+
 ## [0.1.19](https://github.com/einord/agent-office/compare/agent-office-v0.1.18...agent-office-v0.1.19) (2026-02-07)
 
 
