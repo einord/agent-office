@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.25](https://github.com/einord/agent-office/compare/agent-office-v0.1.24...agent-office-v0.1.25) (2026-03-31)
+
+
+### Bug Fixes
+
+* Pin Godot CI Docker stage to amd64 for multi-platform web UI builds ([0135606](https://github.com/einord/agent-office/commit/01356063e7a5dea976deec595e301581a8b93cd3))
+* tweak ([97b730a](https://github.com/einord/agent-office/commit/97b730a0c18cdccc13e073bae346f3279ea81501))
+* tweak ([97b730a](https://github.com/einord/agent-office/commit/97b730a0c18cdccc13e073bae346f3279ea81501))
+
 ## [0.1.24](https://github.com/einord/agent-office/compare/agent-office-v0.1.23...agent-office-v0.1.24) (2026-03-26)
 
 
