@@ -12,7 +12,7 @@
 # Stage 1: Export Godot project to Web
 # =============================================================================
 ARG GODOT_VERSION=4.6
-FROM barichello/godot-ci:${GODOT_VERSION} AS godot-export
+FROM --platform=linux/amd64 barichello/godot-ci:${GODOT_VERSION} AS godot-export
 
 ARG GODOT_VERSION=4.6
 
