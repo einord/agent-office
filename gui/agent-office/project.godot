@@ -25,6 +25,10 @@ FloorItemStore="*res://scripts/floor_item_store.gd"
 window/size/viewport_width=800
 window/size/viewport_height=576
 
+[dotnet]
+
+project/assembly_name="Agent Office"
+
 [physics]
 
 3d/physics_engine="Jolt Physics"
