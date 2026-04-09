@@ -34,6 +34,9 @@ jobs:
           - os: ubuntu-latest
             target: linux-x64
             artifact: agent-office-linux-x64
+          - os: ubuntu-latest
+            target: linux-arm64
+            artifact: agent-office-linux-arm64
           - os: macos-latest
             target: macos-x64
             artifact: agent-office-macos-x64
