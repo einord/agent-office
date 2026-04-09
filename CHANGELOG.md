@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.26](https://github.com/einord/agent-office/compare/agent-office-v0.1.25...agent-office-v0.1.26) (2026-04-09)
+
+
+### Bug Fixes
+
+* added arm64 when building ([4774fa1](https://github.com/einord/agent-office/commit/4774fa11ed3073725778597541afd9a57b4a8c2c))
+* **gui:** render leaderboard above agent name labels ([409b97a](https://github.com/einord/agent-office/commit/409b97ab8ae9e2ce717da620afbc9d0fc8467739))
+* **gui:** render leaderboard above agent name labels when expanded ([b0a19cc](https://github.com/einord/agent-office/commit/b0a19cc2bc8d9b63b63b85edd25925aa1f1ab3ad))
+
 ## [0.1.25](https://github.com/einord/agent-office/compare/agent-office-v0.1.24...agent-office-v0.1.25) (2026-03-31)
 
 
