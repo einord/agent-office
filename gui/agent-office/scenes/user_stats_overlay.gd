@@ -27,6 +27,8 @@ func _ready() -> void:
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_is_expanded = not _is_expanded
+		if _is_expanded:
+			move_to_front()
 		_update_display()
 
 func _on_window_resized() -> void:
