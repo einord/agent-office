@@ -93,12 +93,14 @@ notarized so audience members don't see Gatekeeper warnings at all.
      --apple-id "<your-email>" --team-id "<TEAMID>"
    ```
 
-**Build signed + notarized binaries**:
+**Build signed + notarized binaries** (use the shortcut from repo root):
 
 ```bash
-cd cli
-node scripts/build-event-binaries.mjs --notarize
+pnpm event:release    # signed + notarized, ready for distribution
+pnpm event:build      # quick build, no signing (for iterating on the client)
 ```
+
+Or call the script directly: `cd cli && node scripts/build-event-binaries.mjs --notarize`
 
 The build script will:
 - Auto-download **Bun 1.2.17** (pinned — newer versions produce Mach-O binaries

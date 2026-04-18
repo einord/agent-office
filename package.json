@@ -6,7 +6,9 @@
     "build": "pnpm --filter agent-office build",
     "start": "pnpm --filter agent-office start",
     "event": "./scripts/start-event.sh",
-    "event:rebuild": "BUILD_BINARIES=always ./scripts/start-event.sh"
+    "event:rebuild": "BUILD_BINARIES=always ./scripts/start-event.sh",
+    "event:build": "cd cli && node scripts/build-event-binaries.mjs --skip-sign",
+    "event:release": "cd cli && node scripts/build-event-binaries.mjs --notarize"
   },
   "version": "0.1.25",
   "dependencies": {
