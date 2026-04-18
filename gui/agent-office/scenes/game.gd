@@ -520,6 +520,9 @@ func _spawn_agent(is_sidechain: bool = false) -> void:
 	var test_activities = ["thinking", "working", "coding", "reading", "writing"]
 	agent.set_activity(test_activities[randi() % test_activities.size()])
 
+	# Random context percentage so the usage bar is visible while testing
+	agent.set_context_percentage(randf_range(10.0, 95.0))
+
 	# Connect to agent's removal signal
 	agent.tree_exiting.connect(_on_agent_removed.bind(agent))
 
