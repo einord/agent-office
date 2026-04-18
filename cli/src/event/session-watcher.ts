@@ -14,10 +14,12 @@ import { stat } from 'fs/promises';
 import {
   getAllSessions,
   readConversationTail,
+  getContextWindowUsage,
   setClaudeDir,
 } from '../data/session-reader.js';
 import { getLatestActivity } from '../data/activity-tracker.js';
 import type { ActivityType } from '../types.js';
+import { MAX_CONTEXT_TOKENS } from '../types.js';
 
 /** A session is considered active if its file changed within this many ms */
 const ACTIVE_WINDOW_MS = 5 * 60 * 1000;
@@ -182,9 +184,11 @@ export class SessionWatcher {
 
         const messages = await readConversationTail(info.filePath, 60);
         const activity = getLatestActivity(messages, lastModified, false);
+        const contextTokens = getContextWindowUsage(messages);
+        const contextPercentage = Math.round((contextTokens / MAX_CONTEXT_TOKENS) * 100);
         candidates.push({
           activity: activity.type,
-          contextPercentage: 0,
+          contextPercentage,
           lastModified,
           sessionId: info.sessionId,
         });
