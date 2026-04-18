@@ -4,6 +4,8 @@
  * using a single persistent agent per client.
  */
 
+import { generateName } from '../ui/name-generator.js';
+
 export type EventActivity =
   | 'thinking'
   | 'working'
@@ -141,11 +143,14 @@ export class EventClient {
    */
   async ensureAgent(activity: EventActivity, contextPercentage: number = 0): Promise<void> {
     if (!this.agentCreated) {
+      // The agent's displayName is a deterministic fun name derived from the
+      // userKey (e.g. "Brindok"). The user's chosen name travels separately
+      // as the owner/userName and is shown in parentheses in the GUI.
       const created = await this.request<{ id: string }>('/agents', {
         method: 'POST',
         body: JSON.stringify({
           id: this.userKey,
-          displayName: this.displayName,
+          displayName: generateName(this.userKey),
           activity,
           contextPercentage,
           parentId: null,
