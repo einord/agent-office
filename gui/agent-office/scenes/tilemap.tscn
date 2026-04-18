@@ -116,15 +116,15 @@ position = Vector2(140, 65)
 
 [node name="BouncyCastles" type="Node2D" parent="Locations" unique_id=1168402249]
 
-[node name="BouncyCastle1" type="Marker2D" parent="Locations/BouncyCastles" unique_id=2018031358 groups=["vending_machine"]]
+[node name="BouncyCastle1" type="Marker2D" parent="Locations/BouncyCastles" unique_id=2018031358 groups=["bouncy_castle"]]
 position = Vector2(116, 31)
 
 [node name="CoffeeMakers" type="Node2D" parent="Locations" unique_id=1259989165]
 
-[node name="CoffeeMaker1" type="Marker2D" parent="Locations/CoffeeMakers" unique_id=1026151178 groups=["vending_machine"]]
+[node name="CoffeeMaker1" type="Marker2D" parent="Locations/CoffeeMakers" unique_id=1026151178 groups=["coffee_maker"]]
 position = Vector2(125, 129)
 
-[node name="CoffeeMaker2" type="Marker2D" parent="Locations/CoffeeMakers" unique_id=1555761282 groups=["vending_machine"]]
+[node name="CoffeeMaker2" type="Marker2D" parent="Locations/CoffeeMakers" unique_id=1555761282 groups=["coffee_maker"]]
 position = Vector2(139, 129)
 
 [node name="Exits" type="Node2D" parent="Locations" unique_id=1526839096]
