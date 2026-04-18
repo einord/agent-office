@@ -316,23 +316,26 @@ func _update_label_position() -> void:
 	# Convert agent position to screen position
 	var screen_pos = global_position * scale_factor + container_offset
 
-	# Offset label above the agent sprite
+	# Offset label above the agent sprite (constant in world-space)
 	var label_offset = Vector2(0, -12) * scale_factor
 
 	# Apply the same stretch factor to the label so one text-pixel maps to
 	# NAME_LABEL_SCALE world-pixels regardless of window size.
 	_name_label.scale = scale_factor * NAME_LABEL_SCALE
 
-	# Center the label horizontally (account for the node's scale — size
-	# is the unscaled width, rendered width is size × scale) and round
-	# to nearest pixel to keep text crisp.
-	var rendered_half_width = _name_label.size.x * _name_label.scale.x / 2
-	var final_pos
+	# Anchor point: where the label's visual bottom-center should sit.
+	# Pinning the bottom (instead of the top-left) means the text grows
+	# upward when the scale increases — the gap above the agent's head
+	# stays constant regardless of font or scale changes.
+	var target = screen_pos + label_offset
 	if is_sidechain:
-		final_pos = screen_pos + label_offset - Vector2(rendered_half_width, 0) + Vector2(0, 50)  # Slightly lower for sidechain agents
-	else:
-		final_pos = screen_pos + label_offset - Vector2(rendered_half_width, 0) # Center horizontally
-	_name_label.position = final_pos.round()
+		target += Vector2(0, 50)  # Slightly lower for sidechain agents
+
+	# pivot_offset is in the node's unscaled local coords; bottom-center
+	# is (size.x/2, size.y). Scale transforms around this pivot, so the
+	# visual bottom-center equals `position + pivot_offset`.
+	_name_label.pivot_offset = Vector2(_name_label.size.x / 2, _name_label.size.y)
+	_name_label.position = (target - _name_label.pivot_offset).round()
 
 	# Position progress bar below the label
 	_context_bar.size.x = _context_bar_init_length * (context_percentage / 100.0)
