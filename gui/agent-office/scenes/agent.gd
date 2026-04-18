@@ -412,8 +412,9 @@ func _physics_process(delta):
 				and current_anim != "chair_up" and current_anim != "chair_down":
 			if current_anim != "typing":
 				_anim_player.play("typing")
-		# Only play standing when not sitting and not during chair transition
-		elif not _is_sitting and current_anim != "chair_up" and current_anim != "chair_down":
+		# Only play standing when not sitting and not during chair transition.
+		# Bouncing is driven by an idle-action handler, so don't clobber it.
+		elif not _is_sitting and current_anim != "chair_up" and current_anim != "chair_down" and current_anim != "bouncing":
 			if current_anim != "standing":
 				_anim_player.play("standing")
 
@@ -487,13 +488,14 @@ func _on_velocity_computed(safe_velocity: Vector2) -> void:
 		elif safe_velocity.y >= 0.0 and animation != &"down":
 			play(&"down")
 
-	# Play walking animation when moving (unless sitting in a chair)
+	# Play walking animation when moving (unless sitting in a chair).
+	# Don't overwrite a custom idle-action animation like "bouncing".
 	if not _is_sitting:
 		if safe_velocity.length() > 0.1:
 			if _anim_player.current_animation != "walking":
 				_anim_player.play("walking")
 		else:
-			if _anim_player.current_animation != "standing":
+			if _anim_player.current_animation != "standing" and _anim_player.current_animation != "bouncing":
 				_anim_player.play("standing")
 
 	global_position = global_position.move_toward(global_position + safe_velocity, movement_delta)
@@ -582,6 +584,9 @@ func _start_idle_action() -> void:
 		"get_coffee":
 			_idle_action_handler = GetCoffeeAction.new()
 			_idle_action_handler.start(self)
+		"bouncy_castle":
+			_idle_action_handler = GetBouncyCastleAction.new()
+			_idle_action_handler.start(self)
 		_:
 			push_warning("Unknown idle action type: " + str(action_type))
 
@@ -591,3 +596,13 @@ func _interrupt_idle_action() -> void:
 		_idle_action_handler.interrupt()
 		_idle_action_handler = null
 	_pending_idle_action = null
+
+## Plays a named animation on the AnimationPlayer. Used by idle actions
+## that need a custom offset animation (e.g. bouncing on the castle).
+func play_named_animation(anim_name: String) -> void:
+	if _anim_player.has_animation(anim_name):
+		_anim_player.play(anim_name)
+
+## Returns the currently playing animation name on the AnimationPlayer.
+func get_animation_name() -> String:
+	return _anim_player.current_animation

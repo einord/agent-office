@@ -399,6 +399,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		# X key triggers get_coffee idle action on a random agent
 		elif event.keycode == KEY_X:
 			_test_idle_action("get_coffee")
+		# C key triggers bouncy_castle idle action on a random agent
+		elif event.keycode == KEY_C:
+			_test_idle_action("bouncy_castle")
 		# V key triggers vacuum cleaning
 		elif event.keycode == KEY_V:
 			_handle_trigger_cleaning()

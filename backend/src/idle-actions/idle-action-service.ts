@@ -41,7 +41,7 @@ function notifyListeners(agent: Agent): void {
 }
 
 /** Pool of possible idle actions. Uniform distribution for now. */
-const IDLE_ACTION_POOL: IdleActionType[] = ['get_drink', 'get_coffee'];
+const IDLE_ACTION_POOL: IdleActionType[] = ['get_drink', 'get_coffee', 'bouncy_castle'];
 
 /**
  * Picks a random idle action from the available pool.
