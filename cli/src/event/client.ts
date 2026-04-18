@@ -147,23 +147,36 @@ export class EventClient {
   }
 
   /**
-   * Ensures the presence-agent exists on the server with the given activity.
-   * Idempotent — call as often as you like.
+   * Reconciles the remote agent with the local state. Called whenever the
+   * SessionWatcher emits a snapshot.
+   *
+   * - If no Claude session is active (sessionId === null): ensures no agent
+   *   exists on the server. The client stays connected (token is kept alive
+   *   via heartbeat) but the user doesn't appear on the big screen until
+   *   they actually start Claude Code — matches the main CLI's behaviour.
+   * - If a session is active: ensures an agent exists with the right
+   *   displayName (generateName(sessionId)) and activity. On session
+   *   switches, DELETE + POST so the name on the big screen updates.
    */
   async ensureAgent(
     activity: EventActivity,
     contextPercentage: number = 0,
     sessionId: string | null = null,
   ): Promise<void> {
-    // Derive the agent's displayName the same way the main CLI does:
-    // generateName(sessionId) when a Claude session is driving, else fall
-    // back to a deterministic name from the userKey so the presence agent
-    // still has a fun label before any session starts.
-    const desiredName = generateName(sessionId ?? this.userKey);
+    if (sessionId === null) {
+      // No active session → tear down any existing agent and stop.
+      if (this.agentCreated) {
+        await this.request(`/agents/${encodeURIComponent(this.userKey)}`, { method: 'DELETE' });
+        this.agentCreated = false;
+        this.lastActivity = null;
+        this.currentAgentName = null;
+      }
+      return;
+    }
 
-    // If the session changed, tear down the old agent first so the GUI
-    // picks up the new name on the next spawn. (The backend's PUT endpoint
-    // doesn't support renaming, so DELETE + POST is the cleanest option.)
+    const desiredName = generateName(sessionId);
+
+    // Session switch → rename via DELETE + POST (backend PUT can't rename).
     if (this.agentCreated && this.currentAgentName !== null && this.currentAgentName !== desiredName) {
       await this.request(`/agents/${encodeURIComponent(this.userKey)}`, { method: 'DELETE' });
       this.agentCreated = false;
@@ -208,10 +221,9 @@ export class EventClient {
     }
 
     if (updated.status === 404) {
-      // Server lost the agent (restart, flush) - recreate under current name
+      // Server lost the agent (restart, flush) - recreate
       this.agentCreated = false;
-      const sessionSeed = this.currentAgentName === generateName(this.userKey) ? null : sessionId;
-      await this.ensureAgent(activity, contextPercentage, sessionSeed);
+      await this.ensureAgent(activity, contextPercentage, sessionId);
       return;
     }
 

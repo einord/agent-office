@@ -122,10 +122,15 @@ export class EventMonitor {
     const wasConnected = this.connected;
     this.connected = true;
     this.failureCount = 0;
+
+    const statusDetail = this.currentSessionId
+      ? `Aktivitet: ${activityLabelSv(this.currentActivity)}.`
+      : 'Väntar på att du startar Claude Code.';
+
     if (wasConnected) {
-      this.emitStatus(`Ansluten. Aktivitet: ${activityLabelSv(this.currentActivity)}.`);
+      this.emitStatus(`Ansluten. ${statusDetail}`);
     } else {
-      this.emitStatus(`Ansluten som ${this.client.getDisplayName()}. Aktivitet: ${activityLabelSv(this.currentActivity)}.`);
+      this.emitStatus(`Ansluten som ${this.client.getDisplayName()}. ${statusDetail}`);
     }
   }
 
