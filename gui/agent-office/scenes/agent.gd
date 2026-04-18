@@ -6,10 +6,11 @@ enum AgentState { WORKING, IDLE, LEAVING }
 const SIDECHAIN_SCALE := 0.7
 
 ## Scale applied to the name label. Font_size stays at Axolotl's pixel-
-## perfect native size (16); this scale decides the visual size of the
-## label relative to the pixel-art world. 1.0 = one text-pixel per
-## world-pixel. Adjust this one value if labels feel too big or too small.
-const NAME_LABEL_SCALE := Vector2(1.0, 1.0)
+## perfect native size (16); this scale controls how many world-pixels
+## each text-pixel occupies. Keep this an INTEGER — fractional scale
+## breaks pixel-perfect rendering and can make text disappear entirely.
+## 1 = tiny, 2 = ok on laptop, 3 = good on a big screen.
+const NAME_LABEL_SCALE := Vector2(3, 3)
 
 @export var movement_speed: float = 25.0
 @export var random_range: Vector2 = Vector2(200, 200)  # Område för slumpmässiga positioner
