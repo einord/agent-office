@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+		Bun-compiled binaries run the JavaScriptCore JIT, which needs
+		these entitlements under hardened runtime. Without them the
+		binary gets SIGKILLed at launch with "Killed: 9".
+	-->
+	<key>com.apple.security.cs.allow-jit</key>
+	<true/>
+	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+	<true/>
+	<!--
+		Bun embeds its own runtime — disabling library validation lets
+		it load its bundled code without needing a matching signature.
+	-->
+	<key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
+</dict>
+</plist>

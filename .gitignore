@@ -12,3 +12,6 @@ backend/downloads/
 
 # Event client local state (per-machine)
 .agent-office-event.json
+
+# Pinned Bun 1.2.17 cache (auto-downloaded by build-event-binaries.mjs)
+cli/.bun-pinned/

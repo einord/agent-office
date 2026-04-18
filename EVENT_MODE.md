@@ -72,10 +72,50 @@ That's it. The [start-event.sh](scripts/start-event.sh) script will:
 ## Audience flow
 
 1. Open the URL → download the right binary for their OS.
-2. macOS: right-click → *Open* (Gatekeeper). Windows: *More info* → *Run anyway*.
+2. macOS: **if the binary is notarized (see below)**, it just runs. Otherwise: right-click → *Open* (Gatekeeper). Windows: *More info* → *Run anyway*.
 3. Type a name when prompted.
 4. Client finds the server automatically and creates a presence avatar.
 5. Start Claude Code → activity appears on the big screen.
+
+## Apple code signing & notarization (optional but recommended for macOS)
+
+If you have an Apple Developer account, the macOS binaries can be signed and
+notarized so audience members don't see Gatekeeper warnings at all.
+
+**One-time setup** (per presenter laptop):
+
+1. Install your *Developer ID Application* certificate in login keychain.
+   Verify: `security find-identity -v -p codesigning`
+2. Generate an app-specific password at https://account.apple.com/
+3. Save as notarytool profile:
+   ```bash
+   xcrun notarytool store-credentials "agent-office-notary" \
+     --apple-id "<your-email>" --team-id "<TEAMID>"
+   ```
+
+**Build signed + notarized binaries**:
+
+```bash
+cd cli
+node scripts/build-event-binaries.mjs --notarize
+```
+
+The build script will:
+- Auto-download **Bun 1.2.17** (pinned — newer versions produce Mach-O binaries
+  that macOS codesign can't handle) into `cli/.bun-pinned/`
+- Compile the event client for each target
+- Codesign macOS binaries with hardened runtime + JIT entitlements
+- Upload to Apple for notarization (takes 2-5 min per binary, blocks until done)
+
+After notarization completes, the binary is ready — Apple's ticket is verified
+online at first launch, no stapling needed for standalone executables.
+
+**Skip signing** (faster iteration): `--skip-sign` or `SIGN=0`.
+
+**Environment overrides**:
+- `SIGN_IDENTITY="Developer ID Application: ..."` — use a specific cert
+- `NOTARY_PROFILE=my-profile` — use a different keychain profile
+- `BUN=/path/to/bun` — use a specific Bun binary instead of the pinned one
 
 ## Admin commands
 
