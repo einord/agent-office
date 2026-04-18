@@ -108,7 +108,10 @@ function scheduleIdleAction(agentId: string): void {
       assignedAt: Date.now(),
     };
     agent.idleAction = action;
-    if (action.action === 'get_drink') {
+    // Both get_drink and get_coffee leave an item on the floor, so both
+    // should count toward the cleaning trigger. bouncy_castle doesn't
+    // drop anything and is excluded.
+    if (action.action === 'get_drink' || action.action === 'get_coffee') {
       incrementCanCount();
     }
     console.log(`[IdleActions] Assigned "${action.action}" to agent ${agentId}`);
