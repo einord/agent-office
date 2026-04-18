@@ -11,7 +11,7 @@ const SIDECHAIN_SCALE := 0.7
 ## same scaling as the pixel-art office. 1.0 = one text-pixel per
 ## world-pixel (looks "pytteliten" in world-space but correct); 2.0, 3.0
 ## etc. make the text proportionally larger than the world pixels.
-const NAME_LABEL_SCALE := Vector2(2, 2)
+const NAME_LABEL_SCALE := Vector2(0.35, 0.35)
 
 @export var movement_speed: float = 25.0
 @export var random_range: Vector2 = Vector2(200, 200)  # Område för slumpmässiga positioner
