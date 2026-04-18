@@ -64,6 +64,8 @@ export interface ConversationMessage {
     role: string;
     content: Array<ContentBlock>;
     usage?: TokenUsage;
+    /** Anthropic model ID (only present on assistant messages) */
+    model?: string;
   };
   isSidechain?: boolean;
   cwd?: string;
@@ -173,6 +175,14 @@ export const SESSION_COLORS = [
 export type SessionColor = typeof SESSION_COLORS[number];
 
 /**
- * Max context window size (tokens)
+ * Default max context window size (tokens). Claude's 4.x Sonnet and
+ * Haiku models ship with 200k, Opus with 1M. Use getMaxContextTokens()
+ * from session-reader to resolve the actual ceiling per message.
  */
 export const MAX_CONTEXT_TOKENS = 200_000;
+
+/**
+ * Extended context window size (tokens) for models with 1M context,
+ * i.e. Opus 4.5/4.6/4.7 by default and Sonnet on the 1M tier.
+ */
+export const MAX_CONTEXT_TOKENS_1M = 1_000_000;

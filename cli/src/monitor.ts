@@ -2,9 +2,8 @@ import chokidar from 'chokidar';
 import { join } from 'path';
 import { homedir } from 'os';
 import type { TrackedSession, SessionIndex, TokenUsage } from './types.js';
-import { MAX_CONTEXT_TOKENS } from './types.js';
 import { scanClaudeProcesses, getOpenSessionFiles, matchProcessesToSessions } from './data/process-scanner.js';
-import { getAllSessions, readConversationTail, calculateTokenUsage, getContextWindowUsage, setClaudeDir, getClaudeDir } from './data/session-reader.js';
+import { getAllSessions, readConversationTail, calculateTokenUsage, getContextWindowUsage, getModelFromMessages, getMaxContextTokens, setClaudeDir, getClaudeDir } from './data/session-reader.js';
 import { getLatestActivity, isSessionActive, detectSidechain } from './data/activity-tracker.js';
 import { getSessionColor } from './ui/renderer.js';
 import { LogRenderer } from './ui/log-renderer.js';
@@ -337,6 +336,9 @@ export class ClaudeMonitor {
 
       // Get current context window usage (last API response's input + output tokens)
       const contextTokens = getContextWindowUsage(messages);
+      // Resolve the actual ceiling for this session's model — Opus ships
+      // with 1M context, Sonnet/Haiku default to 200k.
+      const maxContextTokens = getMaxContextTokens(getModelFromMessages(messages));
 
       // Get accumulated total tokens and sycophancy count for this file
       const accumulatedTokens = getIncrementalReader().getAccumulatedTokens(sessionInfo.filePath);
@@ -369,8 +371,8 @@ export class ClaudeMonitor {
         color: getSessionColor(agentId),
         tokens: {
           used: contextTokens,
-          max: MAX_CONTEXT_TOKENS,
-          percentage: Math.round((contextTokens / MAX_CONTEXT_TOKENS) * 100),
+          max: maxContextTokens,
+          percentage: Math.round((contextTokens / maxContextTokens) * 100),
         },
         totalTokens: {
           input: accumulatedTokens.input_tokens,
