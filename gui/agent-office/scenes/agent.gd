@@ -5,6 +5,12 @@ enum AgentState { WORKING, IDLE, LEAVING }
 ## Scale factor for sidechain agents (sub-agents)
 const SIDECHAIN_SCALE := 0.7
 
+## Scale applied to the name label. Font_size stays at Axolotl's pixel-
+## perfect native size (16); this scale decides the visual size of the
+## label relative to the pixel-art world. 0.5 = half a world-pixel per
+## text-pixel. Adjust this one value if labels feel too big or too small.
+const NAME_LABEL_SCALE := Vector2(0.5, 0.5)
+
 @export var movement_speed: float = 25.0
 @export var random_range: Vector2 = Vector2(200, 200)  # Område för slumpmässiga positioner
 @export var idle_wait_min: float = 5.0  # Minimum wait time in idle state (seconds)
@@ -84,13 +90,16 @@ func _setup_name_label() -> void:
 	if font:
 		var label_settings = LabelSettings.new()
 		label_settings.font = font
-		# Fixed pixel-perfect size: font pixels are half the size of a
-		# world-space pixel, which matches the office's pixel-art look at
-		# any screen size (no DPI scaling — viewport stretch does the work).
-		label_settings.font_size = 8
+		# Axolotl is pixel-perfect at font_size 16 — never change that,
+		# otherwise the font stops rendering 1:1 and gets fuzzy. To make
+		# the label visually smaller we scale the whole Label node below
+		# (NAME_LABEL_SCALE), so one text-pixel maps onto exactly
+		# scale × world-pixels. outline_size 2 cancels out to 1 after scale.
+		label_settings.font_size = 16
 		label_settings.outline_color = Color.BLACK
-		label_settings.outline_size = 1
+		label_settings.outline_size = 2
 		_name_label.label_settings = label_settings
+		_name_label.scale = NAME_LABEL_SCALE
 
 	_ui_layer.add_child(_name_label)
 
@@ -307,12 +316,15 @@ func _update_label_position() -> void:
 	# Offset label above the agent sprite
 	var label_offset = Vector2(0, -12) * scale_factor
 
-	# Center the label horizontally and round to nearest pixel
+	# Center the label horizontally (account for the node's scale — size
+	# is the unscaled width, rendered width is size × scale) and round
+	# to nearest pixel to keep text crisp.
+	var rendered_half_width = _name_label.size.x * _name_label.scale.x / 2
 	var final_pos
 	if is_sidechain:
-		final_pos = screen_pos + label_offset - Vector2(_name_label.size.x / 2, 0) + Vector2(0, 50)  # Slightly lower for sidechain agents
+		final_pos = screen_pos + label_offset - Vector2(rendered_half_width, 0) + Vector2(0, 50)  # Slightly lower for sidechain agents
 	else:
-		final_pos = screen_pos + label_offset - Vector2(_name_label.size.x / 2, 0) # Center horizontally
+		final_pos = screen_pos + label_offset - Vector2(rendered_half_width, 0) # Center horizontally
 	_name_label.position = final_pos.round()
 
 	# Position progress bar below the label
