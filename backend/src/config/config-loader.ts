@@ -58,10 +58,34 @@ function loadConfigFromFile(): AppConfig {
   const content = readFileSync(CONFIG_PATH, 'utf-8');
   const config = JSON.parse(content) as Partial<AppConfig>;
 
+  // Allow EVENT_MODE env var to override config
+  const eventModeEnv = process.env.EVENT_MODE === 'true' || process.env.EVENT_MODE === '1';
+  const eventMode = config.eventMode
+    ? {
+        enabled: eventModeEnv || config.eventMode.enabled,
+        serverName: config.eventMode.serverName ?? 'Agent Office Event',
+        adminToken: config.eventMode.adminToken ?? process.env.EVENT_ADMIN_TOKEN,
+        discoveryPort: config.eventMode.discoveryPort ?? 3102,
+        maxAgents: config.eventMode.maxAgents ?? 300,
+        authRateLimit: config.eventMode.authRateLimit ?? 5,
+      }
+    : eventModeEnv
+      ? {
+          enabled: true,
+          serverName: process.env.EVENT_NAME ?? 'Agent Office Event',
+          adminToken: process.env.EVENT_ADMIN_TOKEN,
+          discoveryPort: 3102,
+          maxAgents: 300,
+          authRateLimit: 5,
+        }
+      : undefined;
+
   // Apply defaults for optional fields
   return {
     ...config,
+    users: config.users ?? [],
     inactivityTimeoutSeconds: config.inactivityTimeoutSeconds ?? 60,
+    eventMode,
   } as AppConfig;
 }
 

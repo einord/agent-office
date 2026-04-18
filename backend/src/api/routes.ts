@@ -13,6 +13,12 @@ import {
   getAgent,
   getAgentsByOwner,
 } from '../agents/agent-manager.js';
+import {
+  handleAnonymousAuth,
+  handleEventFlush,
+  handleDownloadPage,
+  handleDownloadBinary,
+} from '../event/index.js';
 
 const router: IRouter = Router();
 
@@ -285,5 +291,24 @@ router.get('/agents/:id', authMiddleware, (req: AuthenticatedRequest, res: Respo
 router.post('/heartbeat', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+/**
+ * POST /auth/anonymous - event-mode anonymous authentication.
+ * Only active when eventMode.enabled is true in config.
+ */
+router.post('/auth/anonymous', handleAnonymousAuth);
+
+/**
+ * DELETE /event/flush - removes all anonymous agents.
+ * Requires X-Event-Admin header matching configured admin token.
+ */
+router.delete('/event/flush', handleEventFlush);
+
+/**
+ * GET /download - landing page for event clients.
+ * GET /download/:platform - streams the binary for the given platform.
+ */
+router.get('/download', handleDownloadPage);
+router.get('/download/:platform', handleDownloadBinary);
 
 export default router;

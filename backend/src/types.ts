@@ -150,6 +150,22 @@ export interface ServerConfig {
   wsPort: number;
 }
 
+/** Event mode configuration - enables anonymous auth and LAN discovery */
+export interface EventModeConfig {
+  /** Whether event mode is enabled */
+  enabled: boolean;
+  /** Friendly name for the server (shown in mDNS and discovery responses) */
+  serverName: string;
+  /** Admin token for DELETE /event/flush endpoint (header: X-Event-Admin) */
+  adminToken?: string;
+  /** UDP port for broadcast discovery responder (default: 3102) */
+  discoveryPort: number;
+  /** Max anonymous agents allowed concurrently */
+  maxAgents: number;
+  /** Rate limit: max anonymous auth requests per IP per minute */
+  authRateLimit: number;
+}
+
 /** Full application configuration */
 export interface AppConfig {
   users: ConfigUser[];
@@ -157,4 +173,6 @@ export interface AppConfig {
   tokenExpirySeconds: number;
   /** Seconds of inactivity before agents are removed (0 = disabled) */
   inactivityTimeoutSeconds: number;
+  /** Event mode configuration (optional, defaults to disabled) */
+  eventMode?: EventModeConfig;
 }

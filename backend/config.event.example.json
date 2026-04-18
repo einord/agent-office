@@ -1,0 +1,17 @@
+{
+  "users": [],
+  "server": {
+    "httpPort": 3100,
+    "wsPort": 3101
+  },
+  "tokenExpirySeconds": 86400,
+  "inactivityTimeoutSeconds": 600,
+  "eventMode": {
+    "enabled": true,
+    "serverName": "Plik Event",
+    "adminToken": "byt-mig-till-en-hemlig-strang",
+    "discoveryPort": 3102,
+    "maxAgents": 300,
+    "authRateLimit": 10
+  }
+}

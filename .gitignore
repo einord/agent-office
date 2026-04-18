@@ -6,3 +6,9 @@ dist/
 
 # Claude Code local overrides (user-specific, not committed)
 CLAUDE.local.md
+
+# Event mode standalone binaries (built locally, served from server)
+backend/downloads/
+
+# Event client local state (per-machine)
+.agent-office-event.json

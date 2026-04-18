@@ -5,6 +5,7 @@ import { getAllAgents, removeAgent, removeAgentsByOwner } from './agents/agent-m
 import routes from './api/routes.js';
 import { initWebSocketServer, closeWebSocketServer } from './websocket/server.js';
 import { initIdleActionService } from './idle-actions/index.js';
+import { initEventMode, shutdownEventMode } from './event/index.js';
 
 // Initialize configuration watcher for hot-reload
 initConfigWatcher();
@@ -50,6 +51,11 @@ initIdleActionService();
 
 // Start WebSocket server
 initWebSocketServer(config.server.wsPort);
+
+// Initialize event mode (mDNS, UDP discovery, anonymous auth cleanup)
+initEventMode().catch((err) => {
+  console.error('[EventMode] Failed to initialize:', err);
+});
 
 // Periodic token cleanup (every 5 minutes)
 const tokenCleanupInterval = setInterval(() => {
@@ -112,7 +118,7 @@ function shutdown(signal: string): void {
     console.log('[HTTP] Server closed');
   });
 
-  closeWebSocketServer()
+  Promise.all([closeWebSocketServer(), shutdownEventMode()])
     .then(() => {
       console.log('[Server] Shutdown complete');
       process.exit(0);
