@@ -17,7 +17,7 @@ const NAME_LABEL_SCALE := Vector2(0.35, 0.35)
 ## inside the SubViewport (so it stretches with the window), so this
 ## just tunes its visual size relative to the pixel-art world —
 ## similar in spirit to NAME_LABEL_SCALE. 1.0 = native size.
-const CONTEXT_BAR_SCALE := Vector2(2, 2)
+const CONTEXT_BAR_SCALE := Vector2(1, 1)
 
 @export var movement_speed: float = 25.0
 @export var random_range: Vector2 = Vector2(200, 200)  # Område för slumpmässiga positioner
@@ -128,7 +128,7 @@ func _setup_name_label() -> void:
 	_context_bar.offset_right = 0
 	_context_bar.offset_bottom = 0
 	# Max size in world-pixels (width = 100% bar, height = bar thickness)
-	_context_bar.size = Vector2(16, 2)
+	_context_bar.size = Vector2(14, 0.5)
 	_context_bar_init_length = _context_bar.size.x
 	_context_bar.color = Color(0.2, 0.8, 0.2)
 	_context_bar.size.x = 0
@@ -370,7 +370,10 @@ func _update_label_position() -> void:
 	# side), which keeps it visually centered above the agent.
 	if _context_bar:
 		_context_bar.scale = scale_factor * CONTEXT_BAR_SCALE
-		var bar_target = target + Vector2(0, 2) * scale_factor  # 2 world-px below label bottom
+		# Bar center sits right at the label's bottom edge (gap 0 world-px)
+		# so the bar appears tucked directly under the name. Tune this Y
+		# offset if you want a bit of breathing room.
+		var bar_target = target + Vector2(0, 0) * scale_factor
 		_context_bar.pivot_offset = _context_bar.size / 2
 		# Visual center = position + pivot_offset (scale cancels since
 		# center_local == pivot_offset), so position = target - pivot.
