@@ -336,9 +336,10 @@ export class ClaudeMonitor {
 
       // Get current context window usage (last API response's input + output tokens)
       const contextTokens = getContextWindowUsage(messages);
-      // Resolve the actual ceiling for this session's model — Opus ships
-      // with 1M context, Sonnet/Haiku default to 200k.
-      const maxContextTokens = getMaxContextTokens(getModelFromMessages(messages));
+      // Resolve the actual ceiling for this session: default 200k, but
+      // auto-promote to 1M once usage has exceeded 200k (only possible
+      // on a 1M-tier session).
+      const maxContextTokens = getMaxContextTokens(getModelFromMessages(messages), contextTokens);
 
       // Get accumulated total tokens and sycophancy count for this file
       const accumulatedTokens = getIncrementalReader().getAccumulatedTokens(sessionInfo.filePath);

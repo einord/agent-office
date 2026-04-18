@@ -237,29 +237,37 @@ export function getModelFromMessages(messages: ConversationMessage[]): string | 
 }
 
 /**
- * Resolves the max context window (tokens) for a given Claude model ID.
+ * Resolves the max context window (tokens) for a Claude session.
  *
- * - Opus 4.5/4.6/4.7 ship with a 1M context by default.
- * - Sonnet on the 1M tier uses an explicit "1m" marker in the model ID.
- * - Everything else (Sonnet default, Haiku) is 200k.
+ * Claude Code writes the model ID to jsonl without the tier suffix
+ * (e.g. `claude-opus-4-7`, not `claude-opus-4-7[1m]`), so we can't
+ * tell a Pro-plan 200k-Opus session apart from a Max-plan 1M-Opus
+ * session by model ID alone. Instead we also peek at actual usage:
+ * if we've already seen more than 200k tokens in this session it
+ * must be running on a 1M-context tier — otherwise the API call
+ * would have rejected it. Until then we assume the default 200k.
  *
- * Falls back to the 200k default when the model ID is unknown or missing.
+ * Explicit "1m" markers in the model ID (some SKUs do carry one)
+ * are also respected.
+ *
+ * @param model - The model ID from the latest assistant message
+ * @param observedTokens - The highest context-window usage seen so
+ *   far in this session, in tokens
  */
-export function getMaxContextTokens(model: string | undefined): number {
-  if (!model) return MAX_CONTEXT_TOKENS;
-  const lower = model.toLowerCase();
-  if (lower.includes('opus')) return MAX_CONTEXT_TOKENS_1M;
-  if (lower.includes('1m')) return MAX_CONTEXT_TOKENS_1M;
+export function getMaxContextTokens(model: string | undefined, observedTokens: number = 0): number {
+  if (model && model.toLowerCase().includes('1m')) return MAX_CONTEXT_TOKENS_1M;
+  if (observedTokens > MAX_CONTEXT_TOKENS) return MAX_CONTEXT_TOKENS_1M;
   return MAX_CONTEXT_TOKENS;
 }
 
 /**
  * Convenience: computes context-window usage percentage against the
- * correct max for the model that produced the latest response.
+ * correct max for the session (auto-detected from usage, see
+ * getMaxContextTokens).
  */
 export function getContextUsagePercentage(messages: ConversationMessage[]): number {
   const tokens = getContextWindowUsage(messages);
-  const max = getMaxContextTokens(getModelFromMessages(messages));
+  const max = getMaxContextTokens(getModelFromMessages(messages), tokens);
   return Math.round((tokens / max) * 100);
 }
 
