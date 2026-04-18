@@ -44,6 +44,7 @@ export class EventMonitor {
   private failureCount = 0;
   private currentActivity: EventActivity = 'idle';
   private currentContext = 0;
+  private currentSessionId: string | null = null;
   private stopped = false;
 
   constructor(opts: EventMonitorOptions) {
@@ -60,6 +61,7 @@ export class EventMonitor {
     const initial = this.watcher.getSnapshot();
     this.currentActivity = mapActivity(initial.type);
     this.currentContext = initial.contextPercentage;
+    this.currentSessionId = initial.sessionId;
 
     await this.connectLoop();
 
@@ -89,6 +91,7 @@ export class EventMonitor {
   private handleSnapshot(snap: ActivitySnapshot): void {
     this.currentActivity = mapActivity(snap.type);
     this.currentContext = snap.contextPercentage;
+    this.currentSessionId = snap.sessionId;
     this.pushActivity().catch(() => {
       // Failures schedule a reconnect via the catch in pushActivity
     });
@@ -97,7 +100,7 @@ export class EventMonitor {
   private async pushActivity(): Promise<void> {
     if (this.stopped) return;
     try {
-      await this.client.ensureAgent(this.currentActivity, this.currentContext);
+      await this.client.ensureAgent(this.currentActivity, this.currentContext, this.currentSessionId);
       this.markConnected();
     } catch (err) {
       this.markDisconnected(err);
@@ -108,7 +111,7 @@ export class EventMonitor {
     if (this.stopped) return;
     try {
       // Re-assert activity (catches server restarts that lose the agent)
-      await this.client.ensureAgent(this.currentActivity, this.currentContext);
+      await this.client.ensureAgent(this.currentActivity, this.currentContext, this.currentSessionId);
       this.markConnected();
     } catch (err) {
       this.markDisconnected(err);
@@ -168,7 +171,7 @@ export class EventMonitor {
     }
 
     try {
-      await this.client.ensureAgent(this.currentActivity, this.currentContext);
+      await this.client.ensureAgent(this.currentActivity, this.currentContext, this.currentSessionId);
       this.markConnected();
     } catch (err) {
       this.markDisconnected(err);

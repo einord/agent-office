@@ -42,6 +42,14 @@ export class EventClient {
   private tokenExpiresAt: Date | null = null;
   private agentCreated = false;
   private lastActivity: EventActivity | null = null;
+  /**
+   * Display name currently set on the server for the agent. Derived from
+   * the active Claude session ID (generateName(sessionId)) — falls back to
+   * generateName(userKey) when no session is active. We track it so we
+   * can DELETE+POST the agent when the session changes (the backend's
+   * PUT /agents/:id doesn't allow changing displayName).
+   */
+  private currentAgentName: string | null = null;
 
   constructor(config: EventClientConfig) {
     this.serverUrl = config.serverUrl.replace(/\/+$/, '');
@@ -61,6 +69,7 @@ export class EventClient {
     this.tokenExpiresAt = null;
     this.agentCreated = false;
     this.lastActivity = null;
+    this.currentAgentName = null;
   }
 
   getServerUrl(): string {
@@ -141,16 +150,33 @@ export class EventClient {
    * Ensures the presence-agent exists on the server with the given activity.
    * Idempotent — call as often as you like.
    */
-  async ensureAgent(activity: EventActivity, contextPercentage: number = 0): Promise<void> {
+  async ensureAgent(
+    activity: EventActivity,
+    contextPercentage: number = 0,
+    sessionId: string | null = null,
+  ): Promise<void> {
+    // Derive the agent's displayName the same way the main CLI does:
+    // generateName(sessionId) when a Claude session is driving, else fall
+    // back to a deterministic name from the userKey so the presence agent
+    // still has a fun label before any session starts.
+    const desiredName = generateName(sessionId ?? this.userKey);
+
+    // If the session changed, tear down the old agent first so the GUI
+    // picks up the new name on the next spawn. (The backend's PUT endpoint
+    // doesn't support renaming, so DELETE + POST is the cleanest option.)
+    if (this.agentCreated && this.currentAgentName !== null && this.currentAgentName !== desiredName) {
+      await this.request(`/agents/${encodeURIComponent(this.userKey)}`, { method: 'DELETE' });
+      this.agentCreated = false;
+      this.lastActivity = null;
+      this.currentAgentName = null;
+    }
+
     if (!this.agentCreated) {
-      // The agent's displayName is a deterministic fun name derived from the
-      // userKey (e.g. "Brindok"). The user's chosen name travels separately
-      // as the owner/userName and is shown in parentheses in the GUI.
       const created = await this.request<{ id: string }>('/agents', {
         method: 'POST',
         body: JSON.stringify({
           id: this.userKey,
-          displayName: generateName(this.userKey),
+          displayName: desiredName,
           activity,
           contextPercentage,
           parentId: null,
@@ -162,6 +188,7 @@ export class EventClient {
       if (created.status === 201 || created.status === 409) {
         this.agentCreated = true;
         this.lastActivity = activity;
+        this.currentAgentName = desiredName;
         if (created.status === 201) return;
       } else {
         throw new Error(`Failed to create agent (status ${created.status})`);
@@ -181,9 +208,10 @@ export class EventClient {
     }
 
     if (updated.status === 404) {
-      // Server lost the agent (restart, flush) - recreate
+      // Server lost the agent (restart, flush) - recreate under current name
       this.agentCreated = false;
-      await this.ensureAgent(activity, contextPercentage);
+      const sessionSeed = this.currentAgentName === generateName(this.userKey) ? null : sessionId;
+      await this.ensureAgent(activity, contextPercentage, sessionSeed);
       return;
     }
 
@@ -219,5 +247,6 @@ export class EventClient {
     this.tokenExpiresAt = null;
     this.agentCreated = false;
     this.lastActivity = null;
+    this.currentAgentName = null;
   }
 }

@@ -31,6 +31,13 @@ const RESCAN_INTERVAL_MS = 15_000;
 export type ActivitySnapshot = {
   type: ActivityType;
   contextPercentage: number;
+  /**
+   * ID of the Claude Code session currently driving the activity, or null
+   * if no session is active. Used by the event client to derive a
+   * deterministic display name (generateName(sessionId)) — same logic as
+   * the main CLI.
+   */
+  sessionId: string | null;
 };
 
 export type ActivityListener = (snapshot: ActivitySnapshot) => void;
@@ -118,7 +125,7 @@ export class SessionWatcher {
    * Returns the most recent snapshot — or an idle one if no sessions exist.
    */
   getSnapshot(): ActivitySnapshot {
-    return this.lastSnapshot ?? { type: 'idle', contextPercentage: 0 };
+    return this.lastSnapshot ?? { type: 'idle', contextPercentage: 0, sessionId: null };
   }
 
   private async refresh(): Promise<void> {
@@ -133,7 +140,8 @@ export class SessionWatcher {
       const changed =
         !this.lastSnapshot ||
         this.lastSnapshot.type !== snapshot.type ||
-        this.lastSnapshot.contextPercentage !== snapshot.contextPercentage;
+        this.lastSnapshot.contextPercentage !== snapshot.contextPercentage ||
+        this.lastSnapshot.sessionId !== snapshot.sessionId;
 
       this.lastSnapshot = snapshot;
 
@@ -160,11 +168,11 @@ export class SessionWatcher {
     try {
       allSessions = await getAllSessions();
     } catch {
-      return { type: 'idle', contextPercentage: 0 };
+      return { type: 'idle', contextPercentage: 0, sessionId: null };
     }
 
     const now = Date.now();
-    type Candidate = { activity: ActivityType; contextPercentage: number; lastModified: number };
+    type Candidate = { activity: ActivityType; contextPercentage: number; lastModified: number; sessionId: string };
     const candidates: Candidate[] = [];
 
     for (const [, info] of allSessions) {
@@ -178,16 +186,17 @@ export class SessionWatcher {
           activity: activity.type,
           contextPercentage: 0,
           lastModified,
+          sessionId: info.sessionId,
         });
       } catch {
         continue;
       }
     }
 
-    if (candidates.length === 0) return { type: 'idle', contextPercentage: 0 };
+    if (candidates.length === 0) return { type: 'idle', contextPercentage: 0, sessionId: null };
 
     candidates.sort((a, b) => b.lastModified - a.lastModified);
     const best = candidates[0];
-    return { type: best.activity, contextPercentage: best.contextPercentage };
+    return { type: best.activity, contextPercentage: best.contextPercentage, sessionId: best.sessionId };
   }
 }
