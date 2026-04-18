@@ -395,13 +395,16 @@ func _unhandled_input(event: InputEvent) -> void:
 			_adjust_test_agents_context(-12.5)
 		# Z key triggers get_drink idle action on a random agent
 		elif event.keycode == KEY_Z:
-			_test_idle_action()
+			_test_idle_action("get_drink")
+		# X key triggers get_coffee idle action on a random agent
+		elif event.keycode == KEY_X:
+			_test_idle_action("get_coffee")
 		# V key triggers vacuum cleaning
 		elif event.keycode == KEY_V:
 			_handle_trigger_cleaning()
 
-## Triggers a get_drink idle action on a random non-leaving agent.
-func _test_idle_action() -> void:
+## Triggers the given idle action on a random non-leaving agent.
+func _test_idle_action(action_name: String = "get_drink") -> void:
 	var candidates: Array = []
 	for agent in _agent_queue:
 		if is_instance_valid(agent) and agent.current_state != agent.AgentState.LEAVING:
@@ -410,9 +413,9 @@ func _test_idle_action() -> void:
 		print("[Game] No agents available for idle action test")
 		return
 	var agent = candidates[randi() % candidates.size()]
-	agent.change_state(agent.AgentState.IDLE)
-	agent.set_idle_action({"action": "get_drink", "assignedAt": Time.get_unix_time_from_system()})
-	print("[Game] Triggered get_drink on agent: ", agent.display_name)
+	agent.force_state(agent.AgentState.IDLE)
+	agent.set_idle_action({"action": action_name, "assignedAt": Time.get_unix_time_from_system()})
+	print("[Game] Triggered %s on agent: %s" % [action_name, agent.display_name])
 
 ## Adjusts context percentage for all test agents by a delta value.
 func _adjust_test_agents_context(delta: float) -> void:
@@ -527,10 +530,12 @@ func _spawn_agent(is_sidechain: bool = false) -> void:
 	agent.tree_exiting.connect(_on_agent_removed.bind(agent))
 
 ## Sets all test agents (no external_id) to the given state.
+## Uses force_state so the change is instant (no 5 s grace period),
+## otherwise pressing 1/2 feels like nothing happened.
 func _set_test_agents_state(state: int) -> void:
 	for agent in _agent_queue:
 		if is_instance_valid(agent) and agent.external_id == "" and agent.current_state != agent.AgentState.LEAVING:
-			agent.change_state(state)
+			agent.force_state(state)
 
 ## Sends the oldest agent (FIFO) to the exit.
 func _send_agent_to_exit() -> void:
@@ -552,6 +557,7 @@ func _on_agent_removed(agent: Node) -> void:
 ## Restores saved floor items from persistent storage.
 func _restore_floor_items() -> void:
 	var can_scene = preload("res://scenes/items/can.tscn")
+	var coffeemug_scene = preload("res://scenes/items/coffeemug.tscn")
 
 	# Clean up expired items first
 	FloorItemStore.remove_expired(7200.0)
@@ -572,6 +578,10 @@ func _restore_floor_items() -> void:
 			if color_html != "":
 				can_instance.set_can_color(Color.from_string(color_html, Color.WHITE))
 			can_instance.spawn_on_floor(pos)
+		elif item_type == "coffeemug":
+			var mug_instance = coffeemug_scene.instantiate()
+			floor_container.add_child(mug_instance)
+			mug_instance.spawn_on_floor(pos)
 
 ## Spawns a number of cans at random navigable positions.
 func _spawn_random_cans(count: int) -> void:

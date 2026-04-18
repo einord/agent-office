@@ -1,6 +1,7 @@
-[gd_scene format=3 uid="uid://1cbah4acrqyk"]
+[gd_scene load_steps=3 format=3 uid="uid://1cbah4acrqyk"]
 
 [ext_resource type="Texture2D" uid="uid://bbisxutl23faw" path="res://assets/sprites/coffeemug.png" id="1_4y887"]
+[ext_resource type="Script" path="res://scenes/items/coffeemug.gd" id="2_script"]
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_e46bk"]
 animations = [{
@@ -14,5 +15,10 @@ animations = [{
 }]
 
 [node name="Coffeemug" type="AnimatedSprite2D" unique_id=980408435]
+z_index = 2
+z_as_relative = false
+y_sort_enabled = true
 texture_filter = 1
 sprite_frames = SubResource("SpriteFrames_e46bk")
+animation = &"default"
+script = ExtResource("2_script")
