@@ -7,9 +7,9 @@ const SIDECHAIN_SCALE := 0.7
 
 ## Scale applied to the name label. Font_size stays at Axolotl's pixel-
 ## perfect native size (16); this scale decides the visual size of the
-## label relative to the pixel-art world. 0.5 = half a world-pixel per
-## text-pixel. Adjust this one value if labels feel too big or too small.
-const NAME_LABEL_SCALE := Vector2(0.5, 0.5)
+## label relative to the pixel-art world. 1.0 = one text-pixel per
+## world-pixel. Adjust this one value if labels feel too big or too small.
+const NAME_LABEL_SCALE := Vector2(1.0, 1.0)
 
 @export var movement_speed: float = 25.0
 @export var random_range: Vector2 = Vector2(200, 200)  # Område för slumpmässiga positioner
@@ -97,7 +97,7 @@ func _setup_name_label() -> void:
 		# scale × world-pixels. outline_size 2 cancels out to 1 after scale.
 		label_settings.font_size = 16
 		label_settings.outline_color = Color.BLACK
-		label_settings.outline_size = 2
+		label_settings.outline_size = 1
 		_name_label.label_settings = label_settings
 		_name_label.scale = NAME_LABEL_SCALE
 
