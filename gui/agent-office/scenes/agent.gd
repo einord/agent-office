@@ -13,6 +13,12 @@ const SIDECHAIN_SCALE := 0.7
 ## etc. make the text proportionally larger than the world pixels.
 const NAME_LABEL_SCALE := Vector2(0.35, 0.35)
 
+## Size multiplier for the context usage bar. The bar already lives
+## inside the SubViewport (so it stretches with the window), so this
+## just tunes its visual size relative to the pixel-art world —
+## similar in spirit to NAME_LABEL_SCALE. 1.0 = native size.
+const CONTEXT_BAR_SCALE := Vector2(2, 2)
+
 @export var movement_speed: float = 25.0
 @export var random_range: Vector2 = Vector2(200, 200)  # Område för slumpmässiga positioner
 @export var idle_wait_min: float = 5.0  # Minimum wait time in idle state (seconds)
@@ -110,6 +116,13 @@ func _setup_name_label() -> void:
 	_context_bar_init_length = _context_bar.size.x
 	_context_bar.color = Color(0.2, 0.8, 0.2)
 	_context_bar.size.x = 0
+	# Scale the whole bar so it's actually visible at a distance. The
+	# bar is already inside the SubViewport so its pixels already track
+	# the window size; this multiplier sits on top of that. Pivot is
+	# bottom-right so the bar expands away from the agent sprite (it's
+	# anchored to the bottom-right of the sprite's bounding area).
+	_context_bar.pivot_offset = Vector2(_context_bar.size.x, _context_bar.size.y)
+	_context_bar.scale = CONTEXT_BAR_SCALE
 
 ## Returns the formatted label text with display name and optional user name.
 ## Sidechain agents get "jr" suffix.
