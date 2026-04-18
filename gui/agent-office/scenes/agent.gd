@@ -492,7 +492,7 @@ func _on_velocity_computed(safe_velocity: Vector2) -> void:
 	# Don't overwrite a custom idle-action animation like "bouncing".
 	if not _is_sitting:
 		if safe_velocity.length() > 0.1:
-			if _anim_player.current_animation != "walking":
+			if _anim_player.current_animation != "walking" and _anim_player.current_animation != "bouncing":
 				_anim_player.play("walking")
 		else:
 			if _anim_player.current_animation != "standing" and _anim_player.current_animation != "bouncing":
