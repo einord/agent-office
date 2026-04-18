@@ -9,11 +9,10 @@ const DOWNLOADS_DIR = resolve(process.cwd(), 'downloads');
 
 /** Mapping of platform slug → expected binary filename */
 const BINARY_FILENAMES: Record<string, string> = {
-  macos: 'agent-office-event-macos',
-  'macos-arm64': 'agent-office-event-macos-arm64',
-  'macos-x64': 'agent-office-event-macos-x64',
-  windows: 'agent-office-event.exe',
-  linux: 'agent-office-event-linux',
+  'macos-arm64': 'Agent Office Event (Apple Silicon).app.zip',
+  'macos-x64':   'Agent Office Event (Intel).app.zip',
+  windows:       'agent-office-event.exe',
+  linux:         'agent-office-event-linux',
 };
 
 function getLanAddress(): string {
@@ -66,11 +65,10 @@ function renderPage(): string {
   const binaries = availableBinaries();
 
   const labels: Record<string, string> = {
-    macos: 'macOS (Universal)',
     'macos-arm64': 'macOS (Apple Silicon)',
-    'macos-x64': 'macOS (Intel)',
-    windows: 'Windows',
-    linux: 'Linux',
+    'macos-x64':   'macOS (Intel)',
+    windows:       'Windows',
+    linux:         'Linux',
   };
 
   const downloadsHtml = binaries.length
@@ -138,7 +136,7 @@ function renderPage(): string {
       <strong>Så här gör du:</strong>
       <ol>
         <li>Välj rätt version för din dator och ladda ner filen.</li>
-        <li><strong>macOS:</strong> Högerklicka filen → <em>Öppna</em>. Godkänn att appen får köras.</li>
+        <li><strong>macOS:</strong> Packa upp .zip-filen och dubbelklicka appen. Terminal öppnas automatiskt.</li>
         <li><strong>Windows:</strong> Dubbelklicka filen. Om Windows varnar: <em>Mer info</em> → <em>Kör ändå</em>.</li>
         <li>Skriv ditt namn när du blir tillfrågad.</li>
         <li>Starta Claude Code och börja koda — du syns direkt på storbilden! ✨</li>

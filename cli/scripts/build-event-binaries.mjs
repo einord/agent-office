@@ -24,10 +24,11 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, statSync, unlinkSync, chmodSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { existsSync, mkdirSync, statSync, unlinkSync, chmodSync, rmSync } from 'node:fs';
+import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { platform as osPlatform, arch as osArch } from 'node:os';
+import { wrapMacosApp } from './wrap-macos-app.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -46,12 +47,18 @@ const NOTARY_PROFILE = process.env.NOTARY_PROFILE ?? 'agent-office-notary';
 const PINNED_BUN_VERSION = '1.2.17';
 const BUN_CACHE_DIR = resolve(CLI_DIR, '.bun-pinned');
 
-/** Output filenames must match BINARY_FILENAMES in backend/src/event/download.ts */
+/**
+ * Output filenames must match BINARY_FILENAMES in backend/src/event/download.ts.
+ * macOS targets build to a raw binary first, then get wrapped in a .app bundle
+ * (so double-clicking in Finder opens Terminal instead of a text editor). The
+ * distributed `filename` is therefore a zipped .app, while `rawName` is the
+ * intermediate Bun output.
+ */
 const TARGETS = [
-  { name: 'macos-arm64', bunTarget: 'bun-darwin-arm64', filename: 'agent-office-event-macos-arm64' },
-  { name: 'macos-x64', bunTarget: 'bun-darwin-x64', filename: 'agent-office-event-macos-x64' },
-  { name: 'windows', bunTarget: 'bun-windows-x64', filename: 'agent-office-event.exe' },
-  { name: 'linux', bunTarget: 'bun-linux-x64', filename: 'agent-office-event-linux' },
+  { name: 'macos-arm64', bunTarget: 'bun-darwin-arm64', arch: 'arm64', filename: 'Agent Office Event (Apple Silicon).app.zip', rawName: '.raw-macos-arm64' },
+  { name: 'macos-x64',   bunTarget: 'bun-darwin-x64',   arch: 'x64',   filename: 'Agent Office Event (Intel).app.zip',         rawName: '.raw-macos-x64'   },
+  { name: 'windows',     bunTarget: 'bun-windows-x64',  filename: 'agent-office-event.exe' },
+  { name: 'linux',       bunTarget: 'bun-linux-x64',    filename: 'agent-office-event-linux' },
 ];
 
 function parseArgs(argv) {
@@ -83,61 +90,87 @@ function isMacosTarget(target) {
   return target.bunTarget.startsWith('bun-darwin');
 }
 
-function signBinary(target, outFile, identity) {
-  console.log(`  🔏 Signerar med "${identity}"…`);
+function codesignPath(targetPath, identity, bundleId) {
   const result = spawnSync(
     'codesign',
     [
       '--force',
       '--sign', identity,
-      '--options', 'runtime',       // hardened runtime (krav för notarization)
+      '--options', 'runtime',
       '--entitlements', ENTITLEMENTS,
-      '--timestamp',                 // Apple-stämpel (krav för notarization)
-      '--identifier', `se.plik.agent-office-event.${target.name}`,
-      outFile,
+      '--timestamp',
+      '--identifier', bundleId,
+      targetPath,
     ],
     { stdio: 'inherit' }
   );
-  if (result.status !== 0) return false;
-
-  // Notes on --strict: Bun-compiled binaries have an embedded payload
-  // section that `codesign --verify --strict` flags as invalid, even
-  // though notarization accepts them. Plain --verify is enough here.
-  const verify = spawnSync('codesign', ['--verify', '--verbose=2', outFile], { encoding: 'utf-8' });
-  if (verify.status !== 0) {
-    console.error('  ❌ Verifieringen av signaturen misslyckades:');
-    console.error(verify.stderr || verify.stdout);
-    return false;
-  }
-  console.log(`  ✓ Signerad och verifierad`);
-  return true;
+  return result.status === 0;
 }
 
-function notarizeBinary(outFile) {
-  const zipFile = `${outFile}.zip`;
-  console.log(`  📮 Packar till zip för notarization…`);
-  const zip = spawnSync('ditto', ['-c', '-k', '--keepParent', outFile, zipFile], { stdio: 'inherit' });
-  if (zip.status !== 0) return false;
+/**
+ * Signs, optionally notarizes + staples, and zips a macOS .app bundle for
+ * distribution. Replaces the raw Bun binary with a proper double-clickable
+ * .app that opens Terminal and runs the client.
+ */
+function buildMacosAppBundle(target, rawBinary, args, identity) {
+  if (!identity) {
+    console.warn(`  ⚠️  Ingen Developer ID — skapar .app utan signering (kommer ge Gatekeeper-varning).`);
+  }
 
-  try {
-    console.log(`  🍎 Skickar till Apple för notarization (kan ta några minuter)…`);
+  console.log(`  📦 Wrappar i .app-bundle…`);
+  const appPath = wrapMacosApp({ binary: rawBinary, outDir: OUTPUT_DIR, arch: target.arch });
+
+  if (identity) {
+    console.log(`  🔏 Signerar inre binär + bundle…`);
+    const innerBinary = join(appPath, 'Contents', 'Resources', 'agent-office-event');
+    if (!codesignPath(innerBinary, identity, `se.plik.agent-office-event.${target.name}.inner`)) return false;
+    if (!codesignPath(appPath, identity, `se.plik.agent-office-event.${target.name}`)) return false;
+    console.log(`  ✓ Signerad`);
+  }
+
+  const zipFile = resolve(OUTPUT_DIR, target.filename);
+  const makeZip = () => {
+    try { unlinkSync(zipFile); } catch { /* ignore */ }
+    const zip = spawnSync('ditto', ['-c', '-k', '--keepParent', appPath, zipFile], { stdio: 'inherit' });
+    return zip.status === 0;
+  };
+
+  if (args.notarize && identity) {
+    console.log(`  📮 Packar .app för notarization…`);
+    if (!makeZip()) return false;
+
+    console.log(`  🍎 Skickar till Apple (kan ta några minuter)…`);
     const submit = spawnSync(
       'xcrun',
       ['notarytool', 'submit', zipFile, '--keychain-profile', NOTARY_PROFILE, '--wait'],
       { stdio: 'inherit' }
     );
     if (submit.status !== 0) {
-      console.error('  ❌ Notarization misslyckades. Kör `xcrun notarytool log <submission-id> --keychain-profile ' + NOTARY_PROFILE + '` för detaljer.');
+      console.error(`  ❌ Notarization misslyckades.`);
       return false;
     }
 
-    // Standalone-binärer stöder inte `stapler staple` — notarization-ticket
-    // verifieras online vid första körningen istället. Zip:en kan slängas.
-    console.log(`  ✓ Notariserad`);
-    return true;
-  } finally {
-    try { unlinkSync(zipFile); } catch { /* ignore */ }
+    console.log(`  📎 Staplar notarization-ticket på .app…`);
+    const staple = spawnSync('xcrun', ['stapler', 'staple', appPath], { stdio: 'inherit' });
+    if (staple.status !== 0) {
+      console.error(`  ❌ Stapling misslyckades.`);
+      return false;
+    }
+
+    console.log(`  📦 Packar om .app (nu med stapled ticket)…`);
+    if (!makeZip()) return false;
+    console.log(`  ✓ Notariserad och staplad`);
+  } else {
+    if (!makeZip()) return false;
   }
+
+  // Clean up: keep only the distributed .zip, drop raw binary and .app dir
+  try { rmSync(appPath, { recursive: true, force: true }); } catch { /* ignore */ }
+  try { unlinkSync(rawBinary); } catch { /* ignore */ }
+
+  const sizeMB = (statSync(zipFile).size / (1024 * 1024)).toFixed(1);
+  console.log(`  ✓ ${target.filename}: ${sizeMB} MB`);
+  return true;
 }
 
 /**
@@ -212,8 +245,10 @@ function ensurePinnedBun() {
 }
 
 function buildTarget(target, bunBin) {
-  const outFile = resolve(OUTPUT_DIR, target.filename);
-  console.log(`\n📦 Bygger ${target.name} → ${target.filename}…`);
+  // macOS targets build to a raw intermediate, others write directly to final.
+  const outName = target.rawName ?? target.filename;
+  const outFile = resolve(OUTPUT_DIR, outName);
+  console.log(`\n📦 Bygger ${target.name}…`);
 
   const result = spawnSync(
     bunBin,
@@ -241,22 +276,20 @@ function buildTarget(target, bunBin) {
   }
 
   const sizeMB = (statSync(outFile).size / (1024 * 1024)).toFixed(1);
-  console.log(`✓ ${target.name}: ${sizeMB} MB → ${outFile}`);
+  console.log(`  ✓ Kompilerad: ${sizeMB} MB`);
   return true;
 }
 
-function signAndNotarizeIfMacos(target, outFile, args, identity) {
-  if (!isMacosTarget(target)) return true;
-  if (!args.sign) return true;
-
-  if (!identity) {
-    console.warn(`  ⚠️  Ingen Developer ID hittades — hoppar över signering för ${target.name}`);
+/** Runs macOS-specific post-build: wrap in .app, sign, zip, notarize + staple. */
+function postBuildMacos(target, args, identity) {
+  if (!isMacosTarget(target)) {
+    // For non-macOS targets, the bun output is already the final file.
     return true;
   }
-
-  if (!signBinary(target, outFile, identity)) return false;
-  if (!args.notarize) return true;
-  return notarizeBinary(outFile);
+  const rawBinary = resolve(OUTPUT_DIR, target.rawName);
+  // Even with --skip-sign we still need to wrap so Finder doesn't open the
+  // binary in a text editor. We just skip the codesign step.
+  return buildMacosAppBundle(target, rawBinary, args, args.sign ? identity : null);
 }
 
 function main() {
@@ -294,7 +327,7 @@ function main() {
   let failures = 0;
   for (const target of selected) {
     if (!buildTarget(target, bunBin)) { failures++; continue; }
-    if (!signAndNotarizeIfMacos(target, resolve(OUTPUT_DIR, target.filename), args, identity)) failures++;
+    if (!postBuildMacos(target, args, identity)) failures++;
   }
 
   console.log('');
