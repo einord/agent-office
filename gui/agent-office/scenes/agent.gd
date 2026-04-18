@@ -84,12 +84,12 @@ func _setup_name_label() -> void:
 	if font:
 		var label_settings = LabelSettings.new()
 		label_settings.font = font
-		# Smaller font for sidechain agents, with DPI scaling for high-density screens
-		var base_font_size = 22 if is_sidechain else 32
-		var base_outline_size = 6 if is_sidechain else 8
-		label_settings.font_size = DisplayManager.get_scaled_font_size(base_font_size)
+		# Fixed pixel-perfect size: font pixels are half the size of a
+		# world-space pixel, which matches the office's pixel-art look at
+		# any screen size (no DPI scaling — viewport stretch does the work).
+		label_settings.font_size = 8
 		label_settings.outline_color = Color.BLACK
-		label_settings.outline_size = DisplayManager.get_scaled_size(base_outline_size)
+		label_settings.outline_size = 1
 		_name_label.label_settings = label_settings
 
 	_ui_layer.add_child(_name_label)
