@@ -40,11 +40,13 @@ export async function loadState(): Promise<EventClientState | null> {
 }
 
 /**
- * Persists the state to disk.
+ * Persists the state to disk. Uses mode 0o600 so the display name and
+ * userKey aren't world-readable on shared machines (no-op on Windows,
+ * where Node silently ignores POSIX modes).
  */
 export async function saveState(state: EventClientState): Promise<void> {
   await mkdir(dirname(STATE_FILE), { recursive: true });
-  await writeFile(STATE_FILE, JSON.stringify(state, null, 2), 'utf-8');
+  await writeFile(STATE_FILE, JSON.stringify(state, null, 2), { encoding: 'utf-8', mode: 0o600 });
 }
 
 /**
