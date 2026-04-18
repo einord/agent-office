@@ -88,7 +88,7 @@ func _create_status_label() -> void:
 	# Keep the font at Axolotl's pixel-perfect size (16) and scale the
 	# Label node instead — same principle as the agent name labels.
 	_status_label.add_theme_font_size_override("font_size", 16)
-	_status_label.scale = Vector2(0.5, 0.5)
+	_status_label.scale = Vector2(1.0, 1.0)
 
 	add_child(_status_label)
 
