@@ -112,17 +112,27 @@ func _setup_name_label() -> void:
 
 	_ui_layer.add_child(_name_label)
 
-	# Create context progress bar (background + fill)
+	# Reparent the context bar to the UI layer so it follows the same
+	# explicit-scale-and-position logic as the name label (instead of
+	# being subject to the tscn's anchor layout inside the SubViewport).
+	if _context_bar.get_parent():
+		_context_bar.get_parent().remove_child(_context_bar)
+	_ui_layer.add_child(_context_bar)
+	# Strip anchor behavior — we position it explicitly each frame.
+	_context_bar.anchor_left = 0
+	_context_bar.anchor_top = 0
+	_context_bar.anchor_right = 0
+	_context_bar.anchor_bottom = 0
+	_context_bar.offset_left = 0
+	_context_bar.offset_top = 0
+	_context_bar.offset_right = 0
+	_context_bar.offset_bottom = 0
+	# Max size in world-pixels (width = 100% bar, height = bar thickness)
+	_context_bar.size = Vector2(16, 2)
 	_context_bar_init_length = _context_bar.size.x
 	_context_bar.color = Color(0.2, 0.8, 0.2)
 	_context_bar.size.x = 0
-	# Scale the whole bar so it's actually visible at a distance. The
-	# bar is already inside the SubViewport so its pixels already track
-	# the window size; this multiplier sits on top of that. Pivot is
-	# bottom-right so the bar expands away from the agent sprite (it's
-	# anchored to the bottom-right of the sprite's bounding area).
-	_context_bar.pivot_offset = Vector2(_context_bar.size.x, _context_bar.size.y)
-	_context_bar.scale = CONTEXT_BAR_SCALE
+	# Scale & position applied every frame in _update_label_position.
 
 ## Returns the formatted label text with display name and optional user name.
 ## Sidechain agents get "jr" suffix.
@@ -137,9 +147,13 @@ func _get_label_text() -> String:
 func _exit_tree() -> void:
 	# Clean up idle action
 	_interrupt_idle_action()
-	# Clean up UI elements when agent is removed
+	# Clean up UI elements when agent is removed — they live in the UI
+	# layer (reparented during setup) so they don't free automatically
+	# when the agent node is removed from its own tree.
 	if _name_label and is_instance_valid(_name_label):
 		_name_label.queue_free()
+	if _context_bar and is_instance_valid(_context_bar):
+		_context_bar.queue_free()
 
 func set_movement_target(movement_target: Vector2):
 	navigation_agent.set_target_position(movement_target)
@@ -349,6 +363,18 @@ func _update_label_position() -> void:
 	# visual bottom-center equals `position + pivot_offset`.
 	_name_label.pivot_offset = Vector2(_name_label.size.x / 2, _name_label.size.y)
 	_name_label.position = (target - _name_label.pivot_offset).round()
+
+	# Context bar: scaled the same way as the label, positioned just
+	# below the label's bottom. Pivot = center so the bar grows from
+	# the middle as the fill percentage changes (instead of off to one
+	# side), which keeps it visually centered above the agent.
+	if _context_bar:
+		_context_bar.scale = scale_factor * CONTEXT_BAR_SCALE
+		var bar_target = target + Vector2(0, 2) * scale_factor  # 2 world-px below label bottom
+		_context_bar.pivot_offset = _context_bar.size / 2
+		# Visual center = position + pivot_offset (scale cancels since
+		# center_local == pivot_offset), so position = target - pivot.
+		_context_bar.position = (bar_target - _context_bar.pivot_offset).round()
 
 	# Position progress bar below the label
 	_context_bar.size.x = _context_bar_init_length * (context_percentage / 100.0)
