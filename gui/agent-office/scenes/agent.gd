@@ -5,12 +5,13 @@ enum AgentState { WORKING, IDLE, LEAVING }
 ## Scale factor for sidechain agents (sub-agents)
 const SIDECHAIN_SCALE := 0.7
 
-## Scale applied to the name label. Font_size stays at Axolotl's pixel-
-## perfect native size (16); this scale controls how many world-pixels
-## each text-pixel occupies. Keep this an INTEGER — fractional scale
-## breaks pixel-perfect rendering and can make text disappear entirely.
-## 1 = tiny, 2 = ok on laptop, 3 = good on a big screen.
-const NAME_LABEL_SCALE := Vector2(3, 3)
+## How many world-pixels each text-pixel should occupy, independent of
+## window size. The actual label scale is this × the SubViewport's
+## stretch factor (see _update_label_position), so the label tracks the
+## same scaling as the pixel-art office. 1.0 = one text-pixel per
+## world-pixel (looks "pytteliten" in world-space but correct); 2.0, 3.0
+## etc. make the text proportionally larger than the world pixels.
+const NAME_LABEL_SCALE := Vector2(2, 2)
 
 @export var movement_speed: float = 25.0
 @export var random_range: Vector2 = Vector2(200, 200)  # Område för slumpmässiga positioner
@@ -100,7 +101,8 @@ func _setup_name_label() -> void:
 		label_settings.outline_color = Color.BLACK
 		label_settings.outline_size = 1
 		_name_label.label_settings = label_settings
-		_name_label.scale = NAME_LABEL_SCALE
+		# Actual label scale is applied each frame in _update_label_position
+		# so it tracks the SubViewport's stretch factor with the window.
 
 	_ui_layer.add_child(_name_label)
 
@@ -316,6 +318,10 @@ func _update_label_position() -> void:
 
 	# Offset label above the agent sprite
 	var label_offset = Vector2(0, -12) * scale_factor
+
+	# Apply the same stretch factor to the label so one text-pixel maps to
+	# NAME_LABEL_SCALE world-pixels regardless of window size.
+	_name_label.scale = scale_factor * NAME_LABEL_SCALE
 
 	# Center the label horizontally (account for the node's scale — size
 	# is the unscaled width, rendered width is size × scale) and round
