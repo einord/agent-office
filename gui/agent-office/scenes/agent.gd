@@ -194,6 +194,18 @@ func change_state(new_state: AgentState) -> void:
 	current_state = new_state
 	_enter_state(new_state)
 
+## Forces an immediate state change, bypassing the grace period.
+## Used by test keyboard shortcuts (1/2 keys) so the developer sees
+## instant feedback instead of waiting 5 s for the grace timer.
+func force_state(new_state: AgentState) -> void:
+	_is_idle_grace_waiting = false
+	_idle_grace_timer = 0.0
+	if current_state == new_state:
+		return
+	_exit_state(current_state)
+	current_state = new_state
+	_enter_state(new_state)
+
 ## Called when entering a new state. Sets up the appropriate navigation target.
 func _enter_state(state: AgentState) -> void:
 	match state:
@@ -566,6 +578,9 @@ func _start_idle_action() -> void:
 	match action_type:
 		"get_drink":
 			_idle_action_handler = GetDrinkAction.new()
+			_idle_action_handler.start(self)
+		"get_coffee":
+			_idle_action_handler = GetCoffeeAction.new()
 			_idle_action_handler.start(self)
 		_:
 			push_warning("Unknown idle action type: " + str(action_type))
