@@ -162,7 +162,15 @@ export class EventClient {
     activity: EventActivity,
     contextPercentage: number = 0,
     sessionId: string | null = null,
+    depth: number = 0,
   ): Promise<void> {
+    // Cap recursion: the 404 → recreate path below calls ensureAgent again,
+    // which in turn may hit 404 again if the server is in a bad state. A
+    // simple depth counter prevents us from growing the call stack forever
+    // and hanging the client mid-event.
+    if (depth > 3) {
+      throw new Error('ensureAgent: too many recreate attempts — giving up for now');
+    }
     if (sessionId === null) {
       // No active session → tear down any existing agent and stop.
       if (this.agentCreated) {
@@ -223,7 +231,7 @@ export class EventClient {
     if (updated.status === 404) {
       // Server lost the agent (restart, flush) - recreate
       this.agentCreated = false;
-      await this.ensureAgent(activity, contextPercentage, sessionId);
+      await this.ensureAgent(activity, contextPercentage, sessionId, depth + 1);
       return;
     }
 

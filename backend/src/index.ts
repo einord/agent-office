@@ -132,6 +132,16 @@ function shutdown(signal: string): void {
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
+// Safety net: during a live event an unhandled error in some obscure code
+// path (native module glitch, race condition, malformed incoming data)
+// must NOT take the whole server down. Log loudly and keep serving.
+process.on('uncaughtException', (err) => {
+  console.error('[Server] Uncaught exception (keeping process alive):', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[Server] Unhandled promise rejection (keeping process alive):', reason);
+});
+
 console.log('[Server] Agent Office Backend started');
 console.log(`[Server] HTTP: http://localhost:${config.server.httpPort}`);
 console.log(`[Server] WebSocket: ws://localhost:${config.server.wsPort}`);

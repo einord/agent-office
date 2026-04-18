@@ -181,5 +181,21 @@ export function handleDownloadBinary(req: Request, res: Response): void {
   res.setHeader('Content-Type', 'application/octet-stream');
   res.setHeader('Content-Length', String(stats.size));
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-  createReadStream(filePath).pipe(res);
+
+  const stream = createReadStream(filePath);
+  // Without these listeners an unexpected stream error (client disconnect
+  // mid-download, disk I/O hiccup) would bubble up as an unhandled 'error'
+  // event and crash the Node process — unacceptable during a live event.
+  stream.on('error', (err) => {
+    console.error(`[Download] Stream error serving ${filename}:`, err.message);
+    if (!res.headersSent) {
+      res.status(500).end();
+    } else {
+      res.destroy();
+    }
+  });
+  res.on('close', () => {
+    if (!stream.destroyed) stream.destroy();
+  });
+  stream.pipe(res);
 }
