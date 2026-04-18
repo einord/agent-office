@@ -4,6 +4,7 @@ import { homedir } from 'os';
 import { createReadStream } from 'fs';
 import { createInterface } from 'readline';
 import type { SessionIndex, ConversationMessage, TokenUsage } from '../types.js';
+import { MAX_CONTEXT_TOKENS, MAX_CONTEXT_TOKENS_1M } from '../types.js';
 import { getIncrementalReader } from './incremental-reader.js';
 
 /** Default claude directory path */
@@ -221,6 +222,45 @@ export function getContextWindowUsage(messages: ConversationMessage[]): number {
     }
   }
   return 0;
+}
+
+/**
+ * Reads the Claude model ID from the most recent assistant message, or
+ * returns undefined if no assistant response exists yet in the tail.
+ */
+export function getModelFromMessages(messages: ConversationMessage[]): string | undefined {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const model = messages[i].message?.model;
+    if (model) return model;
+  }
+  return undefined;
+}
+
+/**
+ * Resolves the max context window (tokens) for a given Claude model ID.
+ *
+ * - Opus 4.5/4.6/4.7 ship with a 1M context by default.
+ * - Sonnet on the 1M tier uses an explicit "1m" marker in the model ID.
+ * - Everything else (Sonnet default, Haiku) is 200k.
+ *
+ * Falls back to the 200k default when the model ID is unknown or missing.
+ */
+export function getMaxContextTokens(model: string | undefined): number {
+  if (!model) return MAX_CONTEXT_TOKENS;
+  const lower = model.toLowerCase();
+  if (lower.includes('opus')) return MAX_CONTEXT_TOKENS_1M;
+  if (lower.includes('1m')) return MAX_CONTEXT_TOKENS_1M;
+  return MAX_CONTEXT_TOKENS;
+}
+
+/**
+ * Convenience: computes context-window usage percentage against the
+ * correct max for the model that produced the latest response.
+ */
+export function getContextUsagePercentage(messages: ConversationMessage[]): number {
+  const tokens = getContextWindowUsage(messages);
+  const max = getMaxContextTokens(getModelFromMessages(messages));
+  return Math.round((tokens / max) * 100);
 }
 
 /**
