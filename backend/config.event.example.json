@@ -8,8 +8,8 @@
   "inactivityTimeoutSeconds": 600,
   "eventMode": {
     "enabled": true,
-    "serverName": "Plik Event",
-    "adminToken": "byt-mig-till-en-hemlig-strang",
+    "serverName": "Claude Consid",
+    "adminToken": "hackzor1337",
     "discoveryPort": 3102,
     "maxAgents": 300,
     "authRateLimit": 10

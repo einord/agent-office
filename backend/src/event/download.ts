@@ -15,7 +15,7 @@ const BINARY_FILENAMES: Record<string, string> = {
   linux:         'agent-office-event-linux',
 };
 
-function getLanAddress(): string {
+export function getLanAddress(): string {
   const ifaces = networkInterfaces();
   for (const entries of Object.values(ifaces)) {
     if (!entries) continue;

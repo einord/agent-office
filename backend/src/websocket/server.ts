@@ -14,6 +14,7 @@ import { onIdleActionChange } from '../idle-actions/index.js';
 import { initCleaningService, getCanCount } from '../cleaning/index.js';
 import { getActiveUsers } from '../auth/token-manager.js';
 import { getConfig } from '../config/config-loader.js';
+import { getLanAddress } from '../event/download.js';
 
 let wss: WebSocketServer | null = null;
 const connectedClients: Set<WebSocket> = new Set();
@@ -124,20 +125,30 @@ function buildUserStatsPayload(): UserStatsPayload {
 
   // Stats reflect what's visible on screen - count all agents that exist
   // (agents are removed by reapDoneAgents when they should no longer be visible)
-  const users: UserStatsPayload['users'] = config.users.map((configUser) => {
-    const activeSession = activeUsers.get(configUser.key);
-    const ownerAgents = getAgentsByOwner(configUser.key);
-
-    const tokenStats = getUserTokenStats(configUser.key);
-
+  const buildUserEntry = (key: string, displayName: string): UserStatsPayload['users'][number] => {
+    const ownerAgents = getAgentsByOwner(key);
+    const tokenStats = getUserTokenStats(key);
     return {
-      displayName: configUser.displayName,
+      displayName,
       sessionCount: ownerAgents.filter(a => !a.isSidechain).length,
       agentCount: ownerAgents.filter(a => a.isSidechain).length,
-      isActive: activeSession !== undefined,
+      isActive: activeUsers.has(key),
       ...tokenStats,
     };
-  });
+  };
+
+  const seenKeys = new Set<string>();
+  const users: UserStatsPayload['users'] = [];
+  for (const configUser of config.users) {
+    users.push(buildUserEntry(configUser.key, configUser.displayName));
+    seenKeys.add(configUser.key);
+  }
+  // Include anonymous event users (not in config.users) so event-mode stats work
+  for (const [key, session] of activeUsers) {
+    if (seenKeys.has(key)) continue;
+    users.push(buildUserEntry(key, session.displayName));
+    seenKeys.add(key);
+  }
 
   const activeUserCount = users.filter((u) => u.isActive).length;
   const totalSessions = users.reduce((sum, u) => sum + u.sessionCount, 0);
@@ -195,10 +206,15 @@ function handleGodotMessage(data: string): void {
  * Sends a sync_complete message to a specific client.
  */
 function sendSyncComplete(client: WebSocket, agentIds: string[]): boolean {
+  const config = getConfig();
   const payload: SyncCompletePayload = {
     agentIds,
     canCount: getCanCount(),
   };
+
+  if (config.eventMode?.enabled) {
+    payload.downloadUrl = `http://${getLanAddress()}:${config.server.httpPort}/download`;
+  }
 
   return sendToClient(client, { type: 'sync_complete', payload });
 }

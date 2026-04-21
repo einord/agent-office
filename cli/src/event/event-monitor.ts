@@ -45,6 +45,9 @@ export class EventMonitor {
   private currentActivity: EventActivity = 'idle';
   private currentContext = 0;
   private currentSessionId: string | null = null;
+  private currentTotalInputTokens = 0;
+  private currentTotalOutputTokens = 0;
+  private currentSycophancyCount = 0;
   private stopped = false;
 
   constructor(opts: EventMonitorOptions) {
@@ -62,6 +65,9 @@ export class EventMonitor {
     this.currentActivity = mapActivity(initial.type);
     this.currentContext = initial.contextPercentage;
     this.currentSessionId = initial.sessionId;
+    this.currentTotalInputTokens = initial.totalInputTokens;
+    this.currentTotalOutputTokens = initial.totalOutputTokens;
+    this.currentSycophancyCount = initial.sycophancyCount;
 
     await this.connectLoop();
 
@@ -92,6 +98,9 @@ export class EventMonitor {
     this.currentActivity = mapActivity(snap.type);
     this.currentContext = snap.contextPercentage;
     this.currentSessionId = snap.sessionId;
+    this.currentTotalInputTokens = snap.totalInputTokens;
+    this.currentTotalOutputTokens = snap.totalOutputTokens;
+    this.currentSycophancyCount = snap.sycophancyCount;
     this.pushActivity().catch(() => {
       // Failures schedule a reconnect via the catch in pushActivity
     });
@@ -100,7 +109,17 @@ export class EventMonitor {
   private async pushActivity(): Promise<void> {
     if (this.stopped) return;
     try {
-      await this.client.ensureAgent(this.currentActivity, this.currentContext, this.currentSessionId);
+      await this.client.ensureAgent(
+        this.currentActivity,
+        this.currentContext,
+        this.currentSessionId,
+        0,
+        {
+          totalInputTokens: this.currentTotalInputTokens,
+          totalOutputTokens: this.currentTotalOutputTokens,
+          sycophancyCount: this.currentSycophancyCount,
+        },
+      );
       this.markConnected();
     } catch (err) {
       this.markDisconnected(err);
@@ -111,7 +130,17 @@ export class EventMonitor {
     if (this.stopped) return;
     try {
       // Re-assert activity (catches server restarts that lose the agent)
-      await this.client.ensureAgent(this.currentActivity, this.currentContext, this.currentSessionId);
+      await this.client.ensureAgent(
+        this.currentActivity,
+        this.currentContext,
+        this.currentSessionId,
+        0,
+        {
+          totalInputTokens: this.currentTotalInputTokens,
+          totalOutputTokens: this.currentTotalOutputTokens,
+          sycophancyCount: this.currentSycophancyCount,
+        },
+      );
       this.markConnected();
     } catch (err) {
       this.markDisconnected(err);
@@ -176,7 +205,17 @@ export class EventMonitor {
     }
 
     try {
-      await this.client.ensureAgent(this.currentActivity, this.currentContext, this.currentSessionId);
+      await this.client.ensureAgent(
+        this.currentActivity,
+        this.currentContext,
+        this.currentSessionId,
+        0,
+        {
+          totalInputTokens: this.currentTotalInputTokens,
+          totalOutputTokens: this.currentTotalOutputTokens,
+          sycophancyCount: this.currentSycophancyCount,
+        },
+      );
       this.markConnected();
     } catch (err) {
       this.markDisconnected(err);

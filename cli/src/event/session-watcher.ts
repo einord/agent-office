@@ -18,6 +18,7 @@ import {
   setClaudeDir,
 } from '../data/session-reader.js';
 import { getLatestActivity } from '../data/activity-tracker.js';
+import { getIncrementalReader } from '../data/incremental-reader.js';
 import type { ActivityType } from '../types.js';
 
 /** A session is considered active if its file changed within this many ms */
@@ -39,6 +40,12 @@ export type ActivitySnapshot = {
    * the main CLI.
    */
   sessionId: string | null;
+  /** Accumulated input tokens for the driving session (for leaderboard). */
+  totalInputTokens: number;
+  /** Accumulated output tokens for the driving session. */
+  totalOutputTokens: number;
+  /** Accumulated sycophancy count for the driving session. */
+  sycophancyCount: number;
 };
 
 export type ActivityListener = (snapshot: ActivitySnapshot) => void;
@@ -126,7 +133,14 @@ export class SessionWatcher {
    * Returns the most recent snapshot — or an idle one if no sessions exist.
    */
   getSnapshot(): ActivitySnapshot {
-    return this.lastSnapshot ?? { type: 'idle', contextPercentage: 0, sessionId: null };
+    return this.lastSnapshot ?? {
+      type: 'idle',
+      contextPercentage: 0,
+      sessionId: null,
+      totalInputTokens: 0,
+      totalOutputTokens: 0,
+      sycophancyCount: 0,
+    };
   }
 
   private async refresh(): Promise<void> {
@@ -142,7 +156,10 @@ export class SessionWatcher {
         !this.lastSnapshot ||
         this.lastSnapshot.type !== snapshot.type ||
         this.lastSnapshot.contextPercentage !== snapshot.contextPercentage ||
-        this.lastSnapshot.sessionId !== snapshot.sessionId;
+        this.lastSnapshot.sessionId !== snapshot.sessionId ||
+        this.lastSnapshot.totalInputTokens !== snapshot.totalInputTokens ||
+        this.lastSnapshot.totalOutputTokens !== snapshot.totalOutputTokens ||
+        this.lastSnapshot.sycophancyCount !== snapshot.sycophancyCount;
 
       this.lastSnapshot = snapshot;
 
@@ -169,11 +186,24 @@ export class SessionWatcher {
     try {
       allSessions = await getAllSessions();
     } catch {
-      return { type: 'idle', contextPercentage: 0, sessionId: null };
+      return {
+        type: 'idle',
+        contextPercentage: 0,
+        sessionId: null,
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+        sycophancyCount: 0,
+      };
     }
 
     const now = Date.now();
-    type Candidate = { activity: ActivityType; contextPercentage: number; lastModified: number; sessionId: string };
+    type Candidate = {
+      activity: ActivityType;
+      contextPercentage: number;
+      lastModified: number;
+      sessionId: string;
+      filePath: string;
+    };
     const candidates: Candidate[] = [];
 
     for (const [, info] of allSessions) {
@@ -181,6 +211,7 @@ export class SessionWatcher {
         const lastModified = info.lastModified ?? (await stat(info.filePath)).mtimeMs;
         if (now - lastModified > ACTIVE_WINDOW_MS) continue;
 
+        // readConversationTail primes the IncrementalReader's token accumulator as a side effect
         const messages = await readConversationTail(info.filePath, 60);
         const activity = getLatestActivity(messages, lastModified, false);
         const contextPercentage = getContextUsagePercentage(messages);
@@ -189,16 +220,36 @@ export class SessionWatcher {
           contextPercentage,
           lastModified,
           sessionId: info.sessionId,
+          filePath: info.filePath,
         });
       } catch {
         continue;
       }
     }
 
-    if (candidates.length === 0) return { type: 'idle', contextPercentage: 0, sessionId: null };
+    if (candidates.length === 0) {
+      return {
+        type: 'idle',
+        contextPercentage: 0,
+        sessionId: null,
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+        sycophancyCount: 0,
+      };
+    }
 
     candidates.sort((a, b) => b.lastModified - a.lastModified);
     const best = candidates[0];
-    return { type: best.activity, contextPercentage: best.contextPercentage, sessionId: best.sessionId };
+    const reader = getIncrementalReader();
+    const accumulated = reader.getAccumulatedTokens(best.filePath);
+    const sycophancy = reader.getAccumulatedSycophancy(best.filePath);
+    return {
+      type: best.activity,
+      contextPercentage: best.contextPercentage,
+      sessionId: best.sessionId,
+      totalInputTokens: accumulated.input_tokens,
+      totalOutputTokens: accumulated.output_tokens,
+      sycophancyCount: sycophancy,
+    };
   }
 }

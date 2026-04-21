@@ -86,6 +86,8 @@ export interface SyncCompletePayload {
   agentIds: string[];
   /** Number of cans dropped since last cleaning */
   canCount: number;
+  /** Event-mode download URL (audience client). Undefined when event-mode is off. */
+  downloadUrl?: string;
 }
 
 /** Ack payload from Godot */

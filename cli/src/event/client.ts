@@ -50,6 +50,10 @@ export class EventClient {
    * PUT /agents/:id doesn't allow changing displayName).
    */
   private currentAgentName: string | null = null;
+  private lastTotalInputTokens: number | null = null;
+  private lastTotalOutputTokens: number | null = null;
+  private lastSycophancyCount: number | null = null;
+  private lastContextPercentage: number | null = null;
 
   constructor(config: EventClientConfig) {
     this.serverUrl = config.serverUrl.replace(/\/+$/, '');
@@ -70,6 +74,10 @@ export class EventClient {
     this.agentCreated = false;
     this.lastActivity = null;
     this.currentAgentName = null;
+    this.lastTotalInputTokens = null;
+    this.lastTotalOutputTokens = null;
+    this.lastSycophancyCount = null;
+    this.lastContextPercentage = null;
   }
 
   getServerUrl(): string {
@@ -163,6 +171,7 @@ export class EventClient {
     contextPercentage: number = 0,
     sessionId: string | null = null,
     depth: number = 0,
+    tokens?: { totalInputTokens: number; totalOutputTokens: number; sycophancyCount: number },
   ): Promise<void> {
     // Cap recursion: the 404 → recreate path below calls ensureAgent again,
     // which in turn may hit 404 again if the server is in a bad state. A
@@ -202,6 +211,7 @@ export class EventClient {
           contextPercentage,
           parentId: null,
           isSidechain: false,
+          ...(tokens ?? {}),
         }),
       });
 
@@ -216,22 +226,36 @@ export class EventClient {
       }
     }
 
-    if (this.lastActivity === activity) return;
+    const tokensChanged =
+      tokens !== undefined && (
+        tokens.totalInputTokens !== this.lastTotalInputTokens ||
+        tokens.totalOutputTokens !== this.lastTotalOutputTokens ||
+        tokens.sycophancyCount !== this.lastSycophancyCount
+      );
+    const contextChanged = contextPercentage !== this.lastContextPercentage;
+
+    if (this.lastActivity === activity && !tokensChanged && !contextChanged) return;
 
     const updated = await this.request<unknown>(`/agents/${encodeURIComponent(this.userKey)}`, {
       method: 'PUT',
-      body: JSON.stringify({ activity, contextPercentage }),
+      body: JSON.stringify({ activity, contextPercentage, ...(tokens ?? {}) }),
     });
 
     if (updated.status === 200) {
       this.lastActivity = activity;
+      this.lastContextPercentage = contextPercentage;
+      if (tokens) {
+        this.lastTotalInputTokens = tokens.totalInputTokens;
+        this.lastTotalOutputTokens = tokens.totalOutputTokens;
+        this.lastSycophancyCount = tokens.sycophancyCount;
+      }
       return;
     }
 
     if (updated.status === 404) {
       // Server lost the agent (restart, flush) - recreate
       this.agentCreated = false;
-      await this.ensureAgent(activity, contextPercentage, sessionId, depth + 1);
+      await this.ensureAgent(activity, contextPercentage, sessionId, depth + 1, tokens);
       return;
     }
 
@@ -268,5 +292,9 @@ export class EventClient {
     this.agentCreated = false;
     this.lastActivity = null;
     this.currentAgentName = null;
+    this.lastTotalInputTokens = null;
+    this.lastTotalOutputTokens = null;
+    this.lastSycophancyCount = null;
+    this.lastContextPercentage = null;
   }
 }

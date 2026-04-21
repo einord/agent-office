@@ -1,9 +1,8 @@
 extends PanelContainer
 
-## Displays the number of connected Godot viewers with an eye icon.
+## Displays the number of active users currently reporting CLI activity.
 
 @onready var _label: Label = $MarginContainer/HBox/Label
-@onready var _eye_icon: TextureRect = $MarginContainer/HBox/EyeIcon
 
 const BASE_WINDOW_WIDTH := 1200.0
 const TEXT_COLOR := Color(0.15, 0.12, 0.1, 1.0)
@@ -27,9 +26,6 @@ func _on_window_resized() -> void:
 	settings.font_size = font_size
 	settings.font_color = TEXT_COLOR
 	_label.label_settings = settings
-	# Scale eye icon to match text height
-	if _eye_icon:
-		_eye_icon.custom_minimum_size = Vector2(font_size / 2.0, font_size / 2.0)
 
 func _get_font_size_for_scale(scale: float) -> int:
 	if scale < 0.6:

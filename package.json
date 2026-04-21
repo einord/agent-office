@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "cd cli && pnpm dev",
     "build": "pnpm --filter agent-office build",
+    "build:backend": "pnpm --filter agent-office-backend build",
     "start": "pnpm --filter agent-office start",
     "event": "./scripts/start-event.sh",
     "event:rebuild": "BUILD_BINARIES=always ./scripts/start-event.sh",

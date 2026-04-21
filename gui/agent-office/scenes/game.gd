@@ -13,12 +13,10 @@ extends Node2D
 var _agent_queue: Array = []  # FIFO queue of agents
 var _agents_by_id: Dictionary = {}  # Maps external ID to agent instance
 
-## Reference to the user stats overlay (set via set_user_stats_overlay)
-var _user_stats_overlay: Node = null
 ## Reference to the leaderboard overlay (set via set_leaderboard_overlay)
 var _leaderboard_overlay: Node = null
-## Reference to the viewer count overlay (set via set_viewer_count_overlay)
-var _viewer_count_overlay: Node = null
+## Reference to the download-link overlay (set via set_download_link_overlay)
+var _download_link_overlay: Node = null
 
 # WebSocket client for backend communication
 var _socket: WebSocketPeer = WebSocketPeer.new()
@@ -300,6 +298,11 @@ func _handle_sync_complete(payload: Dictionary) -> void:
 			print("sync_complete: Removing stale agent: ", agent_id)
 			agent.change_state(agent.AgentState.LEAVING)
 
+	# Show event-mode download URL if backend supplied one
+	var download_url = payload.get("downloadUrl", "")
+	if _download_link_overlay != null and is_instance_valid(_download_link_overlay):
+		_download_link_overlay.update_url(str(download_url))
+
 	# Sync can count - spawn missing cans if server has more than local
 	var server_can_count = payload.get("canCount", 0)
 	if server_can_count is float:
@@ -318,27 +321,16 @@ func _handle_trigger_cleaning() -> void:
 
 ## Handles the user_stats message from the backend.
 func _handle_user_stats(payload: Dictionary) -> void:
-	if _user_stats_overlay != null and is_instance_valid(_user_stats_overlay):
-		_user_stats_overlay.update_stats(payload)
 	if _leaderboard_overlay != null and is_instance_valid(_leaderboard_overlay):
 		_leaderboard_overlay.update_leaderboard(payload)
-	# Update viewer count from totals
-	var totals = payload.get("totals", {})
-	var viewer_count = totals.get("viewerCount", 0)
-	if _viewer_count_overlay != null and is_instance_valid(_viewer_count_overlay):
-		_viewer_count_overlay.update_viewer_count(viewer_count)
-
-## Sets the reference to the user stats overlay node.
-func set_user_stats_overlay(overlay: Node) -> void:
-	_user_stats_overlay = overlay
 
 ## Sets the reference to the leaderboard overlay node.
 func set_leaderboard_overlay(overlay: Node) -> void:
 	_leaderboard_overlay = overlay
 
-## Sets the reference to the viewer count overlay node.
-func set_viewer_count_overlay(overlay: Node) -> void:
-	_viewer_count_overlay = overlay
+## Sets the reference to the download-link overlay node.
+func set_download_link_overlay(overlay: Node) -> void:
+	_download_link_overlay = overlay
 
 ## Sends an acknowledgment message to the backend.
 func _send_ack(command: String, agent_id: String, success: bool) -> void:
