@@ -30,32 +30,34 @@ const DEBOUNCE_MS = 400;
 /** Periodic full rescan interval (covers cases where chokidar misses events) */
 const RESCAN_INTERVAL_MS = 15_000;
 
-export type ActivitySnapshot = {
-  type: ActivityType;
+/** State of a single Claude Code session or sub-agent. */
+export type SessionActivity = {
+  /** Unique agent ID — the sessionId for main sessions, the sub-agent's own id for sidechains. */
+  agentId: string;
+  /** Parent session's ID. For main sessions this equals agentId; for sidechains it's the parent. */
+  sessionId: string;
+  isSidechain: boolean;
+  parentSessionId: string | null;
+  activity: ActivityType;
   contextPercentage: number;
-  /**
-   * ID of the Claude Code session currently driving the activity, or null
-   * if no session is active. Used by the event client to derive a
-   * deterministic display name (generateName(sessionId)) — same logic as
-   * the main CLI.
-   */
-  sessionId: string | null;
-  /** Accumulated input tokens for the driving session (for leaderboard). */
   totalInputTokens: number;
-  /** Accumulated output tokens for the driving session. */
   totalOutputTokens: number;
-  /** Accumulated sycophancy count for the driving session. */
   sycophancyCount: number;
 };
 
-export type ActivityListener = (snapshot: ActivitySnapshot) => void;
+/** Snapshot of all currently active sessions. Empty array means no active work. */
+export type WatcherSnapshot = {
+  sessions: SessionActivity[];
+};
+
+export type ActivityListener = (snapshot: WatcherSnapshot) => void;
 
 export class SessionWatcher {
   private claudeDir: string;
   private watcher: chokidar.FSWatcher | null = null;
   private debounceTimer: NodeJS.Timeout | null = null;
   private rescanInterval: NodeJS.Timeout | null = null;
-  private lastSnapshot: ActivitySnapshot | null = null;
+  private lastSnapshot: WatcherSnapshot | null = null;
   private listeners: ActivityListener[] = [];
   private isRefreshing = false;
   private refreshPending = false;
@@ -130,17 +132,10 @@ export class SessionWatcher {
   }
 
   /**
-   * Returns the most recent snapshot — or an idle one if no sessions exist.
+   * Returns the most recent snapshot — or an empty one if nothing has been observed yet.
    */
-  getSnapshot(): ActivitySnapshot {
-    return this.lastSnapshot ?? {
-      type: 'idle',
-      contextPercentage: 0,
-      sessionId: null,
-      totalInputTokens: 0,
-      totalOutputTokens: 0,
-      sycophancyCount: 0,
-    };
+  getSnapshot(): WatcherSnapshot {
+    return this.lastSnapshot ?? { sessions: [] };
   }
 
   private async refresh(): Promise<void> {
@@ -152,14 +147,7 @@ export class SessionWatcher {
 
     try {
       const snapshot = await this.computeSnapshot();
-      const changed =
-        !this.lastSnapshot ||
-        this.lastSnapshot.type !== snapshot.type ||
-        this.lastSnapshot.contextPercentage !== snapshot.contextPercentage ||
-        this.lastSnapshot.sessionId !== snapshot.sessionId ||
-        this.lastSnapshot.totalInputTokens !== snapshot.totalInputTokens ||
-        this.lastSnapshot.totalOutputTokens !== snapshot.totalOutputTokens ||
-        this.lastSnapshot.sycophancyCount !== snapshot.sycophancyCount;
+      const changed = !this.lastSnapshot || snapshotsDiffer(this.lastSnapshot, snapshot);
 
       this.lastSnapshot = snapshot;
 
@@ -181,75 +169,71 @@ export class SessionWatcher {
     }
   }
 
-  private async computeSnapshot(): Promise<ActivitySnapshot> {
+  private async computeSnapshot(): Promise<WatcherSnapshot> {
     let allSessions;
     try {
       allSessions = await getAllSessions();
     } catch {
-      return {
-        type: 'idle',
-        contextPercentage: 0,
-        sessionId: null,
-        totalInputTokens: 0,
-        totalOutputTokens: 0,
-        sycophancyCount: 0,
-      };
+      return { sessions: [] };
     }
 
     const now = Date.now();
-    type Candidate = {
-      activity: ActivityType;
-      contextPercentage: number;
-      lastModified: number;
-      sessionId: string;
-      filePath: string;
-    };
-    const candidates: Candidate[] = [];
+    const sessions: SessionActivity[] = [];
+    const reader = getIncrementalReader();
 
     for (const [, info] of allSessions) {
       try {
         const lastModified = info.lastModified ?? (await stat(info.filePath)).mtimeMs;
         if (now - lastModified > ACTIVE_WINDOW_MS) continue;
 
+        const isSidechain = info.isSidechain ?? false;
+        const agentId = info.agentId ?? info.sessionId;
+        const parentSessionId = isSidechain ? info.sessionId : null;
+
         // readConversationTail primes the IncrementalReader's token accumulator as a side effect
         const messages = await readConversationTail(info.filePath, 60);
-        const activity = getLatestActivity(messages, lastModified, false);
+        const activity = getLatestActivity(messages, lastModified, isSidechain);
         const contextPercentage = getContextUsagePercentage(messages);
-        candidates.push({
+        const accumulated = reader.getAccumulatedTokens(info.filePath);
+        const sycophancy = reader.getAccumulatedSycophancy(info.filePath);
+
+        sessions.push({
+          agentId,
+          sessionId: info.sessionId,
+          isSidechain,
+          parentSessionId,
           activity: activity.type,
           contextPercentage,
-          lastModified,
-          sessionId: info.sessionId,
-          filePath: info.filePath,
+          totalInputTokens: accumulated.input_tokens,
+          totalOutputTokens: accumulated.output_tokens,
+          sycophancyCount: sycophancy,
         });
       } catch {
         continue;
       }
     }
 
-    if (candidates.length === 0) {
-      return {
-        type: 'idle',
-        contextPercentage: 0,
-        sessionId: null,
-        totalInputTokens: 0,
-        totalOutputTokens: 0,
-        sycophancyCount: 0,
-      };
-    }
-
-    candidates.sort((a, b) => b.lastModified - a.lastModified);
-    const best = candidates[0];
-    const reader = getIncrementalReader();
-    const accumulated = reader.getAccumulatedTokens(best.filePath);
-    const sycophancy = reader.getAccumulatedSycophancy(best.filePath);
-    return {
-      type: best.activity,
-      contextPercentage: best.contextPercentage,
-      sessionId: best.sessionId,
-      totalInputTokens: accumulated.input_tokens,
-      totalOutputTokens: accumulated.output_tokens,
-      sycophancyCount: sycophancy,
-    };
+    return { sessions };
   }
+}
+
+function snapshotsDiffer(a: WatcherSnapshot, b: WatcherSnapshot): boolean {
+  if (a.sessions.length !== b.sessions.length) return true;
+  const byId = new Map(a.sessions.map((s) => [s.agentId, s]));
+  for (const curr of b.sessions) {
+    const prev = byId.get(curr.agentId);
+    if (
+      !prev ||
+      prev.activity !== curr.activity ||
+      prev.contextPercentage !== curr.contextPercentage ||
+      prev.totalInputTokens !== curr.totalInputTokens ||
+      prev.totalOutputTokens !== curr.totalOutputTokens ||
+      prev.sycophancyCount !== curr.sycophancyCount ||
+      prev.isSidechain !== curr.isSidechain ||
+      prev.parentSessionId !== curr.parentSessionId
+    ) {
+      return true;
+    }
+  }
+  return false;
 }

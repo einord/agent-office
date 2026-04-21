@@ -3,8 +3,8 @@
  * and the EventClient (talks to the server), with a small reconnect/heartbeat loop.
  */
 
-import { EventClient, type EventActivity } from './client.js';
-import { SessionWatcher, type ActivitySnapshot } from './session-watcher.js';
+import { EventClient } from './client.js';
+import { SessionWatcher, type WatcherSnapshot, type SessionActivity } from './session-watcher.js';
 import { discoverServer } from './discovery.js';
 import { mapActivity, activityLabelSv } from './activity-mapper.js';
 
@@ -30,7 +30,6 @@ export interface EventMonitorOptions {
 export interface ConnectionStatus {
   connected: boolean;
   serverUrl: string;
-  activity: EventActivity;
   message: string;
 }
 
@@ -42,12 +41,7 @@ export class EventMonitor {
   private reconnectTimer: NodeJS.Timeout | null = null;
   private connected = false;
   private failureCount = 0;
-  private currentActivity: EventActivity = 'idle';
-  private currentContext = 0;
-  private currentSessionId: string | null = null;
-  private currentTotalInputTokens = 0;
-  private currentTotalOutputTokens = 0;
-  private currentSycophancyCount = 0;
+  private currentSessions: SessionActivity[] = [];
   private stopped = false;
 
   constructor(opts: EventMonitorOptions) {
@@ -61,13 +55,7 @@ export class EventMonitor {
     await this.watcher.start();
 
     // Pick up whatever the watcher saw during start()
-    const initial = this.watcher.getSnapshot();
-    this.currentActivity = mapActivity(initial.type);
-    this.currentContext = initial.contextPercentage;
-    this.currentSessionId = initial.sessionId;
-    this.currentTotalInputTokens = initial.totalInputTokens;
-    this.currentTotalOutputTokens = initial.totalOutputTokens;
-    this.currentSycophancyCount = initial.sycophancyCount;
+    this.currentSessions = this.watcher.getSnapshot().sessions;
 
     await this.connectLoop();
 
@@ -90,17 +78,12 @@ export class EventMonitor {
     }
     this.watcher.stop();
     if (this.connected) {
-      await this.client.removeAgent();
+      await this.client.removeAllAgents();
     }
   }
 
-  private handleSnapshot(snap: ActivitySnapshot): void {
-    this.currentActivity = mapActivity(snap.type);
-    this.currentContext = snap.contextPercentage;
-    this.currentSessionId = snap.sessionId;
-    this.currentTotalInputTokens = snap.totalInputTokens;
-    this.currentTotalOutputTokens = snap.totalOutputTokens;
-    this.currentSycophancyCount = snap.sycophancyCount;
+  private handleSnapshot(snap: WatcherSnapshot): void {
+    this.currentSessions = snap.sessions;
     this.pushActivity().catch(() => {
       // Failures schedule a reconnect via the catch in pushActivity
     });
@@ -109,17 +92,7 @@ export class EventMonitor {
   private async pushActivity(): Promise<void> {
     if (this.stopped) return;
     try {
-      await this.client.ensureAgent(
-        this.currentActivity,
-        this.currentContext,
-        this.currentSessionId,
-        0,
-        {
-          totalInputTokens: this.currentTotalInputTokens,
-          totalOutputTokens: this.currentTotalOutputTokens,
-          sycophancyCount: this.currentSycophancyCount,
-        },
-      );
+      await this.client.syncSessions(this.currentSessions);
       this.markConnected();
     } catch (err) {
       this.markDisconnected(err);
@@ -129,18 +102,8 @@ export class EventMonitor {
   private async sendHeartbeat(): Promise<void> {
     if (this.stopped) return;
     try {
-      // Re-assert activity (catches server restarts that lose the agent)
-      await this.client.ensureAgent(
-        this.currentActivity,
-        this.currentContext,
-        this.currentSessionId,
-        0,
-        {
-          totalInputTokens: this.currentTotalInputTokens,
-          totalOutputTokens: this.currentTotalOutputTokens,
-          sycophancyCount: this.currentSycophancyCount,
-        },
-      );
+      // Re-sync (catches server restarts that lose agents)
+      await this.client.syncSessions(this.currentSessions);
       this.markConnected();
     } catch (err) {
       this.markDisconnected(err);
@@ -152,15 +115,28 @@ export class EventMonitor {
     this.connected = true;
     this.failureCount = 0;
 
-    const statusDetail = this.currentSessionId
-      ? `Aktivitet: ${activityLabelSv(this.currentActivity)}.`
+    const mainSession = this.pickMainSession();
+    const statusDetail = mainSession
+      ? `Aktivitet: ${activityLabelSv(mapActivity(mainSession.activity))}.`
       : 'Väntar på att du startar Claude Code.';
 
+    const subCount = this.currentSessions.filter((s) => s.isSidechain).length;
+    const subDetail = subCount > 0 ? ` (${subCount} underagent${subCount === 1 ? '' : 'er'})` : '';
+
     if (wasConnected) {
-      this.emitStatus(`Ansluten. ${statusDetail}`);
+      this.emitStatus(`Ansluten. ${statusDetail}${subDetail}`);
     } else {
-      this.emitStatus(`Ansluten som ${this.client.getDisplayName()}. ${statusDetail}`);
+      this.emitStatus(`Ansluten som ${this.client.getDisplayName()}. ${statusDetail}${subDetail}`);
     }
+  }
+
+  private pickMainSession(): SessionActivity | null {
+    // Sort deterministically (by agentId) so the status line doesn't flicker
+    // when the underlying session order isn't stable across snapshots.
+    const mains = this.currentSessions
+      .filter((s) => !s.isSidechain)
+      .sort((a, b) => a.agentId.localeCompare(b.agentId));
+    return mains.length > 0 ? mains[0] : null;
   }
 
   private markDisconnected(err: unknown): void {
@@ -175,7 +151,6 @@ export class EventMonitor {
     this.onStatusChange({
       connected: this.connected,
       serverUrl: this.client.getServerUrl(),
-      activity: this.currentActivity,
       message,
     });
   }
@@ -205,17 +180,7 @@ export class EventMonitor {
     }
 
     try {
-      await this.client.ensureAgent(
-        this.currentActivity,
-        this.currentContext,
-        this.currentSessionId,
-        0,
-        {
-          totalInputTokens: this.currentTotalInputTokens,
-          totalOutputTokens: this.currentTotalOutputTokens,
-          sycophancyCount: this.currentSycophancyCount,
-        },
-      );
+      await this.client.syncSessions(this.currentSessions);
       this.markConnected();
     } catch (err) {
       this.markDisconnected(err);

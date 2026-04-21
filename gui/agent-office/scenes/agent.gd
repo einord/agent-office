@@ -606,3 +606,8 @@ func play_named_animation(anim_name: String) -> void:
 ## Returns the currently playing animation name on the AnimationPlayer.
 func get_animation_name() -> String:
 	return _anim_player.current_animation
+
+## Returns the playhead position (seconds) of the current named animation.
+## Used by idle actions that need to sync game logic to animation boundaries.
+func get_animation_position() -> float:
+	return _anim_player.get_current_animation_position()

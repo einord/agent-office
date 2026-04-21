@@ -5,13 +5,13 @@ enum Phase { WALKING_TO_CASTLE, BOUNCING }
 
 ## Radius (in world-pixels) within which the agent hops around the castle marker.
 const BOUNCE_RADIUS := 16.0
-## How long to linger at a hop destination before picking the next one.
-## Small value keeps the agent moving; larger values make them pause.
-const LINGER_AT_SPOT := 0.3
 
 var _phase: Phase = Phase.WALKING_TO_CASTLE
 var _target_castle: Node2D = null
-var _linger_timer: float = 0.0
+## Last observed playhead position of the "bouncing" animation — used to detect
+## when the animation loops (position wraps back) so we can commit to one hop
+## at a time instead of turning mid-air.
+var _last_anim_pos: float = 0.0
 
 ## Starts the get_bouncy_castle action by walking to a bouncy castle.
 func start(p_agent: Node2D) -> void:
@@ -28,8 +28,11 @@ func physics_process(delta: float) -> void:
 		Phase.WALKING_TO_CASTLE:
 			if agent.navigation_agent.is_navigation_finished():
 				_phase = Phase.BOUNCING
-				_linger_timer = 0.0
 				agent.play_named_animation("bouncing")
+				_last_anim_pos = agent.get_animation_position()
+				# Kick off the first hop immediately so the agent doesn't
+				# just stand still until the animation loops back.
+				_move_to_random_spot()
 
 		Phase.BOUNCING:
 			# Keep the bounce animation playing in case something else
@@ -37,16 +40,16 @@ func physics_process(delta: float) -> void:
 			# agent.gd checks for "bouncing" before switching).
 			if agent.get_animation_name() != "bouncing":
 				agent.play_named_animation("bouncing")
+				_last_anim_pos = agent.get_animation_position()
 
-			# When we arrive at the current hop target, wait a short
-			# moment then pick the next one — gives a visible "land,
-			# then take off" rhythm while still letting the agent
-			# navigate (not teleport) between spots.
-			if agent.navigation_agent.is_navigation_finished():
-				_linger_timer -= delta
-				if _linger_timer <= 0.0:
-					_move_to_random_spot()
-					_linger_timer = LINGER_AT_SPOT
+			# Commit to the current hop until the animation finishes or
+			# loops back to the start — that way the agent never changes
+			# direction mid-air. `current_animation_position` wraps back
+			# toward 0 on loop, so a drop in value marks a cycle boundary.
+			var current_pos: float = agent.get_animation_position()
+			if current_pos < _last_anim_pos:
+				_move_to_random_spot()
+			_last_anim_pos = current_pos
 
 ## Interrupts the action and restores the agent's idle animation.
 func interrupt() -> void:

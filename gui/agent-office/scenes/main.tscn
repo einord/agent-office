@@ -3,7 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://b88kgwuugd6if" path="res://scenes/game.tscn" id="1_game"]
 [ext_resource type="Script" path="res://scenes/main.gd" id="3_main"]
 [ext_resource type="PackedScene" uid="uid://cleaderboard_overlay" path="res://scenes/leaderboard_overlay.tscn" id="5_leaderboard"]
-[ext_resource type="PackedScene" uid="uid://cdlink1evtofc" path="res://scenes/download_link.tscn" id="6_download"]
+[ext_resource type="PackedScene" uid="uid://dwffb68l08s42" path="res://scenes/download_link.tscn" id="6_download"]
 
 [node name="Main" type="Control" unique_id=52458885]
 layout_mode = 3
