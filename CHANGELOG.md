@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.1.27](https://github.com/einord/agent-office/compare/agent-office-v0.1.26...agent-office-v0.1.27) (2026-04-22)
+
+
+### Features
+
+* add bouncy_castle idle action with hop animation ([b7daee7](https://github.com/einord/agent-office/commit/b7daee778f2a10c4ea1ed6c25981c0f5ea9dcf18))
+* add get_coffee idle action alongside get_drink ([098dd8b](https://github.com/einord/agent-office/commit/098dd8b3db49c38b7c4be2502f98fb97c17e2015))
+* derive context max from the session's model (1M for Opus) ([6a193f7](https://github.com/einord/agent-office/commit/6a193f7090afc1f383a94e1b1060fe74fbaa3aa1))
+* **gui:** anchor name label at bottom-center so text grows upward ([5824da9](https://github.com/einord/agent-office/commit/5824da979fb04aa228cdfd96d9f477cd3760c84a))
+* **gui:** label scale tracks SubViewport stretch factor ([2080a6f](https://github.com/einord/agent-office/commit/2080a6f74b5ec3c62177731fb074ca24e980bdd3))
+* **gui:** tunable CONTEXT_BAR_SCALE for context usage bar ([b21aede](https://github.com/einord/agent-office/commit/b21aedefe1bcd67c0443bd9d42f2ecb69d808091))
+* idle actions (coffee/bouncy castle) + GUI polish ([21fc219](https://github.com/einord/agent-office/commit/21fc21962d1fdcceca3eba310ec17db54eccae83))
+
+
+### Bug Fixes
+
+* auto-detect 1M context sessions from observed usage ([72f4326](https://github.com/einord/agent-office/commit/72f432696c8afe1dc8082ebe97198b32283c44c8))
+* **backend:** count coffee mugs toward the cleaning trigger ([1b24f9b](https://github.com/einord/agent-office/commit/1b24f9b8a0760eef05dcb28009c815a9cef2b19e))
+* **gui:** bouncy-castle agents navigate between hops instead of teleporting ([fdf1879](https://github.com/einord/agent-office/commit/fdf1879097ee8864e40997ff674e7f5035b4fc6e))
+* **gui:** integer label scale — 3× for agent names, 2× for status ([8ccde97](https://github.com/einord/agent-office/commit/8ccde97fbddfd8a79afd706547e19934a4d2d794))
+* **gui:** put coffee/bouncy markers in their own node groups ([0c69c2d](https://github.com/einord/agent-office/commit/0c69c2de40481790c10fb9945f33b52d3afec539))
+
+
+### Code Refactoring
+
+* **gui:** drop DPI-based font scaling for fixed pixel-perfect sizes ([b39c0fb](https://github.com/einord/agent-office/commit/b39c0fb944efec412f2e4bbafad2dbd1299ae7ec))
+* **gui:** keep font at pixel-perfect size, scale the Label node ([6d5e17a](https://github.com/einord/agent-office/commit/6d5e17a087c4bd3031f9709ecc59384068eb6465))
+* **gui:** move context bar to UI layer with explicit scaling ([969bf1b](https://github.com/einord/agent-office/commit/969bf1b9276b701acc6860c328c61d5362423fe3))
+
+
+### Miscellaneous
+
+* **gui:** bump NAME_LABEL_SCALE to 1.0 for visibility check ([5ca55b1](https://github.com/einord/agent-office/commit/5ca55b15bfe692d000ff66801db6733d1c292988))
+* **gui:** seed random context_percentage for debug-spawn agents ([11b515a](https://github.com/einord/agent-office/commit/11b515af645a068bc2a21be2332fc24aaebee622))
+
 ## [0.1.26](https://github.com/einord/agent-office/compare/agent-office-v0.1.25...agent-office-v0.1.26) (2026-04-09)
 
 
