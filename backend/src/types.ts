@@ -21,7 +21,7 @@ export type AgentActivity =
   | 'disconnected';
 
 /** Available idle action types */
-export type IdleActionType = 'get_drink';
+export type IdleActionType = 'get_drink' | 'get_coffee' | 'bouncy_castle';
 
 /** Idle action assignment for an agent */
 export interface IdleActionAssignment {

@@ -5,6 +5,20 @@ enum AgentState { WORKING, IDLE, LEAVING }
 ## Scale factor for sidechain agents (sub-agents)
 const SIDECHAIN_SCALE := 0.7
 
+## How many world-pixels each text-pixel should occupy, independent of
+## window size. The actual label scale is this × the SubViewport's
+## stretch factor (see _update_label_position), so the label tracks the
+## same scaling as the pixel-art office. 1.0 = one text-pixel per
+## world-pixel (looks "pytteliten" in world-space but correct); 2.0, 3.0
+## etc. make the text proportionally larger than the world pixels.
+const NAME_LABEL_SCALE := Vector2(0.35, 0.35)
+
+## Size multiplier for the context usage bar. The bar already lives
+## inside the SubViewport (so it stretches with the window), so this
+## just tunes its visual size relative to the pixel-art world —
+## similar in spirit to NAME_LABEL_SCALE. 1.0 = native size.
+const CONTEXT_BAR_SCALE := Vector2(1, 1)
+
 @export var movement_speed: float = 25.0
 @export var random_range: Vector2 = Vector2(200, 200)  # Område för slumpmässiga positioner
 @export var idle_wait_min: float = 5.0  # Minimum wait time in idle state (seconds)
@@ -84,20 +98,41 @@ func _setup_name_label() -> void:
 	if font:
 		var label_settings = LabelSettings.new()
 		label_settings.font = font
-		# Smaller font for sidechain agents, with DPI scaling for high-density screens
-		var base_font_size = 22 if is_sidechain else 32
-		var base_outline_size = 6 if is_sidechain else 8
-		label_settings.font_size = DisplayManager.get_scaled_font_size(base_font_size)
+		# Axolotl is pixel-perfect at font_size 16 — never change that,
+		# otherwise the font stops rendering 1:1 and gets fuzzy. To make
+		# the label visually smaller we scale the whole Label node below
+		# (NAME_LABEL_SCALE), so one text-pixel maps onto exactly
+		# scale × world-pixels. outline_size 2 cancels out to 1 after scale.
+		label_settings.font_size = 16
 		label_settings.outline_color = Color.BLACK
-		label_settings.outline_size = DisplayManager.get_scaled_size(base_outline_size)
+		label_settings.outline_size = 1
 		_name_label.label_settings = label_settings
+		# Actual label scale is applied each frame in _update_label_position
+		# so it tracks the SubViewport's stretch factor with the window.
 
 	_ui_layer.add_child(_name_label)
 
-	# Create context progress bar (background + fill)
+	# Reparent the context bar to the UI layer so it follows the same
+	# explicit-scale-and-position logic as the name label (instead of
+	# being subject to the tscn's anchor layout inside the SubViewport).
+	if _context_bar.get_parent():
+		_context_bar.get_parent().remove_child(_context_bar)
+	_ui_layer.add_child(_context_bar)
+	# Strip anchor behavior — we position it explicitly each frame.
+	_context_bar.anchor_left = 0
+	_context_bar.anchor_top = 0
+	_context_bar.anchor_right = 0
+	_context_bar.anchor_bottom = 0
+	_context_bar.offset_left = 0
+	_context_bar.offset_top = 0
+	_context_bar.offset_right = 0
+	_context_bar.offset_bottom = 0
+	# Max size in world-pixels (width = 100% bar, height = bar thickness)
+	_context_bar.size = Vector2(14, 0.5)
 	_context_bar_init_length = _context_bar.size.x
 	_context_bar.color = Color(0.2, 0.8, 0.2)
 	_context_bar.size.x = 0
+	# Scale & position applied every frame in _update_label_position.
 
 ## Returns the formatted label text with display name and optional user name.
 ## Sidechain agents get "jr" suffix.
@@ -112,9 +147,13 @@ func _get_label_text() -> String:
 func _exit_tree() -> void:
 	# Clean up idle action
 	_interrupt_idle_action()
-	# Clean up UI elements when agent is removed
+	# Clean up UI elements when agent is removed — they live in the UI
+	# layer (reparented during setup) so they don't free automatically
+	# when the agent node is removed from its own tree.
 	if _name_label and is_instance_valid(_name_label):
 		_name_label.queue_free()
+	if _context_bar and is_instance_valid(_context_bar):
+		_context_bar.queue_free()
 
 func set_movement_target(movement_target: Vector2):
 	navigation_agent.set_target_position(movement_target)
@@ -151,6 +190,18 @@ func change_state(new_state: AgentState) -> void:
 		_idle_grace_timer = idle_grace_period
 		return
 
+	_exit_state(current_state)
+	current_state = new_state
+	_enter_state(new_state)
+
+## Forces an immediate state change, bypassing the grace period.
+## Used by test keyboard shortcuts (1/2 keys) so the developer sees
+## instant feedback instead of waiting 5 s for the grace timer.
+func force_state(new_state: AgentState) -> void:
+	_is_idle_grace_waiting = false
+	_idle_grace_timer = 0.0
+	if current_state == new_state:
+		return
 	_exit_state(current_state)
 	current_state = new_state
 	_enter_state(new_state)
@@ -304,16 +355,41 @@ func _update_label_position() -> void:
 	# Convert agent position to screen position
 	var screen_pos = global_position * scale_factor + container_offset
 
-	# Offset label above the agent sprite
+	# Offset label above the agent sprite (constant in world-space)
 	var label_offset = Vector2(0, -12) * scale_factor
 
-	# Center the label horizontally and round to nearest pixel
-	var final_pos
+	# Apply the same stretch factor to the label so one text-pixel maps to
+	# NAME_LABEL_SCALE world-pixels regardless of window size.
+	_name_label.scale = scale_factor * NAME_LABEL_SCALE
+
+	# Anchor point: where the label's visual bottom-center should sit.
+	# Pinning the bottom (instead of the top-left) means the text grows
+	# upward when the scale increases — the gap above the agent's head
+	# stays constant regardless of font or scale changes.
+	var target = screen_pos + label_offset
 	if is_sidechain:
-		final_pos = screen_pos + label_offset - Vector2(_name_label.size.x / 2, 0) + Vector2(0, 50)  # Slightly lower for sidechain agents
-	else:
-		final_pos = screen_pos + label_offset - Vector2(_name_label.size.x / 2, 0) # Center horizontally
-	_name_label.position = final_pos.round()
+		target += Vector2(0, 50)  # Slightly lower for sidechain agents
+
+	# pivot_offset is in the node's unscaled local coords; bottom-center
+	# is (size.x/2, size.y). Scale transforms around this pivot, so the
+	# visual bottom-center equals `position + pivot_offset`.
+	_name_label.pivot_offset = Vector2(_name_label.size.x / 2, _name_label.size.y)
+	_name_label.position = (target - _name_label.pivot_offset).round()
+
+	# Context bar: scaled the same way as the label, positioned just
+	# below the label's bottom. Pivot = center so the bar grows from
+	# the middle as the fill percentage changes (instead of off to one
+	# side), which keeps it visually centered above the agent.
+	if _context_bar:
+		_context_bar.scale = scale_factor * CONTEXT_BAR_SCALE
+		# Bar center sits right at the label's bottom edge (gap 0 world-px)
+		# so the bar appears tucked directly under the name. Tune this Y
+		# offset if you want a bit of breathing room.
+		var bar_target = target + Vector2(0, 0) * scale_factor
+		_context_bar.pivot_offset = _context_bar.size / 2
+		# Visual center = position + pivot_offset (scale cancels since
+		# center_local == pivot_offset), so position = target - pivot.
+		_context_bar.position = (bar_target - _context_bar.pivot_offset).round()
 
 	# Position progress bar below the label
 	_context_bar.size.x = _context_bar_init_length * (context_percentage / 100.0)
@@ -336,8 +412,9 @@ func _physics_process(delta):
 				and current_anim != "chair_up" and current_anim != "chair_down":
 			if current_anim != "typing":
 				_anim_player.play("typing")
-		# Only play standing when not sitting and not during chair transition
-		elif not _is_sitting and current_anim != "chair_up" and current_anim != "chair_down":
+		# Only play standing when not sitting and not during chair transition.
+		# Bouncing is driven by an idle-action handler, so don't clobber it.
+		elif not _is_sitting and current_anim != "chair_up" and current_anim != "chair_down" and current_anim != "bouncing":
 			if current_anim != "standing":
 				_anim_player.play("standing")
 
@@ -411,13 +488,14 @@ func _on_velocity_computed(safe_velocity: Vector2) -> void:
 		elif safe_velocity.y >= 0.0 and animation != &"down":
 			play(&"down")
 
-	# Play walking animation when moving (unless sitting in a chair)
+	# Play walking animation when moving (unless sitting in a chair).
+	# Don't overwrite a custom idle-action animation like "bouncing".
 	if not _is_sitting:
 		if safe_velocity.length() > 0.1:
-			if _anim_player.current_animation != "walking":
+			if _anim_player.current_animation != "walking" and _anim_player.current_animation != "bouncing":
 				_anim_player.play("walking")
 		else:
-			if _anim_player.current_animation != "standing":
+			if _anim_player.current_animation != "standing" and _anim_player.current_animation != "bouncing":
 				_anim_player.play("standing")
 
 	global_position = global_position.move_toward(global_position + safe_velocity, movement_delta)
@@ -503,6 +581,12 @@ func _start_idle_action() -> void:
 		"get_drink":
 			_idle_action_handler = GetDrinkAction.new()
 			_idle_action_handler.start(self)
+		"get_coffee":
+			_idle_action_handler = GetCoffeeAction.new()
+			_idle_action_handler.start(self)
+		"bouncy_castle":
+			_idle_action_handler = GetBouncyCastleAction.new()
+			_idle_action_handler.start(self)
 		_:
 			push_warning("Unknown idle action type: " + str(action_type))
 
@@ -512,3 +596,13 @@ func _interrupt_idle_action() -> void:
 		_idle_action_handler.interrupt()
 		_idle_action_handler = null
 	_pending_idle_action = null
+
+## Plays a named animation on the AnimationPlayer. Used by idle actions
+## that need a custom offset animation (e.g. bouncing on the castle).
+func play_named_animation(anim_name: String) -> void:
+	if _anim_player.has_animation(anim_name):
+		_anim_player.play(anim_name)
+
+## Returns the currently playing animation name on the AnimationPlayer.
+func get_animation_name() -> String:
+	return _anim_player.current_animation

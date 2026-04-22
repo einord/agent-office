@@ -4,6 +4,7 @@ import { homedir } from 'os';
 import { createReadStream } from 'fs';
 import { createInterface } from 'readline';
 import type { SessionIndex, ConversationMessage, TokenUsage } from '../types.js';
+import { MAX_CONTEXT_TOKENS, MAX_CONTEXT_TOKENS_1M } from '../types.js';
 import { getIncrementalReader } from './incremental-reader.js';
 
 /** Default claude directory path */
@@ -221,6 +222,53 @@ export function getContextWindowUsage(messages: ConversationMessage[]): number {
     }
   }
   return 0;
+}
+
+/**
+ * Reads the Claude model ID from the most recent assistant message, or
+ * returns undefined if no assistant response exists yet in the tail.
+ */
+export function getModelFromMessages(messages: ConversationMessage[]): string | undefined {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const model = messages[i].message?.model;
+    if (model) return model;
+  }
+  return undefined;
+}
+
+/**
+ * Resolves the max context window (tokens) for a Claude session.
+ *
+ * Claude Code writes the model ID to jsonl without the tier suffix
+ * (e.g. `claude-opus-4-7`, not `claude-opus-4-7[1m]`), so we can't
+ * tell a Pro-plan 200k-Opus session apart from a Max-plan 1M-Opus
+ * session by model ID alone. Instead we also peek at actual usage:
+ * if we've already seen more than 200k tokens in this session it
+ * must be running on a 1M-context tier — otherwise the API call
+ * would have rejected it. Until then we assume the default 200k.
+ *
+ * Explicit "1m" markers in the model ID (some SKUs do carry one)
+ * are also respected.
+ *
+ * @param model - The model ID from the latest assistant message
+ * @param observedTokens - The highest context-window usage seen so
+ *   far in this session, in tokens
+ */
+export function getMaxContextTokens(model: string | undefined, observedTokens: number = 0): number {
+  if (model && model.toLowerCase().includes('1m')) return MAX_CONTEXT_TOKENS_1M;
+  if (observedTokens > MAX_CONTEXT_TOKENS) return MAX_CONTEXT_TOKENS_1M;
+  return MAX_CONTEXT_TOKENS;
+}
+
+/**
+ * Convenience: computes context-window usage percentage against the
+ * correct max for the session (auto-detected from usage, see
+ * getMaxContextTokens).
+ */
+export function getContextUsagePercentage(messages: ConversationMessage[]): number {
+  const tokens = getContextWindowUsage(messages);
+  const max = getMaxContextTokens(getModelFromMessages(messages), tokens);
+  return Math.round((tokens / max) * 100);
 }
 
 /**
